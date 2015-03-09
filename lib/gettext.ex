@@ -1,0 +1,2 @@
+defmodule Gettext do
+end
