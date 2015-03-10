@@ -4,6 +4,10 @@ defmodule Gettext.PO.Tokenizer do
   # This module is responsible for turning a chunk of text (a string) into a
   # list of tokens. For what "token" means, see the docs for `tokenize/1`.
 
+  @type token ::
+    {:keyword, pos_integer, atom} |
+    {:string, pos_integer, binary}
+
   alias Gettext.PO.SyntaxError
   alias Gettext.PO.TokenMissingError
 
@@ -28,12 +32,14 @@ defmodule Gettext.PO.Tokenizer do
     * `{:string, 6, "foo"}`
 
   """
+  @spec tokenize(binary) :: [token]
   def tokenize(str) do
     tokenize_line(str, 1, [])
   end
 
   # Converts the first line in `str` into a list of tokens and then moves on to
   # the next line.
+  @spec tokenize_line(binary, pos_integer, [token]) :: [token]
   defp tokenize_line(str, line, acc)
 
   # Go to the next line.
@@ -74,8 +80,9 @@ defmodule Gettext.PO.Tokenizer do
   # line, contents}` token. Note that `str` doesn't start with a double quote
   # (since that was needed to identify the start of a string). Returns a tuple
   # with the contents of the string and the rest of the original `str` (note
-  # that the rest  of the original string doesn't include the closing double
+  # that the rest of the original string doesn't include the closing double
   # quote).
+  @spec tokenize_string(binary, pos_integer, binary) :: {token, binary}
   defp tokenize_string(str, line, acc)
 
   defp tokenize_string(<<?", rest :: binary>>, _line, acc),
