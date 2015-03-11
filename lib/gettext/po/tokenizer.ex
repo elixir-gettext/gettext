@@ -42,13 +42,25 @@ defmodule Gettext.PO.Tokenizer do
   @spec tokenize_line(binary, pos_integer, [token]) :: [token]
   defp tokenize_line(str, line, acc)
 
+  # End of file.
+  defp tokenize_line(<<>>, _line, acc) do
+    Enum.reverse acc
+  end
+
   # Go to the next line.
   defp tokenize_line(<<?\n, rest :: binary>>, line, acc) do
     tokenize_line(rest, line + 1, acc)
   end
 
   # Skip whitespace.
-  defp tokenize_line(<<char, rest :: binary>>, line, acc) when char in @whitespace_no_nl do
+  defp tokenize_line(<<char, rest :: binary>>, line, acc)
+      when char in @whitespace_no_nl do
+    tokenize_line(rest, line, acc)
+  end
+
+  # Comments.
+  defp tokenize_line(<<?#, rest :: binary>>, line, acc) do
+    {_comment_contents, rest} = to_eol_or_eof(rest, "")
     tokenize_line(rest, line, acc)
   end
 
@@ -67,13 +79,8 @@ defmodule Gettext.PO.Tokenizer do
 
   # String start.
   defp tokenize_line(<<?", rest :: binary>>, line, acc) do
-    {str, rest} = tokenize_string(rest, line, "")
-    tokenize_line(rest, line, [{:string, line, str}|acc])
-  end
-
-  # End of file.
-  defp tokenize_line(<<>>, _line, acc) do
-    Enum.reverse acc
+    {token, rest} = tokenize_string(rest, line, "")
+    tokenize_line(rest, line, [token|acc])
   end
 
   # Parses the double-quotes-delimited string `str` into a single `{:string,
@@ -85,8 +92,8 @@ defmodule Gettext.PO.Tokenizer do
   @spec tokenize_string(binary, pos_integer, binary) :: {token, binary}
   defp tokenize_string(str, line, acc)
 
-  defp tokenize_string(<<?", rest :: binary>>, _line, acc),
-    do: {acc, rest}
+  defp tokenize_string(<<?", rest :: binary>>, line, acc),
+    do: {{:string, line, acc}, rest}
   defp tokenize_string(<<?\\, char, rest :: binary>>, line, acc)
     when char in @escapable_chars,
     do: tokenize_string(rest, line, <<acc :: binary, escape_char(char)>>)
@@ -105,4 +112,12 @@ defmodule Gettext.PO.Tokenizer do
   defp escape_char(?r), do: ?\r
   defp escape_char(?"), do: ?"
   defp escape_char(?\\), do: ?\\
+
+  @spec to_eol_or_eof(binary, binary) :: {binary, binary}
+  defp to_eol_or_eof(<<?\n, _ :: binary>> = rest, acc),
+    do: {acc, rest}
+  defp to_eol_or_eof(<<>>, acc),
+    do: {acc, ""}
+  defp to_eol_or_eof(<<char, rest :: binary>>, acc),
+    do: to_eol_or_eof(rest, <<acc :: binary, char>>)
 end

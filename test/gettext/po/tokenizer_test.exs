@@ -90,4 +90,34 @@ defmodule Gettext.PO.TokenizerTest do
       {:string, 2, "bar"},
     ]
   end
+
+  test "single-line comments are ignored" do
+    str = "# Single-line comment"
+    assert tokenize(str) == []
+
+    str = "#; Single-line non-whitespace comment"
+    assert tokenize(str) == []
+
+    str = "\t\t  # A comment"
+    assert tokenize(str) == []
+  end
+
+  test "multi-line comments are ignored" do
+    str = ~S"""
+    # Multiline comment
+      #, badly indented,
+      #: with weird chåracters
+    """
+    assert tokenize(str) == []
+
+    str = ~S"""
+    # Multiline comment with
+    msgid "a string"
+    # in it.
+    """
+    assert tokenize(str) == [
+      {:keyword, 2, :msgid},
+      {:string, 2, "a string"},
+    ]
+  end
 end
