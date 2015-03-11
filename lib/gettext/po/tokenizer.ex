@@ -87,18 +87,22 @@ defmodule Gettext.PO.Tokenizer do
 
   defp tokenize_string(<<?", rest :: binary>>, _line, acc),
     do: {acc, rest}
-  defp tokenize_string(<<?\\, ?n, rest :: binary>>, line, acc),
-    do: tokenize_string(rest, line, <<acc :: binary, ?\n>>)
-  defp tokenize_string(<<?\\, ?t, rest :: binary>>, line, acc),
-    do: tokenize_string(rest, line, <<acc :: binary, ?\t>>)
-  defp tokenize_string(<<?\\, ?", rest :: binary>>, line, acc),
-    do: tokenize_string(rest, line, <<acc :: binary, ?">>)
-  defp tokenize_string(<<?\\, ?\\, rest :: binary>>, line, acc),
-    do: tokenize_string(rest, line, <<acc :: binary, ?\\>>)
+  defp tokenize_string(<<?\\, char, rest :: binary>>, line, acc)
+    when char in @escapable_chars,
+    do: tokenize_string(rest, line, <<acc :: binary, escape_char(char)>>)
+  defp tokenize_string(<<?\\, _char, _rest :: binary>>, line, _acc),
+    do: raise(SyntaxError, line: line, message: "unsupported escape code")
   defp tokenize_string(<<?\n, _rest :: binary>>, line, _acc),
     do: raise(SyntaxError, line: line, message: "newline in string")
   defp tokenize_string(<<char, rest :: binary>>, line, acc),
     do: tokenize_string(rest, line, <<acc :: binary, char>>)
   defp tokenize_string(<<>>, line, _acc),
     do: raise(TokenMissingError, line: line, token: ~s("))
+
+  @spec escape_char(char) :: char
+  defp escape_char(?n), do: ?\n
+  defp escape_char(?t), do: ?\t
+  defp escape_char(?r), do: ?\r
+  defp escape_char(?"), do: ?"
+  defp escape_char(?\\), do: ?\\
 end

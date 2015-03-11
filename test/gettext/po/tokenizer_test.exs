@@ -37,6 +37,14 @@ defmodule Gettext.PO.TokenizerTest do
   test "escape characters in strings" do
     str = ~S("foo,\nbar\tbaz\\")
     assert tokenize(str) == [{:string, 1, "foo,\nbar\tbaz\\"}]
+
+    str = ~S("fo\ø")
+    msg = "invalid syntax on line 1: unsupported escape code"
+    assert_raise SyntaxError, msg, fn -> tokenize(str) end
+
+    str = ~S("\ foo")
+    msg = "invalid syntax on line 1: unsupported escape code"
+    assert_raise SyntaxError, msg, fn -> tokenize(str) end
   end
 
   test "strings on multiple lines" do
