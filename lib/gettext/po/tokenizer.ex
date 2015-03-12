@@ -67,7 +67,7 @@ defmodule Gettext.PO.Tokenizer do
   # Keywords.
   for kw <- @keywords do
     defp tokenize_line(unquote(kw) <> <<char, rest :: binary>>, line, acc)
-        when char in unquote(@whitespace) do
+        when char in @whitespace do
       acc = [{:keyword, line, unquote(String.to_atom(kw))}|acc]
       tokenize_line(rest, line, acc)
     end
