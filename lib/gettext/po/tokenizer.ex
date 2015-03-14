@@ -5,8 +5,9 @@ defmodule Gettext.PO.Tokenizer do
   # list of tokens. For what "token" means, see the docs for `tokenize/1`.
 
   @type token ::
-    {:keyword, pos_integer, atom} |
-    {:string, pos_integer, binary}
+    {:string, pos_integer, binary} |
+    {:msgid, pos_integer} |
+    {:msgstr, pos_integer}
 
   alias Gettext.PO.SyntaxError
   alias Gettext.PO.TokenMissingError
@@ -20,15 +21,16 @@ defmodule Gettext.PO.Tokenizer do
   @doc """
   Converts a string into a list of tokens.
 
-  A "token" is a three elements tuple formed by:
+  A "token" is a tuple formed by:
 
-    * the type of the token (an atom like `:keyword` or `:string`)
+    * the `:string` tag or a keyword tag (like `:msgid`)
     * the line the token is at
-    * the value of the token
+    * the value of the token if the token has a value (for example, a `:string`
+      token will have the contents of the string as a value)
 
   Some examples of tokens are:
 
-    * `{:keyword, 33, :msgid}`
+    * `{:msgid, 33}`
     * `{:string, 6, "foo"}`
 
   """
@@ -68,7 +70,7 @@ defmodule Gettext.PO.Tokenizer do
   for kw <- @keywords do
     defp tokenize_line(unquote(kw) <> <<char, rest :: binary>>, line, acc)
         when char in @whitespace do
-      acc = [{:keyword, line, unquote(String.to_atom(kw))}|acc]
+      acc = [{unquote(String.to_atom(kw)), line}|acc]
       tokenize_line(rest, line, acc)
     end
 

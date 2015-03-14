@@ -8,14 +8,14 @@ defmodule Gettext.PO.TokenizerTest do
   test "keywords" do
     str = "msgid msgstr "
     assert tokenize(str) == [
-      {:keyword, 1, :msgid},
-      {:keyword, 1, :msgstr},
+      {:msgid, 1},
+      {:msgstr, 1},
     ]
 
     str = "    msgid      msgstr  "
     assert tokenize(str) == [
-      {:keyword, 1, :msgid},
-      {:keyword, 1, :msgstr},
+      {:msgid, 1},
+      {:msgstr, 1},
     ]
   end
 
@@ -84,9 +84,9 @@ defmodule Gettext.PO.TokenizerTest do
     """
 
     assert tokenize(str) == [
-      {:keyword, 1, :msgid},
+      {:msgid, 1},
       {:string, 1, "foo"},
-      {:keyword, 2, :msgstr},
+      {:msgstr, 2},
       {:string, 2, "bar"},
     ]
   end
@@ -116,7 +116,7 @@ defmodule Gettext.PO.TokenizerTest do
     # in it.
     """
     assert tokenize(str) == [
-      {:keyword, 2, :msgid},
+      {:msgid, 2},
       {:string, 2, "a string"},
     ]
   end
