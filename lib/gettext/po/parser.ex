@@ -11,18 +11,12 @@ defmodule Gettext.PO.Parser do
   """
   def parse(tokens) do
     case :gettext_po_parser.parse(tokens) do
-      {:ok, translations} -> Enum.map(translations, &convert_to_struct/1)
+      {:ok, translations} -> Enum.map(translations, &to_struct/1)
       {:error, _}         -> raise "syntax error"
     end
   end
 
-  defp convert_to_struct({:translation, {{:msgid, _}, msgid}, {{:msgstr, _}, msgstr}}) do
-    %Translation{msgid: concat(msgid), msgstr: concat(msgstr)}
-  end
-
-  defp concat(strings) do
-    Enum.reduce strings, "", fn({:string, _line, string}, acc) ->
-      acc <> string
-    end
+  defp to_struct(translation) do
+    Map.put(translation, :__struct__, Translation)
   end
 end

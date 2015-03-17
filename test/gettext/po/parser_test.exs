@@ -35,4 +35,13 @@ defmodule Gettext.PO.ParserTest do
       %Translation{msgid: "word", msgstr: "parola"},
     ]
   end
+
+  test "parse/1 with unicode characters in the strings" do
+    parsed = parse([
+      {:msgid, 1}, {:string, 1, "føø"},
+      {:msgstr, 2}, {:string, 2, "bårπ"},
+    ])
+
+    assert parsed == [%Translation{msgid: "føø", msgstr: "bårπ"}]
+  end
 end
