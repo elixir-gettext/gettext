@@ -47,9 +47,12 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "syntax error when there is no 'msgid'" do
-    tokens = [{:msgstr, 1}, {:string, 1, "foo"}]
     assert_raise SyntaxError, fn ->
-      Parser.parse(tokens)
+      Parser.parse [{:msgstr, 1}, {:string, 1, "foo"}]
+    end
+
+    assert_raise SyntaxError, fn ->
+      Parser.parse [{:string, 1, "foo"}]
     end
   end
 end
