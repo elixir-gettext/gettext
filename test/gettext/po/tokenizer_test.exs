@@ -31,12 +31,12 @@ defmodule Gettext.PO.TokenizerTest do
 
   test "single simple string" do
     str = ~s("foo bar")
-    assert tokenize(str) == [{:string, 1, "foo bar"}]
+    assert tokenize(str) == [{:str, 1, "foo bar"}]
   end
 
   test "escape characters in strings" do
     str = ~S("foo,\nbar\tbaz\\")
-    assert tokenize(str) == [{:string, 1, "foo,\nbar\tbaz\\"}]
+    assert tokenize(str) == [{:str, 1, "foo,\nbar\tbaz\\"}]
 
     str = ~S("fo\ø")
     msg = "invalid syntax on line 1: unsupported escape code"
@@ -55,9 +55,9 @@ defmodule Gettext.PO.TokenizerTest do
     """
 
     assert tokenize(str) == [
-      {:string, 1, "foo"},
-      {:string, 2, "bar with \"quotes\""},
-      {:string, 3, "bong"},
+      {:str, 1, "foo"},
+      {:str, 2, "bar with \"quotes\""},
+      {:str, 3, "bong"},
     ]
   end
 
@@ -85,9 +85,9 @@ defmodule Gettext.PO.TokenizerTest do
 
     assert tokenize(str) == [
       {:msgid, 1},
-      {:string, 1, "foo"},
+      {:str, 1, "foo"},
       {:msgstr, 2},
-      {:string, 2, "bar"},
+      {:str, 2, "bar"},
     ]
   end
 
@@ -117,7 +117,7 @@ defmodule Gettext.PO.TokenizerTest do
     """
     assert tokenize(str) == [
       {:msgid, 2},
-      {:string, 2, "a string"},
+      {:str, 2, "a string"},
     ]
   end
 end

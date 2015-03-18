@@ -5,7 +5,7 @@ defmodule Gettext.PO.Tokenizer do
   # list of tokens. For what "token" means, see the docs for `tokenize/1`.
 
   @type token ::
-    {:string, pos_integer, binary} |
+    {:str, pos_integer, binary} |
     {:msgid, pos_integer} |
     {:msgstr, pos_integer}
 
@@ -23,15 +23,15 @@ defmodule Gettext.PO.Tokenizer do
 
   A "token" is a tuple formed by:
 
-    * the `:string` tag or a keyword tag (like `:msgid`)
+    * the `:str` tag or a keyword tag (like `:msgid`)
     * the line the token is at
-    * the value of the token if the token has a value (for example, a `:string`
+    * the value of the token if the token has a value (for example, a `:str`
       token will have the contents of the string as a value)
 
   Some examples of tokens are:
 
     * `{:msgid, 33}`
-    * `{:string, 6, "foo"}`
+    * `{:str, 6, "foo"}`
 
   """
   @spec tokenize(binary) :: [token]
@@ -85,7 +85,7 @@ defmodule Gettext.PO.Tokenizer do
     tokenize_line(rest, line, [token|acc])
   end
 
-  # Parses the double-quotes-delimited string `str` into a single `{:string,
+  # Parses the double-quotes-delimited string `str` into a single `{:str,
   # line, contents}` token. Note that `str` doesn't start with a double quote
   # (since that was needed to identify the start of a string). Returns a tuple
   # with the contents of the string and the rest of the original `str` (note
@@ -95,7 +95,7 @@ defmodule Gettext.PO.Tokenizer do
   defp tokenize_string(str, line, acc)
 
   defp tokenize_string(<<?", rest :: binary>>, line, acc),
-    do: {{:string, line, acc}, rest}
+    do: {{:str, line, acc}, rest}
   defp tokenize_string(<<?\\, char, rest :: binary>>, line, acc)
     when char in @escapable_chars,
     do: tokenize_string(rest, line, <<acc :: binary, escape_char(char)>>)

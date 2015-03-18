@@ -1,5 +1,5 @@
 Nonterminals grammar translations translation strings.
-Terminals string msgid msgstr.
+Terminals str msgid msgstr.
 Rootsymbol grammar.
 
 grammar ->
@@ -14,9 +14,9 @@ translation ->
   msgid strings msgstr strings : #{msgid => concat('$2'), msgstr => concat('$4')}.
 
 strings ->
-  string : ['$1'].
+  str : ['$1'].
 strings ->
-  string strings : ['$1'|'$2'].
+  str strings : ['$1'|'$2'].
 
 
 Erlang code.
@@ -25,5 +25,5 @@ concat(Tokens) ->
   Strings = lists:map(fun extract_string/1, Tokens),
   list_to_binary(Strings).
 
-extract_string({string, _Line, String}) ->
+extract_string({str, _Line, String}) ->
   String.
