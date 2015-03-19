@@ -29,6 +29,12 @@ defmodule Gettext.PO.TokenizerTest do
     assert_raise SyntaxError, msg, fn -> tokenize(str) end
   end
 
+  test "unknown keywords cause a (nice) error" do
+    str = ~s(msg "foo")
+    msg = "invalid syntax on line 1: unknown keyword 'msg'"
+    assert_raise SyntaxError, msg, fn -> tokenize(str) end
+  end
+
   test "single simple string" do
     str = ~s("foo bar")
     assert tokenize(str) == [{:str, 1, "foo bar"}]
