@@ -9,5 +9,10 @@ defmodule Gettext.PO.Translation do
 
   """
 
+  @type t :: %__MODULE__{
+    msgid: binary,
+    msgstr: binary,
+  }
+
   defstruct [:msgid, :msgstr]
 end
