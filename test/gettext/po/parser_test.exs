@@ -2,7 +2,7 @@ defmodule Gettext.PO.ParserTest do
   use ExUnit.Case
 
   alias Gettext.PO.Parser
-  alias Gettext.PO.Parser.Translation
+  alias Gettext.PO.Translation
   alias Gettext.PO.SyntaxError
 
   test "parse/1 with single strings" do

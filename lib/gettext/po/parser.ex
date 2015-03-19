@@ -1,11 +1,7 @@
 defmodule Gettext.PO.Parser do
   @moduledoc false
 
-  defmodule Translation do
-    @moduledoc false
-    defstruct [:msgid, :msgstr]
-  end
-
+  alias Gettext.PO.Translation
   alias Gettext.PO.SyntaxError
 
   @doc """
