@@ -9,9 +9,6 @@ defmodule Gettext.PO.Tokenizer do
     {:msgid, pos_integer} |
     {:msgstr, pos_integer}
 
-  alias Gettext.PO.SyntaxError
-  alias Gettext.PO.TokenMissingError
-
   @keywords ~w(msgid msgstr)
 
   @whitespace [?\n, ?\t, ?\r, ?\s]
@@ -34,19 +31,20 @@ defmodule Gettext.PO.Tokenizer do
     * `{:str, 6, "foo"}`
 
   """
-  @spec tokenize(binary) :: [token]
+  @spec tokenize(binary) :: {:ok, [token]} | {:error, pos_integer, binary}
   def tokenize(str) do
     tokenize_line(str, 1, [])
   end
 
   # Converts the first line in `str` into a list of tokens and then moves on to
   # the next line.
-  @spec tokenize_line(binary, pos_integer, [token]) :: [token]
+  @spec tokenize_line(binary, pos_integer, [token]) ::
+    {:ok, [token]} | {:error, pos_integer, binary}
   defp tokenize_line(str, line, acc)
 
   # End of file.
   defp tokenize_line(<<>>, _line, acc) do
-    Enum.reverse acc
+    {:ok, Enum.reverse(acc)}
   end
 
   # Go to the next line.
@@ -75,14 +73,18 @@ defmodule Gettext.PO.Tokenizer do
     end
 
     defp tokenize_line(unquote(kw) <> _rest, line, _acc) do
-      raise(SyntaxError, message: "no space after '#{unquote(kw)}'", line: line)
+      {:error, line, "no space after '#{unquote(kw)}'"}
     end
   end
 
   # String start.
   defp tokenize_line(<<?", rest :: binary>>, line, acc) do
-    {token, rest} = tokenize_string(rest, line, "")
-    tokenize_line(rest, line, [token|acc])
+    case tokenize_string(rest, line, "") do
+      {:ok, token, rest} ->
+        tokenize_line(rest, line, [token|acc])
+      {:error, reason} ->
+        {:error, line, reason}
+    end
   end
 
   # Unknown keyword.
@@ -92,7 +94,7 @@ defmodule Gettext.PO.Tokenizer do
   # character.
   defp tokenize_line(binary, line, _acc) when is_binary(binary) do
     next_word = next_word(binary, "")
-    raise SyntaxError, line: line, message: "unknown keyword '#{next_word}'"
+    {:error, line, "unknown keyword '#{next_word}'"}
   end
 
   # Parses the double-quotes-delimited string `str` into a single `{:str,
@@ -101,22 +103,23 @@ defmodule Gettext.PO.Tokenizer do
   # with the contents of the string and the rest of the original `str` (note
   # that the rest of the original string doesn't include the closing double
   # quote).
-  @spec tokenize_string(binary, pos_integer, binary) :: {token, binary}
+  @spec tokenize_string(binary, pos_integer, binary) ::
+    {:ok, token, binary} | {:error, binary}
   defp tokenize_string(str, line, acc)
 
   defp tokenize_string(<<?", rest :: binary>>, line, acc),
-    do: {{:str, line, acc}, rest}
+    do: {:ok, {:str, line, acc}, rest}
   defp tokenize_string(<<?\\, char, rest :: binary>>, line, acc)
     when char in @escapable_chars,
     do: tokenize_string(rest, line, <<acc :: binary, escape_char(char)>>)
-  defp tokenize_string(<<?\\, _char, _rest :: binary>>, line, _acc),
-    do: raise(SyntaxError, line: line, message: "unsupported escape code")
-  defp tokenize_string(<<?\n, _rest :: binary>>, line, _acc),
-    do: raise(SyntaxError, line: line, message: "newline in string")
+  defp tokenize_string(<<?\\, _char, _rest :: binary>>, _line, _acc),
+    do: {:error, "unsupported escape code"}
+  defp tokenize_string(<<?\n, _rest :: binary>>, _line, _acc),
+    do: {:error, "newline in string"}
   defp tokenize_string(<<char, rest :: binary>>, line, acc),
     do: tokenize_string(rest, line, <<acc :: binary, char>>)
-  defp tokenize_string(<<>>, line, _acc),
-    do: raise(TokenMissingError, line: line, token: ~s("))
+  defp tokenize_string(<<>>, _line, _acc),
+    do: {:error, "missing token \""}
 
   @spec escape_char(char) :: char
   defp escape_char(?n), do: ?\n
