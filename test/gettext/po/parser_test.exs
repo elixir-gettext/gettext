@@ -3,7 +3,6 @@ defmodule Gettext.PO.ParserTest do
 
   alias Gettext.PO.Parser
   alias Gettext.PO.Translation
-  alias Gettext.PO.SyntaxError
 
   test "parse/1 with single strings" do
     parsed = Parser.parse([
@@ -11,7 +10,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}
     ])
 
-    assert parsed == [%Translation{msgid: "hello", msgstr: "ciao"}]
+    assert parsed == {:ok, [%Translation{msgid: "hello", msgstr: "ciao"}]}
   end
 
   test "parse/1 with multiple concatenated strings" do
@@ -20,7 +19,9 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}, {:str, 3, " mondo"}
     ])
 
-    assert parsed == [%Translation{msgid: "hello world", msgstr: "ciao mondo"}]
+    assert parsed == {:ok, [
+      %Translation{msgid: "hello world", msgstr: "ciao mondo"}
+    ]}
   end
 
   test "parse/1 with multiple translations" do
@@ -31,10 +32,10 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 4}, {:str, 4, "parola"},
     ])
 
-    assert parsed == [
+    assert parsed == {:ok, [
       %Translation{msgid: "hello", msgstr: "ciao"},
       %Translation{msgid: "word", msgstr: "parola"},
-    ]
+    ]}
   end
 
   test "parse/1 with unicode characters in the strings" do
@@ -43,16 +44,14 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "bårπ"},
     ])
 
-    assert parsed == [%Translation{msgid: "føø", msgstr: "bårπ"}]
+    assert parsed == {:ok, [%Translation{msgid: "føø", msgstr: "bårπ"}]}
   end
 
   test "syntax error when there is no 'msgid'" do
-    assert_raise SyntaxError, fn ->
-      Parser.parse [{:msgstr, 1}, {:str, 1, "foo"}]
-    end
+    parsed = Parser.parse [{:msgstr, 1}, {:str, 1, "foo"}]
+    assert {:error, 1, _} = parsed
 
-    assert_raise SyntaxError, fn ->
-      Parser.parse [{:str, 1, "foo"}]
-    end
+    parsed = Parser.parse [{:str, 1, "foo"}]
+    assert {:error, 1, _} = parsed
   end
 end

@@ -2,16 +2,18 @@ defmodule Gettext.PO.Parser do
   @moduledoc false
 
   alias Gettext.PO.Translation
-  alias Gettext.PO.SyntaxError
 
   @doc """
   Parses a list of tokens into a list of translations.
   """
-  @spec parse([Gettext.PO.Tokenizer.token]) :: [Translation.t]
+  @spec parse([Gettext.PO.Tokenizer.token]) ::
+    {:ok, [Translation.t]} | {:error, pos_integer, binary}
   def parse(tokens) do
     case :gettext_po_parser.parse(tokens) do
-      {:ok, translations} -> Enum.map(translations, &to_struct/1)
-      {:error, reason}    -> parse_error_reason_and_raise!(reason)
+      {:ok, translations} ->
+        {:ok, Enum.map(translations, &to_struct/1)}
+      {:error, _reason} = error ->
+        parse_error(error)
     end
   end
 
@@ -20,8 +22,8 @@ defmodule Gettext.PO.Parser do
     Map.put(translation, :__struct__, Translation)
   end
 
-  @spec parse_error_reason_and_raise!(term) :: no_return
-  defp parse_error_reason_and_raise!({line, _module, reason}) do
-    raise SyntaxError, line: line, message: inspect(reason)
+  @spec parse_error({:error, term}) :: {:error, pos_integer, binary}
+  defp parse_error({:error, {line, _module, reason}}) do
+    {:error, line, inspect(reason)}
   end
 end
