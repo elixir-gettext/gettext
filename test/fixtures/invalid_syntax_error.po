@@ -1,0 +1,4 @@
+msgid "foo"
+msgstr "bar"
+
+msgstr "bong"
