@@ -5,6 +5,8 @@ defmodule Gettext.POTest do
   alias Gettext.PO.Translation
   alias Gettext.PO.SyntaxError
 
+  doctest PO
+
   test "parse_string/1: valid string" do
     str = """
     msgid "hello there"
