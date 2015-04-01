@@ -1,0 +1,6 @@
+msgid "hello"
+msgstr "ciao"
+
+msgid "how are you," " friend?"
+msgstr "come stai,"
+  " amico?"

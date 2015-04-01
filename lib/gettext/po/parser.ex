@@ -24,6 +24,6 @@ defmodule Gettext.PO.Parser do
 
   @spec parse_error({:error, term}) :: {:error, pos_integer, binary}
   defp parse_error({:error, {line, _module, reason}}) do
-    {:error, line, inspect(reason)}
+    {:error, line, IO.chardata_to_string(reason)}
   end
 end
