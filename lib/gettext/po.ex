@@ -1,4 +1,8 @@
 defmodule Gettext.PO do
+  @moduledoc """
+  This module provides facilities for working with `.po` files (mainly parsing).
+  """
+
   alias Gettext.PO.Tokenizer
   alias Gettext.PO.Parser
   alias Gettext.PO.SyntaxError
