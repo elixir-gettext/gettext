@@ -47,7 +47,7 @@ defmodule Gettext.PO do
       {:error, reason} ->
         File.read!(path)
       {:error, line, reason} ->
-        raise SyntaxError, line: line, reason: reason
+        raise SyntaxError, file: path, line: line, reason: reason
     end
   end
 end

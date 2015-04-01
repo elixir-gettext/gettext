@@ -94,12 +94,14 @@ defmodule Gettext.POTest do
 
   test "parse_file!/1: invalid file contents" do
     fixture_path = Path.expand("../fixtures/invalid_syntax_error.po", __DIR__)
-    assert_raise SyntaxError, "4: syntax error before: msgstr", fn ->
+    msg = "invalid_syntax_error.po:4: syntax error before: msgstr"
+    assert_raise SyntaxError, msg, fn ->
       PO.parse_file!(fixture_path)
     end
 
     fixture_path = Path.expand("../fixtures/invalid_token_error.po", __DIR__)
-    assert_raise SyntaxError, "3: unknown keyword 'msg'", fn ->
+    msg = "invalid_token_error.po:3: unknown keyword 'msg'"
+    assert_raise SyntaxError, msg, fn ->
       PO.parse_file!(fixture_path)
     end
   end
