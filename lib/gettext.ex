@@ -5,12 +5,21 @@ defmodule Gettext do
 
   @doc false
   defmacro __using__(opts) do
-    quote bind_quoted: [opts: opts, default_priv: @default_priv] do
-      otp_app          = Keyword.fetch!(opts, :otp_app)
-      priv             = Keyword.get(opts, :priv, default_priv)
-      translations_dir = Application.app_dir(otp_app, priv)
+    quote do
+      @gettext_opts unquote(opts)
+      @before_compile Gettext
+    end
+  end
 
-      Module.eval_quoted __MODULE__, Gettext.compile_po_files(translations_dir)
+  @doc false
+  defmacro __before_compile__(env) do
+    opts             = Module.get_attribute(env.module, :gettext_opts)
+    otp_app          = Keyword.fetch!(opts, :otp_app)
+    priv             = Keyword.get(opts, :priv, @default_priv)
+    translations_dir = Application.app_dir(otp_app, priv)
+
+    quote do
+      unquote(compile_po_files(translations_dir))
 
       # Catchall clause.
       def lgettext(_, _, msg) do
@@ -19,10 +28,7 @@ defmodule Gettext do
     end
   end
 
-  # Made public so that it can be called inside the quoted contents of the
-  # `__using__` macro.
-  @doc false
-  def compile_po_files(dir) do
+  defp compile_po_files(dir) do
     # `true` means recursively. The last argument is the initial accumulator.
     :filelib.fold_files(dir, "\.po$", true, &compile_po_file/2, [])
   end
