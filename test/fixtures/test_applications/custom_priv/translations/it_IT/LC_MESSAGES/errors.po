@@ -1,0 +1,2 @@
+msgid "Invalid email address"
+msgstr "Indirizzo email non valido"
