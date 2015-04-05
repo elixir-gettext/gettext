@@ -1,20 +1,17 @@
 defmodule GettextTest do
   use ExUnit.Case, async: true
 
-  # Dynamically load dummy apps which just have an `ebin/` directory and
-  # translations.
-  for app <- ["default_priv", "custom_priv"] do
-    [__DIR__, "fixtures", "test_applications", app, "ebin"]
-    |> Path.join
-    |> Code.prepend_path
-  end
+  # Let's load the test application.
+  [__DIR__, "fixtures", "test_application", "ebin"]
+  |> Path.join
+  |> Code.prepend_path
 
   defmodule Translator do
-    use Gettext, otp_app: :default_priv
+    use Gettext, otp_app: :test_application
   end
 
   defmodule TranslatorWithCustomPriv do
-    use Gettext, otp_app: :custom_priv, priv: "translations"
+    use Gettext, otp_app: :test_application, priv: "translations"
   end
 
   test "found translations return {:ok, translation}" do
