@@ -1,5 +1,7 @@
 # Gettext
 
+[![Build Status](https://travis-ci.org/elixir-lang/gettext.svg)](https://travis-ci.org/elixir-lang/gettext)
+
 Upcoming gettext implementation for Elixir.
 
 ## License
