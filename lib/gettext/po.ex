@@ -104,7 +104,7 @@ defmodule Gettext.PO do
   ## Examples
 
       Gettext.PO.parse_file! "nonexistent"
-      #=> ** (File.Error) could not read file nonexistent: no such file or #directory
+      #=> ** (File.Error) could not read file nonexistent: no such file or directory
 
   """
   @spec parse_file!(Path.t) :: parsed
@@ -113,7 +113,7 @@ defmodule Gettext.PO do
       {:ok, parsed} ->
         parsed
       {:error, reason} ->
-        File.read!(path)
+        raise File.Error, reason: reason, action: "parse", path: path
       {:error, line, reason} ->
         raise SyntaxError, file: path, line: line, reason: reason
     end
