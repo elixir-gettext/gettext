@@ -9,7 +9,17 @@ defmodule Gettext.PO.Tokenizer do
     {:msgid, pos_integer} |
     {:msgstr, pos_integer}
 
-  @keywords ~w(msgid msgstr)
+  # In this list of keywords *the order matters*. If, for example, `msgid` was
+  # the first one and `msgid_plural` was the second one, an error would be
+  # raised with strings like "msgid_plural " because the tokenizer will complain
+  # about a space missing after the keyword `msgid`. If we give precedence to
+  # `msgid_plural`, however, it works. The order matters because a function
+  # clause is generated for each keyword.
+  @keywords ~w(
+    msgid_plural
+    msgid
+    msgstr
+  )
 
   @whitespace [?\n, ?\t, ?\r, ?\s]
   @whitespace_no_nl [?\t, ?\r, ?\s]

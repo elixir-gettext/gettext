@@ -10,9 +10,10 @@ defmodule Gettext.PO.TokenizerTest do
       {:msgstr, 1},
     ]}
 
-    str = "    msgid      msgstr  "
+    str = "    msgid  msgid_plural    msgstr  "
     assert tokenize(str) == {:ok, [
       {:msgid, 1},
+      {:msgid_plural, 1},
       {:msgstr, 1},
     ]}
   end
