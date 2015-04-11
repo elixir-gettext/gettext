@@ -100,11 +100,10 @@ defmodule Gettext.PO.Tokenizer do
   # Unknown keyword.
   # An unknown keyword is assumed at this point. In order to generate a nice and
   # informative error message, the whole keyword (up to the first non-word
-  # character) is retrieved with `next_word/2` instead of just the first
+  # character) is retrieved with `next_word/1` instead of just the first
   # character.
   defp tokenize_line(binary, line, _acc) when is_binary(binary) do
-    next_word = next_word(binary, "")
-    {:error, line, "unknown keyword '#{next_word}'"}
+    {:error, line, "unknown keyword '#{next_word(binary)}'"}
   end
 
   # Parses the double-quotes-delimited string `str` into a single `{:str,
@@ -146,13 +145,6 @@ defmodule Gettext.PO.Tokenizer do
   defp to_eol_or_eof(<<char, rest :: binary>>, acc),
     do: to_eol_or_eof(rest, <<acc :: binary, char>>)
 
-  @spec next_word(binary, binary) :: binary
-  defp next_word("", acc), do: acc
-  defp next_word(<<char, rest :: binary>>, acc) do
-    if Regex.match?(~r/\w/u, <<char>>) do
-      next_word(rest, <<acc :: binary, char>>)
-    else
-      acc
-    end
-  end
+  @spec next_word(binary) :: binary
+  defp next_word(binary), do: Regex.run(~r/\w+/u, binary)
 end
