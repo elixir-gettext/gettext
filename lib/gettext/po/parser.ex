@@ -19,7 +19,7 @@ defmodule Gettext.PO.Parser do
 
   @spec to_struct(Map.t) :: Translation.t
   defp to_struct(translation) do
-    Map.put(translation, :__struct__, Translation)
+    struct(Translation, translation)
   end
 
   @spec parse_error({:error, term}) :: {:error, pos_integer, binary}
