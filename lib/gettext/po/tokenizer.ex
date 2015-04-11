@@ -89,8 +89,9 @@ defmodule Gettext.PO.Tokenizer do
 
   # String start.
   defp tokenize_line(<<?", rest :: binary>>, line, acc) do
-    case tokenize_string(rest, line, "") do
-      {:ok, token, rest} ->
+    case tokenize_string(rest, "") do
+      {:ok, string, rest} ->
+        token = {:str, line, string}
         tokenize_line(rest, line, [token|acc])
       {:error, reason} ->
         {:error, line, reason}
@@ -106,28 +107,26 @@ defmodule Gettext.PO.Tokenizer do
     {:error, line, "unknown keyword '#{next_word(binary)}'"}
   end
 
-  # Parses the double-quotes-delimited string `str` into a single `{:str,
-  # line, contents}` token. Note that `str` doesn't start with a double quote
-  # (since that was needed to identify the start of a string). Returns a tuple
-  # with the contents of the string and the rest of the original `str` (note
-  # that the rest of the original string doesn't include the closing double
-  # quote).
-  @spec tokenize_string(binary, pos_integer, binary) ::
-    {:ok, token, binary} | {:error, binary}
-  defp tokenize_string(str, line, acc)
+  # Parses the double-quotes-delimited string `str` into a single string. Note
+  # that `str` doesn't start with a double quote (since that was needed to
+  # identify the start of a string). Note that the rest of the original string
+  # doesn't include the closing double quote.
+  @spec tokenize_string(binary, binary) ::
+    {:ok, binary, binary} | {:error, binary}
+  defp tokenize_string(str, acc)
 
-  defp tokenize_string(<<?", rest :: binary>>, line, acc),
-    do: {:ok, {:str, line, acc}, rest}
-  defp tokenize_string(<<?\\, char, rest :: binary>>, line, acc)
+  defp tokenize_string(<<?", rest :: binary>>, acc),
+    do: {:ok, acc, rest}
+  defp tokenize_string(<<?\\, char, rest :: binary>>, acc)
     when char in @escapable_chars,
-    do: tokenize_string(rest, line, <<acc :: binary, escape_char(char)>>)
-  defp tokenize_string(<<?\\, _char, _rest :: binary>>, _line, _acc),
+    do: tokenize_string(rest, <<acc :: binary, escape_char(char)>>)
+  defp tokenize_string(<<?\\, _char, _rest :: binary>>, _acc),
     do: {:error, "unsupported escape code"}
-  defp tokenize_string(<<?\n, _rest :: binary>>, _line, _acc),
+  defp tokenize_string(<<?\n, _rest :: binary>>, _acc),
     do: {:error, "newline in string"}
-  defp tokenize_string(<<char, rest :: binary>>, line, acc),
-    do: tokenize_string(rest, line, <<acc :: binary, char>>)
-  defp tokenize_string(<<>>, _line, _acc),
+  defp tokenize_string(<<char, rest :: binary>>, acc),
+    do: tokenize_string(rest, <<acc :: binary, char>>)
+  defp tokenize_string(<<>>, _acc),
     do: {:error, "missing token \""}
 
   @spec escape_char(char) :: char
