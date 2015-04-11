@@ -9,16 +9,14 @@ defmodule Gettext.PO.Tokenizer do
     {:msgid, pos_integer} |
     {:msgstr, pos_integer}
 
-  # In this list of keywords *the order matters*. If, for example, `msgid` was
-  # the first one and `msgid_plural` was the second one, an error would be
-  # raised with strings like "msgid_plural " because the tokenizer will complain
-  # about a space missing after the keyword `msgid`. If we give precedence to
-  # `msgid_plural`, however, it works. The order matters because a function
-  # clause is generated for each keyword.
+  # In this list of keywords *the order matters* because a function clause is
+  # generated for each keyword, and keywords have to be followed by whitespace.
+  # `msgid_plural` would cause an error if it didn't come before `msgid`.
+  # Also note that the `msgstr` keyword is missing here since it can be also
+  # followed by a plural form (e.g., `[1]`).
   @keywords ~w(
     msgid_plural
     msgid
-    msgstr
   )
 
   @whitespace [?\n, ?\t, ?\r, ?\s]
@@ -87,7 +85,30 @@ defmodule Gettext.PO.Tokenizer do
     end
   end
 
-  # String start.
+  # `msgstr`.
+  defp tokenize_line("msgstr[" <> <<rest :: binary>>, line, acc) do
+      case tokenize_plural_form(rest, "") do
+        {:ok, plural_form, rest} ->
+          # The order of the :plural_form and :msgstr tokens is inverted since
+          # the `acc` array of tokens will be reversed at the end.
+          acc = [{:plural_form, line, plural_form}, {:msgstr, line}|acc]
+          tokenize_line(rest, line, acc)
+        {:error, reason} ->
+          {:error, line, reason}
+      end
+  end
+
+  defp tokenize_line("msgstr" <> <<char, rest :: binary>>, line, acc)
+      when char in @whitespace do
+    acc = [{:msgstr, line}|acc]
+    tokenize_line(rest, line, acc)
+  end
+
+  defp tokenize_line("msgstr" <> _rest, line, _acc) do
+    {:error, line, "no space after 'msgstr'"}
+  end
+
+  # String.
   defp tokenize_line(<<?", rest :: binary>>, line, acc) do
     case tokenize_string(rest, "") do
       {:ok, string, rest} ->
@@ -129,6 +150,20 @@ defmodule Gettext.PO.Tokenizer do
   defp tokenize_string(<<>>, _acc),
     do: {:error, "missing token \""}
 
+  @spec tokenize_plural_form(binary, binary) ::
+    {:ok, non_neg_integer, binary} | {:error, binary}
+  defp tokenize_plural_form(<<digit, rest :: binary>>, acc)
+    when digit in '0123456789',
+    do: tokenize_plural_form(rest, <<acc :: binary, digit>>)
+  defp tokenize_plural_form(<<?], char, rest :: binary>>, acc)
+    when char in @whitespace and acc != <<>>,
+    do: {:ok, String.to_integer(acc), rest}
+  defp tokenize_plural_form(<<?], _rest :: binary>>, acc)
+    when acc != <<>>,
+    do: {:error, "missing space after 'msgstr[#{acc}]'"}
+  defp tokenize_plural_form(_binary, _acc),
+    do: {:error, "invalid plural form"}
+
   @spec escape_char(char) :: char
   defp escape_char(?n), do: ?\n
   defp escape_char(?t), do: ?\t
@@ -145,5 +180,5 @@ defmodule Gettext.PO.Tokenizer do
     do: to_eol_or_eof(rest, <<acc :: binary, char>>)
 
   @spec next_word(binary) :: binary
-  defp next_word(binary), do: Regex.run(~r/\w+/u, binary)
+  defp next_word(binary), do: Regex.run(~r/\w+/u, binary) |> List.first
 end
