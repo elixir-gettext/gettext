@@ -47,11 +47,36 @@ defmodule Gettext.PO.ParserTest do
     assert parsed == {:ok, [%Translation{msgid: "føø", msgstr: "bårπ"}]}
   end
 
+  test "parse/1 with a pluralised string" do
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, "foo"},
+      {:msgid_plural, 1}, {:str, 1, "foos"},
+      {:msgstr, 1}, {:plural_form, 1, 0}, {:str, 1, "bar"},
+      {:msgstr, 1}, {:plural_form, 1, 1}, {:str, 1, "bars"},
+      {:msgstr, 1}, {:plural_form, 1, 2}, {:str, 1, "barres"},
+    ])
+
+    assert parsed == {:ok, [%Translation{
+      msgid: "foo",
+      msgid_plural: "foos",
+      msgstr: %{
+        0 => "bar",
+        1 => "bars",
+        2 => "barres",
+      },
+    }]}
+  end
+
   test "syntax error when there is no 'msgid'" do
     parsed = Parser.parse [{:msgstr, 1}, {:str, 1, "foo"}]
     assert {:error, 1, _} = parsed
 
     parsed = Parser.parse [{:str, 1, "foo"}]
     assert {:error, 1, _} = parsed
+  end
+
+  test "'msgid_plural' must come after 'msgid'" do
+    parsed = Parser.parse([{:msgid_plural, 1}])
+    assert parsed == {:error, 1, "syntax error before: msgid_plural"}
   end
 end

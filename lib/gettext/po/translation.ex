@@ -5,14 +5,18 @@ defmodule Gettext.PO.Translation do
   The `Translation` struct contains two fields:
 
     * `msgid` - the id of the translation
-    * `msgstr` - the translated string
+    * `msgid_plural` - the plural id of the translation
+    * `msgstr` - the translated string if there's no pluralisation, otherwise a
+      map with plural forms as keys (`0`, `1` and so on) and plural strings as
+      corresponding values
 
   """
 
   @type t :: %__MODULE__{
     msgid: binary,
-    msgstr: binary,
+    msgid_plural: binary,
+    msgstr: binary | Map.t,
   }
 
-  defstruct [:msgid, :msgstr]
+  defstruct [:msgid, :msgid_plural, :msgstr]
 end
