@@ -47,7 +47,7 @@ defmodule Gettext.PO.ParserTest do
     assert parsed == {:ok, [%Translation{msgid: "føø", msgstr: "bårπ"}]}
   end
 
-  test "parse/1 with a pluralised string" do
+  test "parse/1 with a pluralized string" do
     parsed = Parser.parse([
       {:msgid, 1}, {:str, 1, "foo"},
       {:msgid_plural, 1}, {:str, 1, "foos"},

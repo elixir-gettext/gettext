@@ -6,7 +6,7 @@ defmodule Gettext.PO.Translation do
 
     * `msgid` - the id of the translation
     * `msgid_plural` - the plural id of the translation
-    * `msgstr` - the translated string if there's no pluralisation, otherwise a
+    * `msgstr` - the translated string if there's no pluralization, otherwise a
       map with plural forms as keys (`0`, `1` and so on) and plural strings as
       corresponding values
 
