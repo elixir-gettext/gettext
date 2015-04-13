@@ -1,10 +1,13 @@
 defmodule Gettext.Plural do
   @moduledoc """
-  Provides plural form formulas for most languages.
+  Behaviour and default implementation for finding plural forms in given
+  locales.
 
-  This module implements the `Gettext.Plural` behaviour. It calculates to which
-  plural form a given number of elements belongs to in a given language. Most
-  languages on Earth should be covered here.
+  This module both define the `Gettext.Plural` behaviour and provides a default
+  implementation for it.
+
+  This module computes the plural form a given number of elements belongs to in
+  a given language. Most languages on Earth should be covered here.
 
   The plural form formulas have been taken from [this
   page](http://localization-guide.readthedocs.org/en/latest/l10n/pluralforms.html#f2)
@@ -30,6 +33,24 @@ defmodule Gettext.Plural do
       3
 
   """
+
+  # Behaviour definition.
+  use Behaviour
+
+  @doc """
+  Returns the number of possible plural forms in the given `locale`.
+  """
+  defcallback nplurals(locale :: String.t)
+    :: non_neg_integer
+
+  @doc """
+  Returns the plural form in the given `locale` for the given `count` of
+  elements.
+  """
+  defcallback plural(locale :: String.t, count :: non_neg_integer)
+    :: (plural_form :: non_neg_integer)
+
+  # Behaviour implementation.
 
   defmacrop ends_in(n, digits) do
     digits = List.wrap(digits)
