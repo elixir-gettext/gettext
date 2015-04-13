@@ -63,11 +63,26 @@ defmodule Gettext do
     quote do
       unquote(compile_po_files(translations_dir))
 
-      # Catchall clause.
-      def lgettext(_, _, msg) do
-        {:default, msg}
-      end
+      # Catchall clauses.
+      def lgettext(_, _, msg),
+        do: {:default, msg}
+
+      def lngettext(_, _, msgid, _msgid_plural, _n),
+        do: {:default, msgid}
     end
+  end
+
+  @doc false
+  # TODO Support decent interpolation, possibly at compile time. This is only a
+  # temporary (hackish) solution.
+  def pluralize(locale, msgstr, n) do
+    plural_form = Gettext.Plural.plural(locale, n)
+    translation = Map.get(msgstr, plural_form)
+    {:ok, replace_count(translation, n)}
+  end
+
+  defp replace_count(string, n) do
+    String.replace string, "%{count}", to_string(n)
   end
 
   defp compile_po_files(dir) do
@@ -90,9 +105,22 @@ defmodule Gettext do
     {locale, domain}
   end
 
-  # Compiles a single translation into a function clause in the form:
+  # Compiles a pluralized translation into a function clause like:
   #
-  #   def lgettext("it_IT", "default", "Hello world"), do: {:ok, "Ciao mondo"}
+  #     def lngettext(locale, domain, msgid, msgid_plural, n)
+  #
+  defp compile_translation(locale, domain, %Translation{msgid: msgid, msgid_plural: msgid_plural, msgstr: msgstr})
+      when not is_nil(msgid_plural) do
+    quote do
+      def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n) do
+        Gettext.pluralize(unquote(locale), unquote(Macro.escape(msgstr)), n)
+      end
+    end
+  end
+
+  # Compiles a translation into a function clause like:
+  #
+  #     def lgettext(locale, domain, msgid)
   #
   defp compile_translation(locale, domain, %Translation{msgid: msgid, msgstr: msgstr}) do
     quote do
