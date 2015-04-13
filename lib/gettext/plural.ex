@@ -16,6 +16,35 @@ end
 
 defmodule Gettext.Plural do
   @moduledoc """
+  Provides plural form formulas for most languages.
+
+  This module implements the `Gettext.Plural` behaviour. It calculates to which
+  plural form a given number of elements belongs to in a given language. Most
+  languages on Earth should be covered here.
+
+  The plural form formulas have been taken from [this
+  page](http://localization-guide.readthedocs.org/en/latest/l10n/pluralforms.html#f2)
+  as well as from [Mozilla's "Localization ang plurals"
+  guide](https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals).
+
+  ## Examples
+
+  An example of the plural form of a given number of element in Polish:
+
+      iex> Plural.plural("pl", 1)
+      0
+      iex> Plural.plural("pl", 2)
+      1
+      iex> Plural.plural("pl", 5)
+      2
+      iex> Plural.plural("pl", 112)
+      2
+
+  As expected, `nplurals/1` returns the possible number of plural forms:
+
+      iex> Plural.nplurals("pl")
+      3
+
   """
 
   @behaviour Gettext.Pluralizer

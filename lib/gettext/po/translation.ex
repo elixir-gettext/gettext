@@ -2,7 +2,7 @@ defmodule Gettext.PO.Translation do
   @moduledoc """
   A struct that holds information on a translation.
 
-  The `Translation` struct contains two fields:
+  The `Translation` struct contains three fields:
 
     * `msgid` - the id of the translation
     * `msgid_plural` - the plural id of the translation
