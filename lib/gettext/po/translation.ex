@@ -2,21 +2,26 @@ defmodule Gettext.PO.Translation do
   @moduledoc """
   A struct that holds information on a translation.
 
-  The `Translation` struct contains three fields:
+  This struct describes a translation that has no plural form, such as the one
+  in the following snippet of `.po` file:
+
+      msgid "Hello world!"
+      msgstr "Ciao mondo!"
+
+  For translations with a plural form, there's the
+  `Gettext.PO.PluralTranslation` struct.
+
+  This struct contains two fields:
 
     * `msgid` - the id of the translation
-    * `msgid_plural` - the plural id of the translation
-    * `msgstr` - the translated string if there's no pluralization, otherwise a
-      map with plural forms as keys (`0`, `1` and so on) and plural strings as
-      corresponding values
+    * `msgstr` - the translated string
 
   """
 
   @type t :: %__MODULE__{
     msgid: binary,
-    msgid_plural: binary,
-    msgstr: binary | Map.t,
+    msgstr: binary,
   }
 
-  defstruct [:msgid, :msgid_plural, :msgstr]
+  defstruct [:msgid, :msgstr]
 end

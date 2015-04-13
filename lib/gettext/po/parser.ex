@@ -2,6 +2,7 @@ defmodule Gettext.PO.Parser do
   @moduledoc false
 
   alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
 
   @doc """
   Parses a list of tokens into a list of translations.
@@ -18,9 +19,10 @@ defmodule Gettext.PO.Parser do
   end
 
   @spec to_struct(Map.t) :: Translation.t
-  defp to_struct(translation) do
-    struct(Translation, translation)
-  end
+  defp to_struct({:translation, translation}),
+    do: struct(Translation, translation)
+  defp to_struct({:plural_translation, translation}),
+    do: struct(PluralTranslation, translation)
 
   @spec parse_error({:error, term}) :: {:error, pos_integer, binary}
   defp parse_error({:error, {line, _module, reason}}) do

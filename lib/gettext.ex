@@ -42,6 +42,7 @@ defmodule Gettext do
   """
 
   alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
 
   @default_priv "priv/gettext"
 
@@ -109,8 +110,7 @@ defmodule Gettext do
   #
   #     def lngettext(locale, domain, msgid, msgid_plural, n)
   #
-  defp compile_translation(locale, domain, %Translation{msgid: msgid, msgid_plural: msgid_plural, msgstr: msgstr})
-      when not is_nil(msgid_plural) do
+  defp compile_translation(locale, domain, %PluralTranslation{msgid: msgid, msgid_plural: msgid_plural, msgstr: msgstr}) do
     quote do
       def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n) do
         Gettext.pluralize(unquote(locale), unquote(Macro.escape(msgstr)), n)

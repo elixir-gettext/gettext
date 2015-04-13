@@ -11,13 +11,16 @@ translations ->
   translation translations : ['$1'|'$2'].
 
 translation ->
-  msgid strings msgstr strings : #{msgid => concat('$2'), msgstr => concat('$4')}.
+  msgid strings msgstr strings : {translation, #{
+    msgid => concat('$2'),
+    msgstr => concat('$4')
+  }}.
 translation ->
-  msgid strings msgid_plural strings pluralizations : #{
+  msgid strings msgid_plural strings pluralizations : {plural_translation, #{
     msgid        => concat('$2'),
     msgid_plural => concat('$4'),
     msgstr       => plural_forms_map_from_list('$5')
-  }.
+  }}.
 
 pluralizations ->
   pluralization : ['$1'].

@@ -3,6 +3,7 @@ defmodule Gettext.PO.ParserTest do
 
   alias Gettext.PO.Parser
   alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
 
   test "parse/1 with single strings" do
     parsed = Parser.parse([
@@ -56,7 +57,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 1}, {:plural_form, 1, 2}, {:str, 1, "barres"},
     ])
 
-    assert parsed == {:ok, [%Translation{
+    assert parsed == {:ok, [%PluralTranslation{
       msgid: "foo",
       msgid_plural: "foos",
       msgstr: %{
