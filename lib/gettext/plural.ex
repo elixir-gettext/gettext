@@ -1,19 +1,3 @@
-defmodule Gettext.Plural.Helpers do
-  @moduledoc false
-
-  @doc """
-  Tells if the last digit of `n` is one of `digits`.
-
-  Can be used in function guards.
-  """
-  defmacro ends_in(n, digits) do
-    digits = List.wrap(digits)
-    quote do
-      rem(unquote(n), 10) in unquote(digits)
-    end
-  end
-end
-
 defmodule Gettext.Plural do
   @moduledoc """
   Provides plural form formulas for most languages.
@@ -47,9 +31,12 @@ defmodule Gettext.Plural do
 
   """
 
-  @behaviour Gettext.Pluralizer
-
-  import Gettext.Plural.Helpers
+  defmacrop ends_in(n, digits) do
+    digits = List.wrap(digits)
+    quote do
+      rem(unquote(n), 10) in unquote(digits)
+    end
+  end
 
   @one_form Enum.uniq [
     "ay",  # Aymará
