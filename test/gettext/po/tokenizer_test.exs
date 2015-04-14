@@ -10,9 +10,10 @@ defmodule Gettext.PO.TokenizerTest do
       {:msgstr, 1},
     ]}
 
-    str = "    msgid      msgstr  "
+    str = "    msgid  msgid_plural    msgstr  "
     assert tokenize(str) == {:ok, [
       {:msgid, 1},
+      {:msgid_plural, 1},
       {:msgstr, 1},
     ]}
   end
@@ -116,5 +117,35 @@ defmodule Gettext.PO.TokenizerTest do
       {:msgid, 2},
       {:str, 2, "a string"},
     ]}
+  end
+
+  test "plural forms in msgstr" do
+    str = ~s(msgstr[0] )
+    assert tokenize(str) == {:ok, [
+      {:msgstr, 1},
+      {:plural_form, 1, 0},
+    ]}
+
+    str = ~s(msgstr[42] )
+    assert tokenize(str) == {:ok, [
+      {:msgstr, 1},
+      {:plural_form, 1, 42},
+    ]}
+  end
+
+  test "the integer inside a plural form must be, well, an integer" do
+    str = ~s(msgstr[foo])
+    assert tokenize(str) == {:error, 1, "invalid plural form"}
+
+    str = ~s(msgstr[] )
+    assert tokenize(str) == {:error, 1, "invalid plural form"}
+
+    str = ~s(msgstr[0 1])
+    assert tokenize(str) == {:error, 1, "invalid plural form"}
+  end
+
+  test "plural forms must be followed by whitespace" do
+    str = ~s(msgstr[0])
+    assert tokenize(str) == {:error, 1, "missing space after 'msgstr[0]'"}
   end
 end

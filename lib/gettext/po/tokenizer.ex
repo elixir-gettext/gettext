@@ -9,7 +9,15 @@ defmodule Gettext.PO.Tokenizer do
     {:msgid, pos_integer} |
     {:msgstr, pos_integer}
 
-  @keywords ~w(msgid msgstr)
+  # In this list of keywords *the order matters* because a function clause is
+  # generated for each keyword, and keywords have to be followed by whitespace.
+  # `msgid_plural` would cause an error if it didn't come before `msgid`.
+  # Also note that the `msgstr` keyword is missing here since it can be also
+  # followed by a plural form (e.g., `[1]`).
+  @keywords ~w(
+    msgid_plural
+    msgid
+  )
 
   @whitespace [?\n, ?\t, ?\r, ?\s]
   @whitespace_no_nl [?\t, ?\r, ?\s]
@@ -77,10 +85,34 @@ defmodule Gettext.PO.Tokenizer do
     end
   end
 
-  # String start.
+  # `msgstr`.
+  defp tokenize_line("msgstr[" <> <<rest :: binary>>, line, acc) do
+      case tokenize_plural_form(rest, "") do
+        {:ok, plural_form, rest} ->
+          # The order of the :plural_form and :msgstr tokens is inverted since
+          # the `acc` array of tokens will be reversed at the end.
+          acc = [{:plural_form, line, plural_form}, {:msgstr, line}|acc]
+          tokenize_line(rest, line, acc)
+        {:error, reason} ->
+          {:error, line, reason}
+      end
+  end
+
+  defp tokenize_line("msgstr" <> <<char, rest :: binary>>, line, acc)
+      when char in @whitespace do
+    acc = [{:msgstr, line}|acc]
+    tokenize_line(rest, line, acc)
+  end
+
+  defp tokenize_line("msgstr" <> _rest, line, _acc) do
+    {:error, line, "no space after 'msgstr'"}
+  end
+
+  # String.
   defp tokenize_line(<<?", rest :: binary>>, line, acc) do
-    case tokenize_string(rest, line, "") do
-      {:ok, token, rest} ->
+    case tokenize_string(rest, "") do
+      {:ok, string, rest} ->
+        token = {:str, line, string}
         tokenize_line(rest, line, [token|acc])
       {:error, reason} ->
         {:error, line, reason}
@@ -90,36 +122,47 @@ defmodule Gettext.PO.Tokenizer do
   # Unknown keyword.
   # An unknown keyword is assumed at this point. In order to generate a nice and
   # informative error message, the whole keyword (up to the first non-word
-  # character) is retrieved with `next_word/2` instead of just the first
+  # character) is retrieved with `next_word/1` instead of just the first
   # character.
   defp tokenize_line(binary, line, _acc) when is_binary(binary) do
-    next_word = next_word(binary, "")
-    {:error, line, "unknown keyword '#{next_word}'"}
+    {:error, line, "unknown keyword '#{next_word(binary)}'"}
   end
 
-  # Parses the double-quotes-delimited string `str` into a single `{:str,
-  # line, contents}` token. Note that `str` doesn't start with a double quote
-  # (since that was needed to identify the start of a string). Returns a tuple
-  # with the contents of the string and the rest of the original `str` (note
-  # that the rest of the original string doesn't include the closing double
-  # quote).
-  @spec tokenize_string(binary, pos_integer, binary) ::
-    {:ok, token, binary} | {:error, binary}
-  defp tokenize_string(str, line, acc)
+  # Parses the double-quotes-delimited string `str` into a single string. Note
+  # that `str` doesn't start with a double quote (since that was needed to
+  # identify the start of a string). Note that the rest of the original string
+  # doesn't include the closing double quote.
+  @spec tokenize_string(binary, binary) ::
+    {:ok, binary, binary} | {:error, binary}
+  defp tokenize_string(str, acc)
 
-  defp tokenize_string(<<?", rest :: binary>>, line, acc),
-    do: {:ok, {:str, line, acc}, rest}
-  defp tokenize_string(<<?\\, char, rest :: binary>>, line, acc)
+  defp tokenize_string(<<?", rest :: binary>>, acc),
+    do: {:ok, acc, rest}
+  defp tokenize_string(<<?\\, char, rest :: binary>>, acc)
     when char in @escapable_chars,
-    do: tokenize_string(rest, line, <<acc :: binary, escape_char(char)>>)
-  defp tokenize_string(<<?\\, _char, _rest :: binary>>, _line, _acc),
+    do: tokenize_string(rest, <<acc :: binary, escape_char(char)>>)
+  defp tokenize_string(<<?\\, _char, _rest :: binary>>, _acc),
     do: {:error, "unsupported escape code"}
-  defp tokenize_string(<<?\n, _rest :: binary>>, _line, _acc),
+  defp tokenize_string(<<?\n, _rest :: binary>>, _acc),
     do: {:error, "newline in string"}
-  defp tokenize_string(<<char, rest :: binary>>, line, acc),
-    do: tokenize_string(rest, line, <<acc :: binary, char>>)
-  defp tokenize_string(<<>>, _line, _acc),
+  defp tokenize_string(<<char, rest :: binary>>, acc),
+    do: tokenize_string(rest, <<acc :: binary, char>>)
+  defp tokenize_string(<<>>, _acc),
     do: {:error, "missing token \""}
+
+  @spec tokenize_plural_form(binary, binary) ::
+    {:ok, non_neg_integer, binary} | {:error, binary}
+  defp tokenize_plural_form(<<digit, rest :: binary>>, acc)
+    when digit in '0123456789',
+    do: tokenize_plural_form(rest, <<acc :: binary, digit>>)
+  defp tokenize_plural_form(<<?], char, rest :: binary>>, acc)
+    when char in @whitespace and acc != <<>>,
+    do: {:ok, String.to_integer(acc), rest}
+  defp tokenize_plural_form(<<?], _rest :: binary>>, acc)
+    when acc != <<>>,
+    do: {:error, "missing space after 'msgstr[#{acc}]'"}
+  defp tokenize_plural_form(_binary, _acc),
+    do: {:error, "invalid plural form"}
 
   @spec escape_char(char) :: char
   defp escape_char(?n), do: ?\n
@@ -136,13 +179,6 @@ defmodule Gettext.PO.Tokenizer do
   defp to_eol_or_eof(<<char, rest :: binary>>, acc),
     do: to_eol_or_eof(rest, <<acc :: binary, char>>)
 
-  @spec next_word(binary, binary) :: binary
-  defp next_word("", acc), do: acc
-  defp next_word(<<char, rest :: binary>>, acc) do
-    if Regex.match?(~r/\w/u, <<char>>) do
-      next_word(rest, <<acc :: binary, char>>)
-    else
-      acc
-    end
-  end
+  @spec next_word(binary) :: binary
+  defp next_word(binary), do: Regex.run(~r/\w+/u, binary) |> List.first
 end
