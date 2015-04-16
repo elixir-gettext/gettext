@@ -90,16 +90,16 @@ defmodule Gettext.Interpolation do
   """
   @spec interpolate(binary, Dict.t) :: {:ok, binary} | {:error, binary}
   def interpolate(str, bindings) do
-    try do
-      s = Enum.map_join to_interpolatable(str), "", fn
+    keys = keys(str)
+
+    if keys -- Dict.keys(bindings) != [] do
+      {:error, missing_interpolation_keys(bindings, keys)}
+    else
+      interpolated = Enum.map_join to_interpolatable(str), "", fn
         key when is_atom(key) -> Dict.fetch!(bindings, key)
         other                 -> other
       end
-      {:ok, s}
-    rescue
-      KeyError ->
-        required = keys(str)
-        {:error, missing_interpolation_keys(bindings, required)}
+      {:ok, interpolated}
     end
   end
 end
