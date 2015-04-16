@@ -68,11 +68,22 @@ defmodule Gettext do
       unquote(compile_po_files(translations_dir))
 
       # Catchall clauses.
-      def lgettext(_, _, msg, _bindings),
-        do: {:default, msg}
+      def lgettext(_, _, default, bindings) do
+        case Gettext.Interpolation.interpolate(default, bindings) do
+          {:ok, interpolated} -> {:default, interpolated}
+          {:error, _} = error -> error
+        end
+      end
 
-      def lngettext(_, _, msgid, _msgid_plural, _n, _bindings),
-        do: {:default, msgid}
+      def lngettext(_, _, msgid, msgid_plural, n, bindings) do
+        str = if n == 1, do: msgid, else: msgid_plural
+        bindings = Map.put(bindings, :count, n)
+
+        case Gettext.Interpolation.interpolate(str, bindings) do
+          {:ok, interpolated} -> {:default, interpolated}
+          {:error, _} = error -> error
+        end
+      end
     end
   end
 
@@ -99,9 +110,12 @@ defmodule Gettext do
   defp compile_translation(locale, domain, %Translation{} = t) do
     bindings_match = compile_bindings_match(t.msgstr)
     interpolated_bindings = compile_interpolated_bindings(t.msgstr)
+    required_keys = bindings_match |> elem(2) |> Dict.keys
 
     quote do
       def lgettext(unquote(locale), unquote(domain), unquote(t.msgid), bindings) do
+        import Gettext.Interpolation, only: [missing_interpolation_keys: 2]
+
         if is_list(bindings) do
           bindings = Enum.into(bindings, %{})
         end
@@ -110,7 +124,7 @@ defmodule Gettext do
           unquote(bindings_match) ->
             {:ok, unquote(interpolated_bindings)}
           _ ->
-            {:error, "missing interpolation"}
+            {:error, missing_interpolation_keys(bindings, unquote(required_keys))}
         end
       end
     end

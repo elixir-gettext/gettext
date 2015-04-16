@@ -55,8 +55,10 @@ defmodule GettextTest do
   end
 
   test "by default, non-found pluralized translation behave like regular translation" do
-    assert Translator.lngettext("it", "not a domain", "foo", "foos", 10)
+    assert Translator.lngettext("it", "not a domain", "foo", "foos", 1)
            == {:default, "foo"}
+    assert Translator.lngettext("it", "not a domain", "foo", "foos", 10)
+           == {:default, "foos"}
   end
 
   test "interpolation is supported by lgettext" do
@@ -86,5 +88,34 @@ defmodule GettextTest do
            == {:ok, "Hai un messaggio, Jane"}
     assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 0, %{name: "Jane"})
            == {:ok, "Hai 0 messaggi, Jane"}
+  end
+
+  test "when keys are missing in an interpolation, an error is returned" do
+    msgid = "My name is %{name} and I'm %{age}"
+    assert Translator.lgettext("it", "interpolations", msgid, name: "José")
+           == {:error, "missing interpolation keys: age"}
+  end
+
+  test "lgettext/4: interpolation works when a translation is missing" do
+    msgid = "Hello %{name}, missing translation!"
+    assert Translator.lgettext("pl", "foo", msgid, name: "Samantha")
+           == {:default, "Hello Samantha, missing translation!"}
+
+    msgid = "Hello world!"
+    assert Translator.lgettext("pl", "foo", msgid)
+           == {:default, "Hello world!"}
+
+    msgid = "Hello %{name}"
+    assert Translator.lgettext("pl", "foo", msgid, %{})
+           == {:error, "missing interpolation keys: name"}
+  end
+
+  test "lngettext/6: interpolation works when a translation is missing" do
+    msgid        = "One error"
+    msgid_plural = "%{count} errors"
+    assert Translator.lngettext("pl", "foo", msgid, msgid_plural, 1)
+           == {:default, "One error"}
+    assert Translator.lngettext("pl", "foo", msgid, msgid_plural, 9)
+           == {:default, "9 errors"}
   end
 end
