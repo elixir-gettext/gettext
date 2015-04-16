@@ -7,16 +7,6 @@ defmodule Gettext.Interpolation do
     (?<right>) # End, available through :right
   /x
 
-  defmodule BadInterpolationError do
-    defexception [:message]
-
-    def exception(opts) do
-      str = Keyword.fetch!(opts, :interpolation)
-      msg = "invalid interpolation: '#{str}'"
-      %__MODULE__{message: msg}
-    end
-  end
-
   def to_interpolatable(str) do
     split = Regex.split(@interpolation_regex, str, on: [:left, :right], trim: true)
 
