@@ -41,12 +41,12 @@ defmodule Gettext.InterpolationTest do
            == {:ok, "Hi Sandra"}
   end
 
-  test "bindings_in_string/1" do
-    assert Interpolation.bindings_in_string("Hello %{name}")
+  test "keys/1" do
+    assert Interpolation.keys("Hello %{name}")
            == [:name]
-    assert Interpolation.bindings_in_string("It's %{time} here in %{state}")
+    assert Interpolation.keys("It's %{time} here in %{state}")
            == [:time, :state]
-    assert Interpolation.bindings_in_string("Hi there %{your name}")
+    assert Interpolation.keys("Hi there %{your name}")
            == [:"your name"]
   end
 end

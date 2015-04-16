@@ -112,78 +112,74 @@ defmodule Gettext do
   end
 
   defp compile_translation(locale, domain, %Translation{} = t) do
-    bindings_match        = compile_bindings_match(t.msgstr)
-    interpolated_bindings = compile_interpolated_bindings(t.msgstr)
-    required_keys         = Interpolation.bindings_in_string(t.msgstr)
-
     quote do
-      def lgettext(unquote(locale), unquote(domain), unquote(t.msgid), bindings) do
-        if is_list(bindings) do
-          bindings = Enum.into(bindings, %{})
-        end
-
-        case bindings do
-          unquote(bindings_match) ->
-            {:ok, unquote(interpolated_bindings)}
-          _ ->
-            {:error, Gettext.Interpolation.missing_interpolation_keys(bindings, unquote(required_keys))}
-        end
+      def lgettext(unquote(locale), unquote(domain), unquote(t.msgid), var!(bindings)) do
+        unquote(compile_interpolation_code(t.msgstr))
       end
     end
   end
 
   defp compile_translation(locale, domain, %PluralTranslation{} = t) do
-    forms = for {form, str} <- t.msgstr, into: %{} do
-      match    = compile_bindings_match(str)
-      interp   = compile_interpolated_bindings(str)
-      required = Interpolation.bindings_in_string(str)
-
-      quoted = quote do
-        case var!(bindings) do
-          unquote(match) ->
-            {:ok, unquote(interp)}
-          _ ->
-            {:error, Gettext.Interpolation.missing_interpolation_keys(var!(bindings), unquote(required))}
-        end
-      end
-
-      {form, quoted}
+    compiled_plural_forms = for {form, str} <- t.msgstr, into: %{} do
+      {form, compile_interpolation_code(str)}
     end
 
     quote do
       def lngettext(unquote(locale), unquote(domain), unquote(t.msgid), unquote(t.msgid_plural), n, bindings) do
-        if is_list(bindings) do
-          bindings = Enum.into bindings, %{}
-        end
-        form = unquote(@pluralizer).plural(unquote(locale), n)
-        bindings = Map.put(bindings, :count, n)
-        q = Map.fetch!(unquote(Macro.escape(forms)), form)
-        {res, _} = Code.eval_quoted(q, bindings: bindings)
-        res
+        plural_form = unquote(@pluralizer).plural(unquote(locale), n)
+        bindings    = Dict.put(bindings, :count, n)
+
+        unquote(Macro.escape(compiled_plural_forms))
+        |> Dict.fetch!(plural_form)
+        |> Code.eval_quoted(bindings: bindings)
+        |> elem(0)
       end
     end
   end
 
-  defp compile_bindings_match(str) do
-    kv = for binding <- Interpolation.bindings_in_string(str) do
-      {binding, Macro.var(binding, __MODULE__)}
-    end
+  # Compiles a string into a full-blown `case` statement which interpolates the
+  # string based on some bindings or returns an error in case those bindings are
+  # missing. Note that the `bindings` variable is assumed to be in the scope by
+  # the quoted code that is returned.
+  defp compile_interpolation_code(str) do
+    keys          = Interpolation.keys(str)
+    match         = compile_interpolation_match(keys)
+    interpolation = compile_interpolation(str)
 
-    {:%{}, [], kv}
+    quote do
+      bindings = var!(bindings)
+
+      if is_list(bindings) do
+        bindings = Enum.into bindings, %{}
+      end
+
+      case bindings do
+        unquote(match) ->
+          {:ok, unquote(interpolation)}
+        _ ->
+          keys = unquote(keys)
+          {:error, Gettext.Interpolation.missing_interpolation_keys(bindings, keys)}
+      end
+    end
   end
 
-  # Heavily inspired by Chris McCord's "linguist", see
+  # Compiles a list of atoms into a "match" map. For example `[:foo, :bar]` gets
+  # compiled to `%{foo: foo, bar: bar}`. All generated variables are under the
+  # current `__MODULE__`.
+  defp compile_interpolation_match(keys) do
+    {:%{}, [], Enum.map(keys, &{&1, Macro.var(&1, __MODULE__)})}
+  end
+
+  # Compiles a string into a sequence of applications of the `<>` operator.
+  # `%{var}` patterns are turned into `var` variables, namespaced inside the
+  # current `__MODULE__`. Heavily inspired by Chris McCord's "linguist", see
   # https://github.com/chrismccord/linguist/blob/master/lib/linguist/compiler.ex#L70
-  defp compile_interpolated_bindings(str) do
+  defp compile_interpolation(str) do
     Enum.reduce Interpolation.to_interpolatable(str), "", fn
       key, acc when is_atom(key) ->
-        quote do
-          unquote(acc) <> to_string(unquote(Macro.var(key, __MODULE__)))
-        end
+        quote do: unquote(acc) <> to_string(unquote(Macro.var(key, __MODULE__)))
       str, acc ->
-        quote do
-          unquote(acc) <> unquote(str)
-        end
+        quote do: unquote(acc) <> unquote(str)
     end
   end
 end

@@ -32,7 +32,7 @@ defmodule Gettext.Interpolation do
     "missing interpolation keys: " <> Enum.map_join(missing, ", ", &to_string/1)
   end
 
-  def bindings_in_string(str) do
+  def keys(str) do
     str
     |> to_interpolatable
     |> Enum.filter(&is_atom/1)
@@ -47,7 +47,7 @@ defmodule Gettext.Interpolation do
       {:ok, s}
     rescue
       KeyError ->
-        required = bindings_in_string(str)
+        required = keys(str)
         {:error, missing_interpolation_keys(bindings, required)}
     end
   end
