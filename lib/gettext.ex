@@ -46,6 +46,7 @@ defmodule Gettext do
   alias Gettext.Interpolation
 
   @default_priv "priv/gettext"
+  @pluralizer Application.get_env(:gettext, :plural_forms, Gettext.Plural)
 
   @doc false
   defmacro __using__(opts) do
@@ -154,7 +155,7 @@ defmodule Gettext do
         if is_list(bindings) do
           bindings = Enum.into bindings, %{}
         end
-        form = Gettext.Plural.plural(unquote(locale), n)
+        form = unquote(@pluralizer).plural(unquote(locale), n)
         bindings = Map.put(bindings, :count, n)
         q = Map.fetch!(unquote(Macro.escape(forms)), form)
         {res, _} = Code.eval_quoted(q, bindings: bindings)
