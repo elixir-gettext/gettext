@@ -51,6 +51,9 @@ defmodule Gettext do
     quote do
       @gettext_opts unquote(opts)
       @before_compile Gettext
+
+      def lgettext(locale, domain, msgid, bindings \\ %{})
+      def lngettext(locale, domain, msgid, msgid_plural, n, bindings \\ %{})
     end
   end
 
@@ -65,30 +68,17 @@ defmodule Gettext do
       unquote(compile_po_files(translations_dir))
 
       # Catchall clauses.
-      def lgettext(_, _, msg),
+      def lgettext(_, _, msg, _bindings),
         do: {:default, msg}
 
-      def lngettext(_, _, msgid, _msgid_plural, _n),
+      def lngettext(_, _, msgid, _msgid_plural, _n, _bindings),
         do: {:default, msgid}
     end
   end
 
-  @doc false
-  # TODO Support decent interpolation, possibly at compile time. This is only a
-  # temporary (hackish) solution.
-  def pluralize(locale, msgstr, n) do
-    plural_form = Gettext.Plural.plural(locale, n)
-    translation = Map.get(msgstr, plural_form)
-    {:ok, replace_count(translation, n)}
-  end
-
-  defp replace_count(string, n) do
-    String.replace string, "%{count}", to_string(n)
-  end
-
   defp compile_po_files(dir) do
     # `true` means recursively. The last argument is the initial accumulator.
-    :filelib.fold_files(dir, "\.po$", true, &compile_po_file/2, [])
+    :filelib.fold_files(dir, "\.po$", true, &compile_po_file(&1, &2), [])
   end
 
   defp compile_po_file(path, acc) do
@@ -106,27 +96,82 @@ defmodule Gettext do
     {locale, domain}
   end
 
-  # Compiles a pluralized translation into a function clause like:
-  #
-  #     def lngettext(locale, domain, msgid, msgid_plural, n)
-  #
-  defp compile_translation(locale, domain, %PluralTranslation{msgid: msgid, msgid_plural: msgid_plural, msgstr: msgstr}) do
+  defp compile_translation(locale, domain, %Translation{} = t) do
+    bindings_match = compile_bindings_match(t.msgstr)
+    interpolated_bindings = compile_interpolated_bindings(t.msgstr)
+
     quote do
-      def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n) do
-        Gettext.pluralize(unquote(locale), unquote(Macro.escape(msgstr)), n)
+      def lgettext(unquote(locale), unquote(domain), unquote(t.msgid), bindings) do
+        if is_list(bindings) do
+          bindings = Enum.into(bindings, %{})
+        end
+
+        case bindings do
+          unquote(bindings_match) ->
+            {:ok, unquote(interpolated_bindings)}
+          _ ->
+            {:error, "missing interpolation"}
+        end
       end
     end
   end
 
-  # Compiles a translation into a function clause like:
-  #
-  #     def lgettext(locale, domain, msgid)
-  #
-  defp compile_translation(locale, domain, %Translation{msgid: msgid, msgstr: msgstr}) do
+  defp compile_translation(locale, domain, %PluralTranslation{} = t) do
+    forms = for {form, str} <- t.msgstr, into: %{} do
+      match = compile_bindings_match(str)
+      interp = compile_interpolated_bindings(str)
+
+      quoted = quote do
+        case var!(bindings) do
+          unquote(match) ->
+            {:ok, unquote(interp)}
+          _ ->
+            {:err}
+        end
+      end
+
+      {form, quoted}
+    end
+
     quote do
-      def lgettext(unquote(locale), unquote(domain), unquote(msgid)) do
-        {:ok, unquote(msgstr)}
+      def lngettext(unquote(locale), unquote(domain), unquote(t.msgid), unquote(t.msgid_plural), n, bindings) do
+        if is_list(bindings) do
+          bindings = Enum.into bindings, %{}
+        end
+        form = Gettext.Plural.plural(unquote(locale), n)
+        bindings = Map.put(bindings, :count, n)
+        q = Map.fetch!(unquote(Macro.escape(forms)), form)
+        {res, _} = Code.eval_quoted(q, bindings: bindings)
+        res
       end
     end
+  end
+
+  defp compile_bindings_match(str) do
+    interpolations = Regex.scan(~r/%{(\w+)}/, str)
+
+    kv = for [_, binding] <- interpolations do
+      binding = String.to_atom(binding)
+      var = Macro.var(binding, __MODULE__)
+
+      {binding, var}
+    end
+
+    {:%{}, [], kv}
+  end
+
+  # Heavily inspired by Chris McCord's "linguist", see
+  # https://github.com/chrismccord/linguist/blob/master/lib/linguist/compiler.ex#L70
+  defp compile_interpolated_bindings(str) do
+    ~r/(?<head>)%{[^}]+}(?<tail>)/
+    |> Regex.split(str, on: [:head, :tail])
+    |> Enum.reduce("", fn
+      <<"%{" <> rest>>, acc ->
+        key = String.to_atom(String.rstrip(rest, ?}))
+        quote do
+          unquote(acc) <> to_string(unquote(Macro.var(key, __MODULE__)))
+        end
+      segment, acc -> quote do: (unquote(acc) <> unquote(segment))
+    end)
   end
 end
