@@ -2,6 +2,15 @@ defmodule Gettext.InterpolationTest do
   use ExUnit.Case, async: true
   alias Gettext.Interpolation
 
+  test "to_interpolatable/1" do
+    assert Interpolation.to_interpolatable("Hello %{name}")
+           == ["Hello ", :name]
+    assert Interpolation.to_interpolatable("%{foo}%{bar} %{baz}")
+           == [:foo, :bar, " ", :baz]
+    assert Interpolation.to_interpolatable("%{Your name} is cool!")
+           == [:"Your name", " is cool!"]
+  end
+
   test "missing_interpolation_keys/2" do
     bindings = %{
       foo: "foo",
@@ -30,5 +39,14 @@ defmodule Gettext.InterpolationTest do
   test "interpolate/2: unused bindings are ignored" do
     assert Interpolation.interpolate("Hi %{name}", name: "Sandra", foo: "bar")
            == {:ok, "Hi Sandra"}
+  end
+
+  test "bindings_in_string/1" do
+    assert Interpolation.bindings_in_string("Hello %{name}")
+           == [:name]
+    assert Interpolation.bindings_in_string("It's %{time} here in %{state}")
+           == [:time, :state]
+    assert Interpolation.bindings_in_string("Hi there %{your name}")
+           == [:"your name"]
   end
 end

@@ -90,7 +90,7 @@ defmodule GettextTest do
            == {:ok, "Hai 0 messaggi, Jane"}
   end
 
-  test "when keys are missing in an interpolation, an error is returned" do
+  test "lgettext/4: error when keys are missing in an interpolation" do
     msgid = "My name is %{name} and I'm %{age}"
     assert Translator.lgettext("it", "interpolations", msgid, name: "José")
            == {:error, "missing interpolation keys: age"}
@@ -107,6 +107,17 @@ defmodule GettextTest do
 
     msgid = "Hello %{name}"
     assert Translator.lgettext("pl", "foo", msgid, %{})
+           == {:error, "missing interpolation keys: name"}
+  end
+
+  test "lngettext/6: error when keys are missing in an interpolation" do
+    msgid =  "You have one message, %{name}"
+    msgid_plural = "You have %{count} messages, %{name}"
+
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1)
+           == {:error, "missing interpolation keys: name"}
+
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 6)
            == {:error, "missing interpolation keys: name"}
   end
 

@@ -43,6 +43,7 @@ defmodule Gettext do
 
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
+  alias Gettext.Interpolation
 
   @default_priv "priv/gettext"
 
@@ -92,6 +93,8 @@ defmodule Gettext do
     :filelib.fold_files(dir, "\.po$", true, &compile_po_file(&1, &2), [])
   end
 
+  # `acc` is a list of already compiled translation, i.e., of quoted function
+  # definitions.
   defp compile_po_file(path, acc) do
     {locale, domain} = locale_and_domain_from_path(path)
     translations     = Gettext.PO.parse_file!(path)
@@ -108,14 +111,12 @@ defmodule Gettext do
   end
 
   defp compile_translation(locale, domain, %Translation{} = t) do
-    bindings_match = compile_bindings_match(t.msgstr)
+    bindings_match        = compile_bindings_match(t.msgstr)
     interpolated_bindings = compile_interpolated_bindings(t.msgstr)
-    required_keys = bindings_match |> elem(2) |> Dict.keys
+    required_keys         = Interpolation.bindings_in_string(t.msgstr)
 
     quote do
       def lgettext(unquote(locale), unquote(domain), unquote(t.msgid), bindings) do
-        import Gettext.Interpolation, only: [missing_interpolation_keys: 2]
-
         if is_list(bindings) do
           bindings = Enum.into(bindings, %{})
         end
@@ -124,7 +125,7 @@ defmodule Gettext do
           unquote(bindings_match) ->
             {:ok, unquote(interpolated_bindings)}
           _ ->
-            {:error, missing_interpolation_keys(bindings, unquote(required_keys))}
+            {:error, Gettext.Interpolation.missing_interpolation_keys(bindings, unquote(required_keys))}
         end
       end
     end
@@ -132,15 +133,16 @@ defmodule Gettext do
 
   defp compile_translation(locale, domain, %PluralTranslation{} = t) do
     forms = for {form, str} <- t.msgstr, into: %{} do
-      match = compile_bindings_match(str)
-      interp = compile_interpolated_bindings(str)
+      match    = compile_bindings_match(str)
+      interp   = compile_interpolated_bindings(str)
+      required = Interpolation.bindings_in_string(str)
 
       quoted = quote do
         case var!(bindings) do
           unquote(match) ->
             {:ok, unquote(interp)}
           _ ->
-            {:err}
+            {:error, Gettext.Interpolation.missing_interpolation_keys(var!(bindings), unquote(required))}
         end
       end
 
@@ -162,13 +164,8 @@ defmodule Gettext do
   end
 
   defp compile_bindings_match(str) do
-    interpolations = Regex.scan(~r/%{(\w+)}/, str)
-
-    kv = for [_, binding] <- interpolations do
-      binding = String.to_atom(binding)
-      var = Macro.var(binding, __MODULE__)
-
-      {binding, var}
+    kv = for binding <- Interpolation.bindings_in_string(str) do
+      {binding, Macro.var(binding, __MODULE__)}
     end
 
     {:%{}, [], kv}
@@ -177,15 +174,15 @@ defmodule Gettext do
   # Heavily inspired by Chris McCord's "linguist", see
   # https://github.com/chrismccord/linguist/blob/master/lib/linguist/compiler.ex#L70
   defp compile_interpolated_bindings(str) do
-    ~r/(?<head>)%{[^}]+}(?<tail>)/
-    |> Regex.split(str, on: [:head, :tail])
-    |> Enum.reduce("", fn
-      <<"%{" <> rest>>, acc ->
-        key = String.to_atom(String.rstrip(rest, ?}))
+    Enum.reduce Interpolation.to_interpolatable(str), "", fn
+      key, acc when is_atom(key) ->
         quote do
           unquote(acc) <> to_string(unquote(Macro.var(key, __MODULE__)))
         end
-      segment, acc -> quote do: (unquote(acc) <> unquote(segment))
-    end)
+      str, acc ->
+        quote do
+          unquote(acc) <> unquote(str)
+        end
+    end
   end
 end
