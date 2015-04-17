@@ -55,7 +55,16 @@ defmodule Gettext do
       @before_compile Gettext
 
       def lgettext(locale, domain, msgid, bindings \\ %{})
+
+      def lgettext(locale, domain, msgid, bindings) when is_list(bindings) do
+        lgettext(locale, domain, msgid, Enum.into(bindings, %{}))
+      end
+
       def lngettext(locale, domain, msgid, msgid_plural, n, bindings \\ %{})
+
+      def lngettext(locale, domain, msgid, msgid_plural, n, bindings) when is_list(bindings) do
+        lngettext(locale, domain, msgid, msgid_plural, n, Enum.into(bindings, %{}))
+      end
     end
   end
 
@@ -78,7 +87,7 @@ defmodule Gettext do
       end
 
       def lngettext(_, _, msgid, msgid_plural, n, bindings) do
-        str = if n == 1, do: msgid, else: msgid_plural
+        str      = if n == 1, do: msgid, else: msgid_plural
         bindings = Map.put(bindings, :count, n)
 
         case Gettext.Interpolation.interpolate(str, bindings) do
@@ -147,18 +156,12 @@ defmodule Gettext do
     interpolation = compile_interpolation(str)
 
     quote do
-      bindings = var!(bindings)
-
-      if is_list(bindings) do
-        bindings = Enum.into bindings, %{}
-      end
-
-      case bindings do
+      case var!(bindings) do
         unquote(match) ->
           {:ok, unquote(interpolation)}
         _ ->
           keys = unquote(keys)
-          {:error, Gettext.Interpolation.missing_interpolation_keys(bindings, keys)}
+          {:error, Gettext.Interpolation.missing_interpolation_keys(var!(bindings), keys)}
       end
     end
   end
