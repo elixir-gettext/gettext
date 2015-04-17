@@ -20,7 +20,7 @@ defmodule Gettext.Interpolation do
 
   ## Examples
 
-      iex> to_interpolatable("Hello %{name}, you have %{count} unread messages")
+      iex> Gettext.Interpolation.to_interpolatable("Hello %{name}, you have %{count} unread messages")
       ["Hello ", :name, ", you have ", :count, " unread messages"]
 
   """
@@ -42,11 +42,11 @@ defmodule Gettext.Interpolation do
 
   ## Examples
 
-      iex> missing_interpolation_keys(%{foo: 1}, [:foo, :bar, :baz]
+      iex> Gettext.Interpolation.missing_interpolation_keys %{foo: 1}, [:foo, :bar, :baz]
       "missing interpolation keys: bar, baz"
 
   """
-  @spec missing_interpolation_keys(Dict.t, [atom]) :: binary
+  @spec missing_interpolation_keys(Map.t, [atom]) :: binary
   def missing_interpolation_keys(bindings, required) do
     present = Dict.keys(bindings)
     missing = required -- present
@@ -66,10 +66,10 @@ defmodule Gettext.Interpolation do
 
   ## Examples
 
-      iex> keys("Hey %{name}, I'm %{other_name}")
+      iex> Gettext.Interpolation.keys("Hey %{name}, I'm %{other_name}")
       [:name, :other_name]
 
-      iex> keys(["Hello ", :name, "!"])
+      iex> Gettext.Interpolation.keys(["Hello ", :name, "!"])
       [:name]
 
   """
@@ -89,22 +89,22 @@ defmodule Gettext.Interpolation do
 
   ## Examples
 
-      iex> interpolate "Hello %{name}", name: "José"
+      iex> Gettext.Interpolation.interpolate "Hello %{name}", %{name: "José"}
       {:ok, "Hello José"}
-      iex> interpolate "%{count} errors", %{name: "Jane"}
+      iex> Gettext.Interpolation.interpolate "%{count} errors", %{name: "Jane"}
       {:error, "missing interpolation keys: count"}
 
   """
-  @spec interpolate(binary, Dict.t) :: {:ok, binary} | {:error, binary}
+  @spec interpolate(binary, Map.t) :: {:ok, binary} | {:error, binary}
   def interpolate(str, bindings) do
     segments = to_interpolatable(str)
     keys     = keys(segments)
 
-    if keys -- Dict.keys(bindings) != [] do
+    if keys -- Map.keys(bindings) != [] do
       {:error, missing_interpolation_keys(bindings, keys)}
     else
       interpolated = Enum.map_join segments, "", fn
-        key when is_atom(key) -> Dict.fetch!(bindings, key)
+        key when is_atom(key) -> Map.fetch!(bindings, key)
         other                 -> other
       end
       {:ok, interpolated}

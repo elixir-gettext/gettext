@@ -1,5 +1,6 @@
 defmodule Gettext.InterpolationTest do
   use ExUnit.Case, async: true
+  doctest Gettext.Interpolation
   alias Gettext.Interpolation
 
   test "to_interpolatable/1" do
@@ -25,7 +26,7 @@ defmodule Gettext.InterpolationTest do
   end
 
   test "interpolate/2: successful cases" do
-    assert Interpolation.interpolate("Hello %{name}", name: "Alex")
+    assert Interpolation.interpolate("Hello %{name}", %{name: "Alex"})
            == {:ok, "Hello Alex"}
     assert Interpolation.interpolate("%{count} errors", %{count: 3})
            == {:ok, "3 errors"}
@@ -37,7 +38,7 @@ defmodule Gettext.InterpolationTest do
   end
 
   test "interpolate/2: unused bindings are ignored" do
-    assert Interpolation.interpolate("Hi %{name}", name: "Sandra", foo: "bar")
+    assert Interpolation.interpolate("Hi %{name}", %{name: "Sandra", foo: "bar"})
            == {:ok, "Hi Sandra"}
   end
 

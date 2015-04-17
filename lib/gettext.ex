@@ -136,7 +136,7 @@ defmodule Gettext do
     quote do
       def lngettext(unquote(locale), unquote(domain), unquote(t.msgid), unquote(t.msgid_plural), n, bindings) do
         plural_form    = unquote(@plural_forms).plural(unquote(locale), n)
-        var!(bindings) = Dict.put(bindings, :count, n)
+        var!(bindings) = Map.put(bindings, :count, n)
 
         case plural_form, do: unquote(clauses)
       end
