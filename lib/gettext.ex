@@ -129,19 +129,16 @@ defmodule Gettext do
   end
 
   defp compile_translation(locale, domain, %PluralTranslation{} = t) do
-    compiled_plural_forms = for {form, str} <- t.msgstr, into: %{} do
-      {form, compile_interpolation_code(str)}
+    clauses = Enum.map t.msgstr, fn({form, str}) ->
+      {:->, [], [[form], compile_interpolation_code(str)]}
     end
 
     quote do
       def lngettext(unquote(locale), unquote(domain), unquote(t.msgid), unquote(t.msgid_plural), n, bindings) do
-        plural_form = unquote(@plural_forms).plural(unquote(locale), n)
-        bindings    = Dict.put(bindings, :count, n)
+        plural_form    = unquote(@plural_forms).plural(unquote(locale), n)
+        var!(bindings) = Dict.put(bindings, :count, n)
 
-        unquote(Macro.escape(compiled_plural_forms))
-        |> Dict.fetch!(plural_form)
-        |> Code.eval_quoted(bindings: bindings)
-        |> elem(0)
+        case plural_form, do: unquote(clauses)
       end
     end
   end
