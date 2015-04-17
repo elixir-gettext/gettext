@@ -46,7 +46,7 @@ defmodule Gettext do
   alias Gettext.Interpolation
 
   @default_priv "priv/gettext"
-  @pluralizer Application.get_env(:gettext, :plural_forms, Gettext.Plural)
+  @plural_forms Application.get_env(:gettext, :plural_forms, Gettext.Plural)
 
   @doc false
   defmacro __using__(opts) do
@@ -126,7 +126,7 @@ defmodule Gettext do
 
     quote do
       def lngettext(unquote(locale), unquote(domain), unquote(t.msgid), unquote(t.msgid_plural), n, bindings) do
-        plural_form = unquote(@pluralizer).plural(unquote(locale), n)
+        plural_form = unquote(@plural_forms).plural(unquote(locale), n)
         bindings    = Dict.put(bindings, :count, n)
 
         unquote(Macro.escape(compiled_plural_forms))
