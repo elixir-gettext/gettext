@@ -54,23 +54,30 @@ defmodule Gettext.Interpolation do
   end
 
   @doc """
-  Returns all the interpolation keys contained in `str`.
+  Returns all the interpolation keys contained in the given string or list of
+  segments.
 
   This function returns a list of all the interpolation keys (patterns in the
-  form `%{interpolation}`) contained in `str`.
+  form `%{interpolation}`) contained in its argument.
+
+  If the argument is a segment list, i.e., a list of strings and atoms where
+  atoms represent interpolation keys, then only the atoms in the list are
+  returned.
 
   ## Examples
 
       iex> keys("Hey %{name}, I'm %{other_name}")
       [:name, :other_name]
 
+      iex> keys(["Hello ", :name, "!"])
+      [:name]
+
   """
   @spec keys(binary) :: [atom]
-  def keys(str) do
-    str
-    |> to_interpolatable
-    |> Enum.filter(&is_atom/1)
-  end
+  def keys(str) when is_binary(str),
+    do: str |> to_interpolatable |> Enum.filter(&is_atom/1)
+  def keys(segments) when is_list(segments),
+    do: Enum.filter(segments, &is_atom/1)
 
   @doc """
   Dynimically interpolates `str` with the given `bindings`.
@@ -90,12 +97,13 @@ defmodule Gettext.Interpolation do
   """
   @spec interpolate(binary, Dict.t) :: {:ok, binary} | {:error, binary}
   def interpolate(str, bindings) do
-    keys = keys(str)
+    segments = to_interpolatable(str)
+    keys     = keys(segments)
 
     if keys -- Dict.keys(bindings) != [] do
       {:error, missing_interpolation_keys(bindings, keys)}
     else
-      interpolated = Enum.map_join to_interpolatable(str), "", fn
+      interpolated = Enum.map_join segments, "", fn
         key when is_atom(key) -> Dict.fetch!(bindings, key)
         other                 -> other
       end
