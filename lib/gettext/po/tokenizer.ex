@@ -4,10 +4,14 @@ defmodule Gettext.PO.Tokenizer do
   # This module is responsible for turning a chunk of text (a string) into a
   # list of tokens. For what "token" means, see the docs for `tokenize/1`.
 
+  @type line :: pos_integer
+
   @type token ::
-    {:str, pos_integer, binary} |
-    {:msgid, pos_integer} |
-    {:msgstr, pos_integer}
+    {:str, line, binary} |
+    {:plural_form, line, non_neg_integer} |
+    {:msgid, line} |
+    {:msgid_plural, line} |
+    {:msgstr, line}
 
   # In this list of keywords *the order matters* because a function clause is
   # generated for each keyword, and keywords have to be followed by whitespace.

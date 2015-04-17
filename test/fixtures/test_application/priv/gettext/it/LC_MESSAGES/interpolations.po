@@ -1,0 +1,10 @@
+msgid "Hello %{name}"
+msgstr "Ciao %{name}"
+
+msgid "My name is %{name} and I'm %{age}"
+msgstr "Mi chiamo %{name} e ho %{age} anni"
+
+msgid "You have one message, %{name}"
+msgid_plural "You have %{count} messages, %{name}"
+msgstr[0] "Hai un messaggio, %{name}"
+msgstr[1] "Hai %{count} messaggi, %{name}"
