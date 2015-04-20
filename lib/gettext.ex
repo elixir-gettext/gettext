@@ -41,6 +41,8 @@ defmodule Gettext do
 
   """
 
+  @type locale :: binary
+
   @doc false
   defmacro __using__(opts) do
     quote do
@@ -49,4 +51,13 @@ defmodule Gettext do
       unquote(Gettext.Compiler.signatures)
     end
   end
+
+  @spec locale() :: locale
+  def locale, do: Process.get(__MODULE__, :en)
+
+  @spec locale(locale) :: nil
+  def locale(locale) when is_binary(locale),
+    do: Process.put(__MODULE__, locale)
+  def locale(_locale),
+    do: raise(ArgumentError, "locale/1 only accepts binary locales")
 end
