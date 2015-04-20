@@ -55,7 +55,15 @@ defmodule Gettext do
   end
 
   @spec locale() :: locale
-  def locale, do: Process.get(__MODULE__, @default_locale)
+  def locale do
+    if locale = Process.get(__MODULE__) do
+      locale
+    else
+      default_locale = Application.get_env(:gettext, :default_locale, @default_locale)
+      Process.put(__MODULE__, default_locale)
+      default_locale
+    end
+  end
 
   @spec locale(locale) :: nil
   def locale(locale) when is_binary(locale),
