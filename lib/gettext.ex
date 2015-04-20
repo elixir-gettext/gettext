@@ -43,6 +43,8 @@ defmodule Gettext do
 
   @type locale :: binary
 
+  @default_locale "en"
+
   @doc false
   defmacro __using__(opts) do
     quote do
@@ -53,7 +55,7 @@ defmodule Gettext do
   end
 
   @spec locale() :: locale
-  def locale, do: Process.get(__MODULE__, :en)
+  def locale, do: Process.get(__MODULE__, @default_locale)
 
   @spec locale(locale) :: nil
   def locale(locale) when is_binary(locale),

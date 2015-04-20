@@ -14,6 +14,10 @@ defmodule GettextTest do
   require Translator
   require TranslatorWithCustomPriv
 
+  test "the default locale is \"en\"" do
+    assert Gettext.locale == "en"
+  end
+
   test "locale/0-1: sets and gets the locale" do
     Gettext.locale("pt_BR")
     assert Gettext.locale == "pt_BR"

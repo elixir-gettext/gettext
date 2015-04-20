@@ -29,7 +29,7 @@ defmodule Gettext.Compiler do
 
       defmacro dgettext(domain, msgid, bindings) when is_binary(msgid) do
         quote do
-          locale = Process.get(Gettext)
+          locale = Gettext.locale
           unquote(__MODULE__).lgettext(locale, unquote(domain), unquote(msgid), unquote(bindings))
         end
       end
