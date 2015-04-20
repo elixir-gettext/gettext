@@ -1,17 +1,28 @@
+defmodule GettextTest.Translator do
+  use Gettext, otp_app: :test_application
+end
+
+defmodule GettextTest.TranslatorWithCustomPriv do
+  use Gettext, otp_app: :test_application, priv: "translations"
+end
+
 defmodule GettextTest do
   use ExUnit.Case, async: true
 
-  # Let's load the test application.
-  [__DIR__, "fixtures", "test_application", "ebin"]
-  |> Path.join
-  |> Code.prepend_path
+  alias GettextTest.Translator
+  alias GettextTest.TranslatorWithCustomPriv
+  require Translator
+  require TranslatorWithCustomPriv
 
-  defmodule Translator do
-    use Gettext, otp_app: :test_application
+  test "locale/0-1: sets and gets the locale" do
+    Gettext.locale("pt_BR")
+    assert Gettext.locale == "pt_BR"
   end
 
-  defmodule TranslatorWithCustomPriv do
-    use Gettext, otp_app: :test_application, priv: "translations"
+  test "locale/0-1: only accepts binaries" do
+    assert_raise ArgumentError, "locale/1 only accepts binary locales", fn ->
+      Gettext.locale :en
+    end
   end
 
   test "found translations return {:ok, translation}" do
@@ -128,5 +139,41 @@ defmodule GettextTest do
            == {:default, "One error"}
     assert Translator.lngettext("pl", "foo", msgid, msgid_plural, 9)
            == {:default, "9 errors"}
+  end
+
+  test "dgettext/3: binary msgid at compile-time" do
+    Gettext.locale "it"
+
+    assert Translator.dgettext("errors", "Invalid email address")
+           == {:ok, "Indirizzo email non valido"}
+    assert Translator.dgettext("interpolations", "Hello %{name}", %{name: "Jim"})
+           == {:ok, "Ciao Jim"}
+    assert Translator.dgettext("interpolations", "Hello %{name}")
+           == {:error, "missing interpolation keys: name"}
+  end
+
+  test "gettext/2: binary msgid at compile-time" do
+    Gettext.locale "it"
+    assert Translator.gettext("Hello world") == {:ok, "Ciao mondo"}
+  end
+
+  test "dgettext/3 and gettext/2: non-binary msgid at compile-time" do
+    code = quote do
+      require Translator
+      msgid = "Invalid email address"
+      Translator.dgettext("errors", msgid)
+    end
+    assert_raise ArgumentError, "msgid must be a string literal", fn ->
+      Code.eval_quoted code
+    end
+
+    code = quote do
+      require Translator
+      msgid = "Hello world"
+      Translator.gettext(msgid)
+    end
+    assert_raise ArgumentError, "msgid must be a string literal", fn ->
+      Code.eval_quoted code
+    end
   end
 end

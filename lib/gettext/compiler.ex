@@ -16,9 +16,33 @@ defmodule Gettext.Compiler do
     translations_dir = Application.app_dir(otp_app, priv)
 
     quote do
+      unquote(macros)
       unquote(binding_conversion_clauses)
       unquote(compile_po_files(translations_dir))
       unquote(dynamic_clauses)
+    end
+  end
+
+  defp macros do
+    quote unquote: false do
+      defmacro dgettext(domain, msgid, bindings \\ Macro.escape(%{}))
+
+      defmacro dgettext(domain, msgid, bindings) when is_binary(msgid) do
+        quote do
+          locale = Process.get(Gettext)
+          unquote(__MODULE__).lgettext(locale, unquote(domain), unquote(msgid), unquote(bindings))
+        end
+      end
+
+      defmacro dgettext(_domain, _msgid, _bindings) do
+        raise ArgumentError, "msgid must be a string literal"
+      end
+
+      defmacro gettext(msgid, bindings \\ Macro.escape(%{})) do
+        quote do
+          unquote(__MODULE__).dgettext("default", unquote(msgid), unquote(bindings))
+        end
+      end
     end
   end
 
