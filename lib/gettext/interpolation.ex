@@ -3,6 +3,19 @@ defmodule Gettext.Interpolation do
   Provides facilities for working with interpolations.
   """
 
+  defmodule MissingKeysError do
+    @moduledoc """
+    This error is raised when a string is being interpolated and one or more
+    interpolation keys are missing.
+    """
+
+    defexception [:message]
+
+    def exception(message) do
+      %__MODULE__{message: message}
+    end
+  end
+
   @interpolation_regex ~r/
     (?<left>)  # Start, available through :left
     %{         # Literal '%{'
