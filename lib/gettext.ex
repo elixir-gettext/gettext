@@ -70,4 +70,21 @@ defmodule Gettext do
     do: Process.put(__MODULE__, locale)
   def locale(_locale),
     do: raise(ArgumentError, "locale/1 only accepts binary locales")
+
+  @spec dgettext(atom, binary, binary, Map.t) :: binary
+  def dgettext(backend, domain, string, bindings \\ %{}) do
+    case backend.lgettext(locale(), domain, string, bindings) do
+      {:ok, string} ->
+        string
+      {:default, string} ->
+        string
+      {:error, error} ->
+        raise Gettext.Interpolation.MissingKeysError, error
+    end
+  end
+
+  @spec gettext(atom, binary, Map.t) :: binary
+  def gettext(backend, string, bindings \\ %{}) do
+    dgettext(backend, "default", string, bindings)
+  end
 end

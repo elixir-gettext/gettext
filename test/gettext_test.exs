@@ -156,6 +156,8 @@ defmodule GettextTest do
            == {:error, "missing interpolation keys: name"}
   end
 
+  # Macros.
+
   test "gettext/2: binary msgid at compile-time" do
     Gettext.locale "it"
     assert Translator.gettext("Hello world") == {:ok, "Ciao mondo"}
@@ -179,5 +181,29 @@ defmodule GettextTest do
     assert_raise ArgumentError, "msgid must be a string literal", fn ->
       Code.eval_quoted code
     end
+  end
+
+  # Actual Gettext functions (not the ones generated in the modules that `use
+  # Gettext`).
+
+  test "dgettext/4" do
+    Gettext.locale "it"
+
+    msgid = "Invalid email address"
+    assert Gettext.dgettext(Translator, "errors", msgid)
+           == "Indirizzo email non valido"
+
+    assert Gettext.dgettext(Translator, "foo", "Foo") == "Foo"
+
+    msg = "missing interpolation keys: name"
+    assert_raise Gettext.Interpolation.MissingKeysError, msg, fn ->
+      Gettext.dgettext(Translator, "interpolations", "Hello %{name}", %{})
+    end
+  end
+
+  test "gettext/3" do
+    Gettext.locale "it"
+    assert Gettext.gettext(Translator, "Hello world") == "Ciao mondo"
+    assert Gettext.gettext(Translator, "Nonexistent") == "Nonexistent"
   end
 end
