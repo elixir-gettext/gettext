@@ -87,4 +87,19 @@ defmodule Gettext do
   def gettext(backend, string, bindings \\ %{}) do
     dgettext(backend, "default", string, bindings)
   end
+
+  @spec dngettext(atom, binary, binary, binary, non_neg_integer, Map.t) :: binary
+  def dngettext(backend, domain, id, plural_id, n, bindings \\ %{}) do
+    case backend.lngettext(locale(), domain, id, plural_id, n, bindings) do
+      {atom, string} when atom in [:ok, :default] ->
+        string
+      {:error, error} ->
+        raise Gettext.Interpolation.MissingKeysError, error
+    end
+  end
+
+  @spec ngettext(atom, binary, binary, non_neg_integer, Map.t) :: binary
+  def ngettext(backend, id, plural_id, n, bindings \\ %{}) do
+    dngettext(backend, "default", id, plural_id, n, bindings)
+  end
 end

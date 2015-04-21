@@ -244,4 +244,24 @@ defmodule GettextTest do
     assert Gettext.gettext(Translator, "Hello world") == "Ciao mondo"
     assert Gettext.gettext(Translator, "Nonexistent") == "Nonexistent"
   end
+
+  test "dngettext/6" do
+    Gettext.locale "it"
+    msgid        = "You have one message, %{name}"
+    msgid_plural = "You have %{count} messages, %{name}"
+    assert Gettext.dngettext(Translator, "interpolations", msgid, msgid_plural, 1, %{name: "Meg"})
+           == "Hai un messaggio, Meg"
+    assert Gettext.dngettext(Translator, "interpolations", msgid, msgid_plural, 5, %{name: "Meg"})
+           == "Hai 5 messaggi, Meg"
+  end
+
+  test "ngettext/5" do
+    Gettext.locale "it"
+    msgid        = "One cake, %{name}"
+    msgid_plural = "%{count} cakes, %{name}"
+    assert Gettext.ngettext(Translator, msgid, msgid_plural, 1, %{name: "Meg"})
+           == "One cake, Meg"
+    assert Gettext.ngettext(Translator, msgid, msgid_plural, 5, %{name: "Meg"})
+           == "5 cakes, Meg"
+  end
 end
