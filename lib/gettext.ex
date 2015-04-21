@@ -54,6 +54,20 @@ defmodule Gettext do
     end
   end
 
+  @doc """
+  Gets the locale for the current process.
+
+  This function returns the value of the locale for the current process. If
+  there is no locale for the current process, the default locale is set as the
+  locale for the current process and then returned. For more information on the
+  default locale, refer to the documentation of the `Gettext` module.
+
+  ## Examples
+
+      Gettext.locale()
+      #=> "en"
+
+  """
   @spec locale() :: locale
   def locale do
     if locale = Process.get(__MODULE__) do
@@ -65,6 +79,20 @@ defmodule Gettext do
     end
   end
 
+  @doc """
+  Sets the locale for the current process.
+
+  `locale` must be a string; if it's not, an `ArgumentError` exception is
+  raised.
+
+  ## Examples
+
+      Gettext.locale("pt_BR")
+      #=> nil
+      Gettext.locale
+      #=> "pt_BR"
+
+  """
   @spec locale(locale) :: nil
   def locale(locale) when is_binary(locale),
     do: Process.put(__MODULE__, locale)
