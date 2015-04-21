@@ -43,6 +43,39 @@ defmodule Gettext.Compiler do
           unquote(__MODULE__).dgettext("default", unquote(msgid), unquote(bindings))
         end
       end
+
+      defmacro dngettext(domain, msgid, msgid_plural, n, bindings \\ Macro.escape(%{}))
+
+      defmacro dngettext(domain, msgid, msgid_plural, n, bindings)
+          when is_binary(msgid) and is_binary(msgid_plural) do
+        quote do
+          locale = Gettext.locale
+          unquote(__MODULE__).lngettext(
+            locale,
+            unquote(domain),
+            unquote(msgid),
+            unquote(msgid_plural),
+            unquote(n),
+            unquote(bindings)
+          )
+        end
+      end
+
+      defmacro dngettext(_domain, _msgid, _msgid_plural, _n, _bindings) do
+        raise ArgumentError, "msgid and msgid_plural must be string literals"
+      end
+
+      defmacro ngettext(msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+        quote do
+          unquote(__MODULE__).dngettext(
+            "default",
+            unquote(msgid),
+            unquote(msgid_plural),
+            unquote(n),
+            unquote(bindings)
+          )
+        end
+      end
     end
   end
 

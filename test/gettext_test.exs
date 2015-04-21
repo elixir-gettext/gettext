@@ -183,6 +183,44 @@ defmodule GettextTest do
     end
   end
 
+  test "dngettext/5" do
+    Gettext.locale "it"
+    assert Translator.dngettext(
+      "interpolations",
+      "You have one message, %{name}",
+      "You have %{count} messages, %{name}",
+      1,
+      %{name: "James"}
+    ) == {:ok, "Hai un messaggio, James"}
+    assert Translator.dngettext(
+      "interpolations",
+      "You have one message, %{name}",
+      "You have %{count} messages, %{name}",
+      2,
+      %{name: "James"}
+    ) == {:ok, "Hai 2 messaggi, James"}
+  end
+
+  test "dngettext/5: non-literal string arguments" do
+    code = quote do
+      require Translator
+      msgid_plural = "foos"
+      Translator.dngettext("foo", "foo", msgid_plural, 4)
+    end
+    assert_raise ArgumentError, "msgid and msgid_plural must be string literals", fn ->
+      Code.eval_quoted code
+    end
+  end
+
+  test "ngettext/4" do
+    Gettext.locale "it"
+    assert Translator.ngettext("One new email", "%{count} new emails", 1)
+           == {:ok, "Una nuova email"}
+    assert Translator.ngettext("One new email", "%{count} new emails", 2)
+           == {:ok, "2 nuove email"}
+  end
+
+
   # Actual Gettext functions (not the ones generated in the modules that `use
   # Gettext`).
 
