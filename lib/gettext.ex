@@ -41,6 +41,14 @@ defmodule Gettext do
 
   """
 
+  defmodule Error do
+    defexception [:message]
+
+    def exception(message) do
+      %__MODULE__{message: message}
+    end
+  end
+
   @type locale :: binary
 
   @doc false
@@ -122,5 +130,5 @@ defmodule Gettext do
   defp handle_backend_result({atom, string}) when atom in [:ok, :default],
     do: string
   defp handle_backend_result({:error, error}),
-    do: raise(Gettext.Interpolation.MissingKeysError, error)
+    do: raise(Error, error)
 end
