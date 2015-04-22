@@ -29,8 +29,7 @@ defmodule Gettext.Compiler do
 
       defmacro dgettext(domain, msgid, bindings) when is_binary(msgid) do
         quote do
-          locale = Gettext.locale
-          unquote(__MODULE__).lgettext(locale, unquote(domain), unquote(msgid), unquote(bindings))
+          unquote(__MODULE__).lgettext(Gettext.locale, unquote(domain), unquote(msgid), unquote(bindings))
         end
       end
 
@@ -49,9 +48,8 @@ defmodule Gettext.Compiler do
       defmacro dngettext(domain, msgid, msgid_plural, n, bindings)
           when is_binary(msgid) and is_binary(msgid_plural) do
         quote do
-          locale = Gettext.locale
           unquote(__MODULE__).lngettext(
-            locale,
+            Gettext.locale,
             unquote(domain),
             unquote(msgid),
             unquote(msgid_plural),
