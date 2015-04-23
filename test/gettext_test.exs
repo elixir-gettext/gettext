@@ -158,9 +158,12 @@ defmodule GettextTest do
 
   # Macros.
 
-  test "gettext/2: binary msgid at compile-time" do
+  @gettext_msgid "Hello world"
+
+  test "gettext/2: binary-ish msgid at compile-time" do
     Gettext.locale "it"
     assert Translator.gettext("Hello world") == {:ok, "Ciao mondo"}
+    assert Translator.gettext(@gettext_msgid) == {:ok, "Ciao mondo"}
   end
 
   test "dgettext/3 and gettext/2: non-binary msgid at compile-time" do
@@ -212,11 +215,19 @@ defmodule GettextTest do
     end
   end
 
+  @ngettext_msgid "One new email"
+  @ngettext_msgid_plural "%{count} new emails"
+
   test "ngettext/4" do
     Gettext.locale "it"
     assert Translator.ngettext("One new email", "%{count} new emails", 1)
            == {:ok, "Una nuova email"}
     assert Translator.ngettext("One new email", "%{count} new emails", 2)
+           == {:ok, "2 nuove email"}
+
+    assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 1)
+           == {:ok, "Una nuova email"}
+    assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 2)
            == {:ok, "2 nuove email"}
   end
 
