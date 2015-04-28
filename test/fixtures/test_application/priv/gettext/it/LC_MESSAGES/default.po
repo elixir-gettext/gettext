@@ -1,2 +1,7 @@
 msgid "Hello world"
 msgstr "Ciao mondo"
+
+msgid "One new email"
+msgid_plural "%{count} new emails"
+msgstr[0] "Una nuova email"
+msgstr[1] "%{count} nuove email"

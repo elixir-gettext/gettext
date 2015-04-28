@@ -16,9 +16,63 @@ defmodule Gettext.Compiler do
     translations_dir = Application.app_dir(otp_app, priv)
 
     quote do
-      unquote(binding_conversion_clauses)
+      unquote(macros)
       unquote(compile_po_files(translations_dir))
       unquote(dynamic_clauses)
+    end
+  end
+
+  defp macros do
+    quote unquote: false do
+      defmacro dgettext(domain, msgid, bindings \\ Macro.escape(%{})) do
+        msgid = Macro.expand(msgid, __CALLER__)
+
+        unless is_binary(msgid) do
+          raise ArgumentError, "msgid must be a string literal"
+        end
+
+        quote do
+          Gettext.dgettext(unquote(__MODULE__), unquote(domain), unquote(msgid), unquote(bindings))
+        end
+      end
+
+      defmacro gettext(msgid, bindings \\ Macro.escape(%{})) do
+        quote do
+          unquote(__MODULE__).dgettext("default", unquote(msgid), unquote(bindings))
+        end
+      end
+
+      defmacro dngettext(domain, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+        msgid        = Macro.expand(msgid, __CALLER__)
+        msgid_plural = Macro.expand(msgid_plural, __CALLER__)
+
+        unless is_binary(msgid) && is_binary(msgid_plural) do
+          raise ArgumentError, "msgid and msgid_plural must be string literals"
+        end
+
+        quote do
+          Gettext.dngettext(
+            unquote(__MODULE__),
+            unquote(domain),
+            unquote(msgid),
+            unquote(msgid_plural),
+            unquote(n),
+            unquote(bindings)
+          )
+        end
+      end
+
+      defmacro ngettext(msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+        quote do
+          unquote(__MODULE__).dngettext(
+            "default",
+            unquote(msgid),
+            unquote(msgid_plural),
+            unquote(n),
+            unquote(bindings)
+          )
+        end
+      end
     end
   end
 
@@ -30,22 +84,6 @@ defmodule Gettext.Compiler do
     quote do
       def lgettext(locale, domain, msgid, bindings \\ %{})
       def lngettext(locale, domain, msgid, msgid_plural, n, bindings \\ %{})
-    end
-  end
-
-  # Returns the quoted code for the clauses of `lgettext/4` and `lngettext/6`
-  # that convert bindings passed in as keyword lists into maps.
-  defp binding_conversion_clauses do
-    quote do
-      def lgettext(locale, domain, msgid, bindings) when is_list(bindings) do
-        lgettext(locale, domain, msgid, Enum.into(bindings, %{}))
-      end
-
-      def lngettext(locale, domain, msgid, msgid_plural, n, bindings)
-          when is_list(bindings) do
-        bindings = Enum.into(bindings, %{})
-        lngettext(locale, domain, msgid, msgid_plural, n, bindings)
-      end
     end
   end
 

@@ -12,7 +12,8 @@ defmodule Gettext.Mixfile do
   #
   # Type `mix help compile.app` for more information
   def application do
-    [applications: [:logger]]
+    [applications: [:logger],
+     env: [default_locale: "en"]]
   end
 
   # Dependencies can be Hex packages:
