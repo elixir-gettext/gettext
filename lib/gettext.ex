@@ -106,7 +106,13 @@ defmodule Gettext do
     do: raise(ArgumentError, "locale/1 only accepts binary locales")
 
   @spec dgettext(atom, binary, binary, Map.t) :: binary
-  def dgettext(backend, domain, string, bindings \\ %{}) do
+  def dgettext(backend, domain, string, bindings \\ %{})
+
+  def dgettext(backend, domain, string, bindings) when is_list(bindings) do
+    dgettext(backend, domain, string, Enum.into(bindings, %{}))
+  end
+
+  def dgettext(backend, domain, string, bindings) do
     backend.lgettext(locale(), domain, string, bindings)
     |> handle_backend_result
   end
@@ -117,7 +123,13 @@ defmodule Gettext do
   end
 
   @spec dngettext(atom, binary, binary, binary, non_neg_integer, Map.t) :: binary
-  def dngettext(backend, domain, id, plural_id, n, bindings \\ %{}) do
+  def dngettext(backend, domain, id, plural_id, n, bindings \\ %{})
+
+  def dngettext(backend, domain, id, plural_id, n, bindings) when is_list(bindings) do
+    dngettext(backend, domain, id, plural_id, n, Enum.into(bindings, %{}))
+  end
+
+  def dngettext(backend, domain, id, plural_id, n, bindings) do
     backend.lngettext(locale(), domain, id, plural_id, n, bindings)
     |> handle_backend_result
   end

@@ -17,7 +17,6 @@ defmodule Gettext.Compiler do
 
     quote do
       unquote(macros)
-      unquote(binding_conversion_clauses)
       unquote(compile_po_files(translations_dir))
       unquote(dynamic_clauses)
     end
@@ -85,22 +84,6 @@ defmodule Gettext.Compiler do
     quote do
       def lgettext(locale, domain, msgid, bindings \\ %{})
       def lngettext(locale, domain, msgid, msgid_plural, n, bindings \\ %{})
-    end
-  end
-
-  # Returns the quoted code for the clauses of `lgettext/4` and `lngettext/6`
-  # that convert bindings passed in as keyword lists into maps.
-  defp binding_conversion_clauses do
-    quote do
-      def lgettext(locale, domain, msgid, bindings) when is_list(bindings) do
-        lgettext(locale, domain, msgid, Enum.into(bindings, %{}))
-      end
-
-      def lngettext(locale, domain, msgid, msgid_plural, n, bindings)
-          when is_list(bindings) do
-        bindings = Enum.into(bindings, %{})
-        lngettext(locale, domain, msgid, msgid_plural, n, bindings)
-      end
     end
   end
 

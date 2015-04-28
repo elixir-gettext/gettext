@@ -77,11 +77,11 @@ defmodule GettextTest do
   end
 
   test "interpolation is supported by lgettext" do
-    assert Translator.lgettext("it", "interpolations", "Hello %{name}", name: "Jane")
+    assert Translator.lgettext("it", "interpolations", "Hello %{name}", %{name: "Jane"})
            == {:ok, "Ciao Jane"}
 
     msgid = "My name is %{name} and I'm %{age}"
-    assert Translator.lgettext("it", "interpolations", msgid, name: "Meg", age: 33)
+    assert Translator.lgettext("it", "interpolations", msgid, %{name: "Meg", age: 33})
            == {:ok, "Mi chiamo Meg e ho 33 anni"}
 
     # A map of bindings is supported as well.
@@ -99,7 +99,7 @@ defmodule GettextTest do
 
     msgid        = "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
-    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, name: "Jane")
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, %{name: "Jane"})
            == {:ok, "Hai un messaggio, Jane"}
     assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 0, %{name: "Jane"})
            == {:ok, "Hai 0 messaggi, Jane"}
@@ -113,7 +113,7 @@ defmodule GettextTest do
 
   test "lgettext/4: interpolation works when a translation is missing" do
     msgid = "Hello %{name}, missing translation!"
-    assert Translator.lgettext("pl", "foo", msgid, name: "Samantha")
+    assert Translator.lgettext("pl", "foo", msgid, %{name: "Samantha"})
            == {:default, "Hello Samantha, missing translation!"}
 
     msgid = "Hello world!"
