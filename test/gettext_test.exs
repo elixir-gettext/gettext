@@ -149,11 +149,15 @@ defmodule GettextTest do
     Gettext.locale "it"
 
     assert Translator.dgettext("errors", "Invalid email address")
-           == {:ok, "Indirizzo email non valido"}
-    assert Translator.dgettext("interpolations", "Hello %{name}", %{name: "Jim"})
-           == {:ok, "Ciao Jim"}
-    assert Translator.dgettext("interpolations", "Hello %{name}")
-           == {:error, "missing interpolation keys: name"}
+           == "Indirizzo email non valido"
+    keys = %{name: "Jim"}
+    assert Translator.dgettext("interpolations", "Hello %{name}", keys)
+           == "Ciao Jim"
+
+    msg = "missing interpolation keys: name"
+    assert_raise Gettext.Error, msg, fn ->
+      Translator.dgettext("interpolations", "Hello %{name}")
+    end
   end
 
   # Macros.
@@ -162,8 +166,8 @@ defmodule GettextTest do
 
   test "gettext/2: binary-ish msgid at compile-time" do
     Gettext.locale "it"
-    assert Translator.gettext("Hello world") == {:ok, "Ciao mondo"}
-    assert Translator.gettext(@gettext_msgid) == {:ok, "Ciao mondo"}
+    assert Translator.gettext("Hello world") == "Ciao mondo"
+    assert Translator.gettext(@gettext_msgid) == "Ciao mondo"
   end
 
   test "dgettext/3 and gettext/2: non-binary msgid at compile-time" do
@@ -194,14 +198,14 @@ defmodule GettextTest do
       "You have %{count} messages, %{name}",
       1,
       %{name: "James"}
-    ) == {:ok, "Hai un messaggio, James"}
+    ) == "Hai un messaggio, James"
     assert Translator.dngettext(
       "interpolations",
       "You have one message, %{name}",
       "You have %{count} messages, %{name}",
       2,
       %{name: "James"}
-    ) == {:ok, "Hai 2 messaggi, James"}
+    ) == "Hai 2 messaggi, James"
   end
 
   test "dngettext/5: non-literal string arguments" do
@@ -221,14 +225,19 @@ defmodule GettextTest do
   test "ngettext/4" do
     Gettext.locale "it"
     assert Translator.ngettext("One new email", "%{count} new emails", 1)
-           == {:ok, "Una nuova email"}
+           == "Una nuova email"
     assert Translator.ngettext("One new email", "%{count} new emails", 2)
-           == {:ok, "2 nuove email"}
+           == "2 nuove email"
 
     assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 1)
-           == {:ok, "Una nuova email"}
+           == "Una nuova email"
     assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 2)
-           == {:ok, "2 nuove email"}
+           == "2 nuove email"
+  end
+
+  test "the d?n?gettext macros support a kw list for interpolation" do
+    Gettext.locale "it"
+    assert Translator.gettext("%{msg}", msg: "foo") == "foo"
   end
 
 
@@ -274,5 +283,10 @@ defmodule GettextTest do
            == "One cake, Meg"
     assert Gettext.ngettext(Translator, msgid, msgid_plural, 5, %{name: "Meg"})
            == "5 cakes, Meg"
+  end
+
+  test "the d?n?gettext functions support kw list for interpolations" do
+    Gettext.locale "it"
+    assert Gettext.gettext(Translator, "Hello %{name}", name: "José") == "Hello José"
   end
 end

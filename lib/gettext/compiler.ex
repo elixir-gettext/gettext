@@ -33,7 +33,7 @@ defmodule Gettext.Compiler do
         end
 
         quote do
-          unquote(__MODULE__).lgettext(Gettext.locale, unquote(domain), unquote(msgid), unquote(bindings))
+          Gettext.dgettext(unquote(__MODULE__), unquote(domain), unquote(msgid), unquote(bindings))
         end
       end
 
@@ -52,8 +52,8 @@ defmodule Gettext.Compiler do
         end
 
         quote do
-          unquote(__MODULE__).lngettext(
-            Gettext.locale,
+          Gettext.dngettext(
+            unquote(__MODULE__),
             unquote(domain),
             unquote(msgid),
             unquote(msgid_plural),
