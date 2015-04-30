@@ -3,7 +3,7 @@ defmodule Gettext.Plural do
   Behaviour and default implementation for finding plural forms in given
   locales.
 
-  This module both define the `Gettext.Plural` behaviour and provides a default
+  This module both defines the `Gettext.Plural` behaviour and provides a default
   implementation for it.
 
   This module computes the plural form a given number of elements belongs to in
@@ -11,12 +11,13 @@ defmodule Gettext.Plural do
 
   The plural form formulas have been taken from [this
   page](http://localization-guide.readthedocs.org/en/latest/l10n/pluralforms.html#f2)
-  as well as from [Mozilla's "Localization ang plurals"
+  as well as from [Mozilla's "Localization and plurals"
   guide](https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals).
 
   ## Examples
 
-  An example of the plural form of a given number of element in Polish:
+  An example of the plural form of a given number of elements in the Polish
+  language:
 
       iex> Plural.plural("pl", 1)
       0

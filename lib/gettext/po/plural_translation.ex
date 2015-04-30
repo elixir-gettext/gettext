@@ -12,8 +12,8 @@ defmodule Gettext.PO.PluralTranslation do
 
   This struct contains three fields:
 
-    * `msgid` - the id of the singular translation
-    * `msgid_plural` - the id of the pluralized translation
+    * `msgid` - the id of the singular translation.
+    * `msgid_plural` - the id of the pluralized translation.
     * `msgstr` - a map which maps plural forms as keys to translated strings as
       values. The plural forms mentioned here are the ones described in
       `Gettext.Plural`.
@@ -23,7 +23,7 @@ defmodule Gettext.PO.PluralTranslation do
   @type t :: %__MODULE__{
     msgid: binary,
     msgid_plural: binary,
-    msgstr: Map.t,
+    msgstr: %{non_neg_integer => binary},
   }
 
   defstruct [:msgid, :msgid_plural, :msgstr]

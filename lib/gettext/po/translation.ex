@@ -8,13 +8,14 @@ defmodule Gettext.PO.Translation do
       msgid "Hello world!"
       msgstr "Ciao mondo!"
 
-  For translations with a plural form, there's the
-  `Gettext.PO.PluralTranslation` struct.
+  Translations with a plural form are not represented as
+  `Gettext.PO.Translation` structs, but as `Gettext.PO.PluralTranslation`
+  structs.
 
   This struct contains two fields:
 
-    * `msgid` - the id of the translation
-    * `msgstr` - the translated string
+    * `msgid` - the id of the translation.
+    * `msgstr` - the translated string.
 
   """
 
