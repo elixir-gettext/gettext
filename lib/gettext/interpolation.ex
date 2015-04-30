@@ -1,7 +1,5 @@
 defmodule Gettext.Interpolation do
-  @moduledoc """
-  Provides facilities for working with interpolations.
-  """
+  @moduledoc false
 
   @interpolation_regex ~r/
     (?<left>)  # Start, available through :left
