@@ -1,11 +1,18 @@
 defmodule Gettext.Mixfile do
   use Mix.Project
 
+  @version "0.0.1"
+
   def project do
     [app: :gettext,
-     version: "0.0.1",
+     version: @version,
      elixir: "~> 1.0",
-     deps: deps]
+     deps: deps,
+
+     # Docs
+     name: "Gettext",
+     docs: [source_ref: "v#{@version}",
+            source_url: "https://github.com/elixir-lang/gettext"]]
   end
 
   # Configuration for the OTP application
