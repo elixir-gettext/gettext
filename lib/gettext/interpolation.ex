@@ -71,7 +71,8 @@ defmodule Gettext.Interpolation do
       [:name]
 
   """
-  @spec keys(binary) :: [atom]
+  @spec keys(binary | [atom]) :: [atom]
+
   def keys(str) when is_binary(str),
     do: str |> to_interpolatable |> Enum.filter(&is_atom/1)
   def keys(segments) when is_list(segments),
