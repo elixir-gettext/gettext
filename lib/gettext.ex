@@ -1,43 +1,272 @@
 defmodule Gettext do
   @moduledoc """
-  Provides facilities generating translation functions based on `.po` files.
+  Main Gettext module.
 
-  In order to use the functionality provided by gettext in a module, the
-  `Gettext` module must be used in that module.
+  The `Gettext` module provides a
+  [gettext](https://www.gnu.org/software/gettext/)-based API for working with
+  localized and internationalized applications.
 
-  ## Options
+  For more information on the original GNU gettext remember to refer to the
+  official [GNU gettext manual](https://www.gnu.org/software/gettext/manual/gettext.html).
 
-  The following is a list of options that can be passed when `Gettext` is used:
+  ## Using Gettext
 
-    * `:otp_app` - the OTP application that contains the translation files
-      (the files with the `.po` extension).
-    * `:priv` - the directory where the translations are located. Defaults to
-      `priv/gettext`.
-
-  ## Examples
-
-  Let's say that the file at `priv/gettext/pt_BR/LC_MESSAGES/default.po` in the
-  `:my_app` OTP application contains the following:
-
-      msgid "Hello world"
-      msgstr "Ola mundo"
-
-  Then `Gettext` can be used like this:
+  To use `Gettext`:
 
       defmodule MyApp.Gettext do
         use Gettext, otp_app: :my_app
       end
 
-  and the `MyApp.Gettext.lgettext/3` function will be made available:
+  This will automatically define some macros in the `MyApp.Gettext` module. To
+  learn more about those, check out the "Gettext API" section below.
 
-      MyApp.Gettext.lgettext("pt_BR", "default", "Hello world")
-      #=> {:ok, "Ola mundo"}
+  ## Translations
 
-  This function will default to "mirroring" the argument message if no
-  translation is found:
+  Translations are stored inside PO (Portable Object) files (with a `.po`
+  extension). For example, this is a snippet from a PO file:
 
-      MyApp.Gettext.lgettext("it_IT", "default", "Hello world")
-      #=> {:default, "Hello world"}
+      # This is a comment
+      msgid "Hello world!"
+      msgstr "Ciao mondo!"
+
+  Gettext for Elixir automatically reads and parses PO files in order to make
+  translations available.
+  To do that, a "translator" module needs to call `use Gettext` so that
+  functions and macros can be defined in that module based on the result of
+  parsing PO files.
+
+  Translations for an application must be stored in a directory with the
+  following structure:
+
+      └─ locale
+         └─ LC_MESSAGES
+            ├─ domain_1.po
+            ├─ domain_2.po
+            └─ domain_3.po
+
+  where `locale` is the locale of the translations, `LC_MESSAGES` is a fixed
+  directory and `domain_i.po` are PO files containing domain-scoped
+  translations. For more information on domains, check out the "Domains" section
+  below.
+
+  A concrete example of such a directory structure could look like this:
+
+      └─ en_US
+      |  └─ LC_MESSAGES
+      |     ├─ default.po
+      |     └─ errors.po
+      └─ it
+         └─ LC_MESSAGES
+            ├─ default.po
+            └─ errors.po
+
+  By default, Gettext expects translations to be stored under the `priv/gettext`
+  directory of an application. For the `:my_app` application, that would be
+  `my_app/priv/gettext`. This behaviour can be changed by specifying a `:priv`
+  option when using `Gettext`:
+
+      # Look for translations in my_app/translations
+      use Gettext, otp_app: :my_app, priv: "translations"
+
+  ## Locale
+
+  `Gettext.locale/1` can be used to set the locale, while `Gettext.locale/0` can
+  be used to read it. Locales are expressed as strings like `"en"` or `"fr"`;
+  they can be arbitrary strings as long as they match a directory name.
+
+  All Gettext-related functions and macros that do not explicitely take a
+  locale as an argument read the locale from `Gettext.locale/0`.
+
+  Gettext stores the locale **per-process** (in the process dictionary to be
+  precise). This means that `Gettext.locale/1` must be called in every new
+  process in order to have the right locale available in that process. Pay
+  attention to this behaviour, since not setting the locale with
+  `Gettext.locale/1` *will not* result in any errors when `Gettext.locale/0` is
+  called; the default locale will be returned instead.
+
+  ### Default locale
+
+  The default Gettext locale is `"en"`. The value of the default locale can be
+  modified in the configuration for the `:gettext` application. For example, in
+  the `config/config.exs` file of the `my_app` application:
+
+      config :gettext, default_locale: "fr"
+
+  ## Gettext API
+
+  There are two ways to use Gettext:
+
+    * using macros from the module that `use`s `Gettext`
+    * using functions from the `Gettext` module
+
+  These two approaches are different and each one has its own use case.
+
+  ### Using macros
+
+  When a module calls `use Gettext`, the following macros are automatically
+  defined inside it:
+
+    * `gettext/2`
+    * `dgettext/3`
+    * `ngettext/4`
+    * `dngettext/5`
+
+  Supposing the caller module is `MyApp.Gettext`, the macros mentioned above
+  behave as follows:
+
+    * `gettext(msgid, bindings \\ %{})` -
+      like `Gettext.gettext(MyApp.Gettext, msgid, bindings)`
+    * `dgettext(domain, msgid, bindings \\ %{})` -
+      like `Gettext.dgettext(MyApp.Gettext, domain, msgid, bindings)`
+    * `ngettext(msgid, msgid_plural, n, bindings \\ %{})` -
+      like `Gettext.ngettext(MyApp.Gettext, msgid, msgid_plural, n, bindings)`
+    * `dngettext(domain, msgid, msgid_plural, n, bindings \\ %{})` -
+      like `Gettext.dngettext(MyApp.Gettext, domain, msgid, msgid_plural, n, bindings)`
+
+  These macros are macros (and not functions) because they're necessary in order
+  to perform some compile-time operations with PO files (e.g., automatic
+  generation of PO files from source code). However, this sets some constraints:
+  strings passed to any of these macros have to be strings **at compile time**;
+  that is, they have to be string literals or something that expands to a string
+  literal at compile time. A common example of such a thing is module
+  attributes. These are valid calls to Gettext macros:
+
+      Gettext.locale "it"
+
+      MyApp.Gettext.gettext "Hello world"
+      #=> "Ciao mondo"
+
+      @msgid "Hello world"
+      MyApp.Gettext.gettext @msgid
+      #=> "Ciao mondo"
+
+  The `gettext`/`dgettext`/`ngettext`/`dngettext` macros raise an
+  `ArgumentError` exception if they receive a `msgid` or a `msgid_plural` that
+  doesn't expand to a string at compile time:
+
+      msgid = "Hello world"
+      MyApp.Gettext.gettext msgid
+      #=> ** (ArgumentError) msgid must be a string literal
+
+  In general, you should try to use these macros (as opposed to the *functions*
+  in the `Gettext` module) as much as possible since they're needed for useful
+  features like automatic generation and merging of PO files. However, using
+  compile-time strings isn't always possible. For this reason, the `Gettext`
+  module provides a set of functions as well.
+
+  ### Using functions
+
+  If compile-time strings cannot be used, the solution is to use the functions
+  in the `Gettext` module instead of the macros described above. These functions
+  perfectly mirror the macro API, but they all expect a module name as the first
+  argument: this module has to be a module which uses `Gettext`. For example:
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app
+      end
+
+      Gettext.locale "pt_BR"
+
+      msgid = "Hello world"
+      Gettext.gettext(MyApp.Gettext, msgid)
+      #=> "Olá mundo"
+
+  Note however that while using functions from the `Gettext` module yields the
+  same results as using macros (with the added benefit of dynamic arguments),
+  all the compile-time features mentioned in the previous section are lost.
+
+  ## Domains
+
+  The `dgettext` and `dngettext` functions/macros also accept a *domain* as one
+  of the arguments. The domain of a translation is determined by the PO file the
+  translation is in. For example, the domain of translations in the file
+  `it/LC_MESSAGES/errors.po` is `"errors"`, so those translations would need to
+  be retrieved with `dgettext` or `dngettext`:
+
+      MyApp.Gettext.dgettext "errors", "Error!"
+      #=> "Errore!"
+
+  When `gettext` or `ngettext` are used, the `"default"` domain is used.
+
+  ## Interpolation
+
+  All `*gettext` functions and macros provided by Gettext support interpolation.
+  Interpolation keys can be placed in `msgid`s or `msgid_plural`s with the
+  following syntax:
+
+      "This is an %{interpolated} string"
+
+  Interpolation bindings can be passed as an argument to all of the `*gettext`
+  functions/macros. For example, given the following PO file for the `"it"`
+  locale:
+
+      msgid "Hello, %{name}!"
+      msgstr "Ciao, %{name}!"
+
+  interpolation can be done like follows:
+
+      Gettext.locale "it"
+      MyApp.Gettext.gettext "Hello, %{name}!", name: "Meg"
+      #=> "Ciao, Meg!"
+
+  Interpolation keys that are in a string but not in the provided bindings
+  result in a `Gettext.Error` exception:
+
+      MyApp.Gettext.gettext "Hello, %{name}!"
+      #=> ** (Gettext.Error) missing interpolation keys: name
+
+  Keys that are in the interpolation bindings but that don't occur in the string
+  are ignored.
+
+  ## Pluralization
+
+  Pluralization in Gettext works very similar to how pluralization works in GNU
+  gettext. The `*ngettext` functions/macros accept a `msgid`, a `msgid_plural`
+  and a count of elements; the right translation is chosen based on the
+  **pluralization rule** for the given locale.
+
+  To learn more about pluralization rules, plural forms and what they mean to
+  Gettext check the documentation for `Gettext.Plural`.
+
+  For example, given the following snippet of PO file for the `"it"` locale:
+
+      msgid "One error"
+      msgid_plural "%{count} errors"
+      msgstr[0] "Un errore"
+      msgstr[1] "%{count} errori"
+
+  the `ngettext` macro can be used like this:
+
+      Gettext.locale "it"
+      MyApp.Gettext.ngettext "One error", "%{count} errors", 3
+      #=> "3 errori"
+
+  The `%{count}` interpolation key is a special one since it gets replaced by
+  the number of elements argument passed to `*ngettext`, like if the `count: 3`
+  key-value pair were in the interpolation bindings. Hence, never pass the
+  `count` key in the bindings:
+
+      MyApp.Gettext.ngettext "One error", "%{count} errors", 3, count: 4
+      #=> "3 errori"
+
+  ## Missing translations
+
+  When a translation is missing in the specified locale (both with functions as
+  well as with macros), the argument is returned:
+
+    * in case of calls to `gettext`/`dgettext`, the `msgid` argument is returned
+      as is;
+    * in case of calls to `ngettext`/`dngettext`, the `msgid` argument is
+      returned in case of a singular value and the `msgid_plural` is returned in
+      case of a plural value (following the English pluralization rule).
+
+  For example:
+
+      Gettext.locale "foo"
+      MyApp.Gettext.gettext "Hey there"
+      #=> "Hey there"
+      MyApp.Gettext.ngettext "One error", "%{count} errors", 3
+      #=> "3 errors"
 
   """
 
