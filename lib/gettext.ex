@@ -271,6 +271,10 @@ defmodule Gettext do
   """
 
   defmodule Error do
+    @moduledoc """
+    A generic error raised for a variety of possible Gettext-related reasons
+    (e.g., missing interpolation keys).
+    """
     defexception [:message]
 
     def exception(message) do
