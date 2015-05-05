@@ -283,6 +283,7 @@ defmodule Gettext do
   end
 
   @type locale :: binary
+  @type bindings :: Map.t | Keyword.t
 
   @doc false
   defmacro __using__(opts) do
@@ -299,7 +300,8 @@ defmodule Gettext do
   This function returns the value of the locale for the current process. If
   there is no locale for the current process, the default locale is set as the
   locale for the current process and then returned. For more information on the
-  default locale, refer to the documentation of the `Gettext` module.
+  default locale and how it can be set, refer to the documentation of the
+  `Gettext` module.
 
   ## Examples
 
@@ -321,55 +323,127 @@ defmodule Gettext do
   @doc """
   Sets the locale for the current process.
 
-  `locale` must be a string; if it's not, an `ArgumentError` exception is
-  raised.
+  The locale is stored in the process dictionary. `locale` must be a string; if
+  it's not, an `ArgumentError` exception is raised.
 
   ## Examples
 
       Gettext.locale("pt_BR")
       #=> nil
-      Gettext.locale
+      Gettext.locale()
       #=> "pt_BR"
 
   """
   @spec locale(locale) :: nil
   def locale(locale) when is_binary(locale),
     do: Process.put(__MODULE__, locale)
-  def locale(_locale),
+  def locale(_),
     do: raise(ArgumentError, "locale/1 only accepts binary locales")
 
-  @spec dgettext(atom, binary, binary, Map.t) :: binary
-  def dgettext(backend, domain, string, bindings \\ %{})
+  @doc """
+  Returns the translation of the given string in the given domain.
 
-  def dgettext(backend, domain, string, bindings) when is_list(bindings) do
-    dgettext(backend, domain, string, Enum.into(bindings, %{}))
+  The string is translated by the `backend` module.
+
+  The translated string is interpolated based on the `bindings` argument. For
+  more information on how interpolation works, refer to the documentation of the
+  `Gettext` module.
+
+  If the translation for the given `msgid` is not found, the `msgid`
+  (interpolated if necessary) is returned.
+
+  ## Examples
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app
+      end
+
+      Gettext.locale("it")
+
+      Gettext.dgettext(MyApp.Gettext, "errors", "Invalid")
+      #=> "Non valido"
+
+      Gettext.dgettext(MyApp.Gettext, "errors", "%{name} is not a valid name", name: "Meg")
+      #=> "Meg non è un nome valido"
+
+      Gettext.dgettext(MyApp.Gettext, "alerts", "nonexisting")
+      #=> "nonexisting"
+
+  """
+  @spec dgettext(module, binary, binary, bindings) :: binary
+  def dgettext(backend, domain, msgid, bindings \\ %{})
+
+  def dgettext(backend, domain, msgid, bindings) when is_list(bindings) do
+    dgettext(backend, domain, msgid, Enum.into(bindings, %{}))
   end
 
-  def dgettext(backend, domain, string, bindings) do
-    backend.lgettext(locale(), domain, string, bindings)
+  def dgettext(backend, domain, msgid, bindings) do
+    backend.lgettext(locale(), domain, msgid, bindings)
     |> handle_backend_result
   end
 
-  @spec gettext(atom, binary, Map.t) :: binary
-  def gettext(backend, string, bindings \\ %{}) do
-    dgettext(backend, "default", string, bindings)
+  @doc """
+  Returns the translation of the given string in the `"default"` domain.
+
+  Works exactly like:
+
+      Gettext.dgettext(backend, "default", msgid, bindings)
+
+  """
+  @spec gettext(module, binary, bindings) :: binary
+  def gettext(backend, msgid, bindings \\ %{}) do
+    dgettext(backend, "default", msgid, bindings)
   end
 
-  @spec dngettext(atom, binary, binary, binary, non_neg_integer, Map.t) :: binary
-  def dngettext(backend, domain, id, plural_id, n, bindings \\ %{})
+  @doc """
+  Returns the pluralized translation of the given string in the given domain.
 
-  def dngettext(backend, domain, id, plural_id, n, bindings) when is_list(bindings) do
-    dngettext(backend, domain, id, plural_id, n, Enum.into(bindings, %{}))
+  The string is translated and pluralized by the `backend` module.
+
+  The translated string is interpolated based on the `bindings` argument. For
+  more information on how interpolation works, refer to the documentation of the
+  `Gettext` module.
+
+  If the translation for the given `msgid` and `msgid_plural` is not found, the
+  `msgid` or `msgid_plural` (based on `n` being singular or plural) is returned
+  (interpolated if necessary).
+
+  ## Examples
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app
+      end
+
+      Gettext.dngettext(MyApp.Gettext, "errors", "Error", "%{count} errors", 3)
+      #=> "3 errori"
+      Gettext.dngettext(MyApp.Gettext, "errors", "Error", "%{count} errors", 1)
+      #=> "Errore"
+
+  """
+  @spec dngettext(module, binary, binary, binary, non_neg_integer, bindings) :: binary
+  def dngettext(backend, domain, msgid, msgid_plural, n, bindings \\ %{})
+
+  def dngettext(backend, domain, msgid, msgid_plural, n, bindings) when is_list(bindings) do
+    dngettext(backend, domain, msgid, msgid_plural, n, Enum.into(bindings, %{}))
   end
 
-  def dngettext(backend, domain, id, plural_id, n, bindings) do
-    backend.lngettext(locale(), domain, id, plural_id, n, bindings)
+  def dngettext(backend, domain, msgid, msgid_plural, n, bindings) do
+    backend.lngettext(locale(), domain, msgid, msgid_plural, n, bindings)
     |> handle_backend_result
   end
 
-  @spec ngettext(atom, binary, binary, non_neg_integer, Map.t) :: binary
-  def ngettext(backend, id, plural_id, n, bindings \\ %{}) do
-    dngettext(backend, "default", id, plural_id, n, bindings)
+  @doc """
+  Returns the pluralized translation of the given string in the `"default"`
+  domain.
+
+  Works exactly like:
+
+      Gettext.dngettext(backend, "default", msgid, msgid_plural, n, bindings)
+
+  """
+  @spec ngettext(module, binary, binary, non_neg_integer, bindings) :: binary
+  def ngettext(backend, msgid, msgid_plural, n, bindings \\ %{}) do
+    dngettext(backend, "default", msgid, msgid_plural, n, bindings)
   end
 
   defp handle_backend_result({atom, string}) when atom in [:ok, :default],
