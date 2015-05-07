@@ -225,9 +225,6 @@ defmodule Gettext do
   and a count of elements; the right translation is chosen based on the
   **pluralization rule** for the given locale.
 
-  To learn more about pluralization rules, plural forms and what they mean to
-  Gettext check the documentation for `Gettext.Plural`.
-
   For example, given the following snippet of PO file for the `"it"` locale:
 
       msgid "One error"
@@ -249,6 +246,15 @@ defmodule Gettext do
       MyApp.Gettext.ngettext "One error", "%{count} errors", 3, count: 4
       #=> "3 errori"
 
+  You can specify a "pluralizer" module via the `:plural_forms` option in the
+  configuration for the `:gettext` application.
+
+      # config/config.exs
+      config :gettext, plural_forms: MyApp.Plural
+
+  To learn more about pluralization rules, plural forms and what they mean to
+  Gettext check the documentation for `Gettext.Plural`.
+
   ## Missing translations
 
   When a translation is missing in the specified locale (both with functions as
@@ -267,6 +273,36 @@ defmodule Gettext do
       #=> "Hey there"
       MyApp.Gettext.ngettext "One error", "%{count} errors", 3
       #=> "3 errors"
+
+  ## Options
+
+  The following a comprehensive list of options that can be passed to `use
+  Gettext`.
+
+      defmodule MyApp.Gettext do
+        use Gettext, # options
+      end
+
+    * `:otp_app` (required) - an atom representing an OTP applications.
+      Translations will be searched in directories inside this application's
+      diretory (`priv/gettext` by default, see the `:priv` option).
+    * `:priv` - a string representing a directory where translations will be
+      searched. The directory is relative to the directory of the application
+      specified by the `:otp_app` option.
+
+  ## Configuration
+
+  The following is a list of the options with which the `:gettext` application
+  can be configured:
+
+      # config/config.exs
+      config :gettext, # config options
+
+    * `:plural_forms` - a module which will act as a "pluralizer" module. For
+      more information, look at the documentation for `Gettext.Plural`.
+    * `:default_locale` - the default locale that will be returned by
+      `Gettext.locale/0`. If this config option is not set, `"en"` is used as a
+      "default default locale".
 
   """
 
