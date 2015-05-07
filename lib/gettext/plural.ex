@@ -6,13 +6,56 @@ defmodule Gettext.Plural do
   This module both defines the `Gettext.Plural` behaviour and provides a default
   implementation for it.
 
-  This module computes the plural form a given number of elements belongs to in
-  a given language. Most languages on Earth should be covered here.
+  ## Plural forms
 
-  The plural form formulas have been taken from [this
+  > For a given language, there is a grammatical rule on how to change words
+  > depending on the number qualifying the word. Different languages can have
+  > different rules.
+  [[source]](https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals)
+
+  Such grammatical rules define a number of **plural forms**. For example,
+  English has two plural forms: one for when there is just one element (the
+  *singular*) and another one for when there are zero or more than one elements
+  (the *plural*). There are languages which only have one plural form and there
+  are languages which have more than two.
+
+  In GNU Gettext (and in Gettext for Elixir), plural forms are represented by
+  increasing 0-indexed integers. In English, `0` means singular and `1` means
+  plural.
+
+  The goal of this module is to, given a locale, determine:
+
+    * how many plural forms exist in that locale (`nplurals/1`);
+    * to what plural form a given number of elements belongs to in that locale
+    (`plural/2`).
+
+  ## Default implementation
+
+  `Gettext.Plural` provides a default implementation of a plural module. Most
+  languages used on Earth should be covered by this default implementation. If a
+  language isn't in this implementation, a different plural module can be
+  provided when `Gettext` is used. For example, pluralization rules for the
+  Elvish language could be added as follows:
+
+      defmodule MyApp.Plural do
+        @behaviour Gettext.Plural
+
+        def nplurals("elv"), do: 3
+
+        def plural("elv", 0), do: 0
+        def plural("elv", 1), do: 1
+        def plural("elv", _), do: 2
+      end
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app, plural_forms: MyApp.Plural
+      end
+
+  The mathematical expressions used in this module to determine the plural form
+  of a given number of elements are taken from [this
   page](http://localization-guide.readthedocs.org/en/latest/l10n/pluralforms.html#f2)
-  as well as from [Mozilla's "Localization and plurals"
-  guide](https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals).
+  as well as from [Mozilla's guide on "Localization and
+  plurals"](https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals).
 
   ## Examples
 
