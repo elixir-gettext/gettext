@@ -22,6 +22,7 @@ defmodule Gettext.PO.Translation do
   @type t :: %__MODULE__{
     msgid: binary,
     msgstr: binary,
+    comments: Keyword.t,
   }
 
   defstruct msgid: nil, msgstr: nil, comments: []
