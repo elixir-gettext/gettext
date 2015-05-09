@@ -11,7 +11,10 @@ defmodule Gettext.PO.Tokenizer do
     {:plural_form, line, non_neg_integer} |
     {:msgid, line} |
     {:msgid_plural, line} |
-    {:msgstr, line}
+    {:msgstr, line} |
+    {:comm_translator, line, binary} |
+    {:comm_reference, line, binary}
+
 
   # In this list of keywords *the order matters* because a function clause is
   # generated for each keyword, and keywords have to be followed by whitespace.
@@ -72,7 +75,8 @@ defmodule Gettext.PO.Tokenizer do
 
   # Comments.
   defp tokenize_line(<<?#, rest :: binary>>, line, acc) do
-    {_comment_contents, rest} = to_eol_or_eof(rest, "")
+    {type, contents, rest} = tokenize_comment(rest)
+    acc = [{type, line, contents}|acc]
     tokenize_line(rest, line, acc)
   end
 
@@ -91,15 +95,15 @@ defmodule Gettext.PO.Tokenizer do
 
   # `msgstr`.
   defp tokenize_line("msgstr[" <> <<rest :: binary>>, line, acc) do
-      case tokenize_plural_form(rest, "") do
-        {:ok, plural_form, rest} ->
-          # The order of the :plural_form and :msgstr tokens is inverted since
-          # the `acc` array of tokens will be reversed at the end.
-          acc = [{:plural_form, line, plural_form}, {:msgstr, line}|acc]
-          tokenize_line(rest, line, acc)
-        {:error, reason} ->
-          {:error, line, reason}
-      end
+    case tokenize_plural_form(rest, "") do
+      {:ok, plural_form, rest} ->
+        # The order of the :plural_form and :msgstr tokens is inverted since
+        # the `acc` array of tokens will be reversed at the end.
+        acc = [{:plural_form, line, plural_form}, {:msgstr, line}|acc]
+        tokenize_line(rest, line, acc)
+      {:error, reason} ->
+        {:error, line, reason}
+    end
   end
 
   defp tokenize_line("msgstr" <> <<char, rest :: binary>>, line, acc)
@@ -154,6 +158,11 @@ defmodule Gettext.PO.Tokenizer do
   defp tokenize_string(<<>>, _acc),
     do: {:error, "missing token \""}
 
+  defp tokenize_comment(<<char, rest :: binary>>) do
+    {contents, rest} = to_eol_or_eof(rest, "")
+    {comment_type(char), contents, rest}
+  end
+
   @spec tokenize_plural_form(binary, binary) ::
     {:ok, non_neg_integer, binary} | {:error, binary}
   defp tokenize_plural_form(<<digit, rest :: binary>>, acc)
@@ -174,6 +183,10 @@ defmodule Gettext.PO.Tokenizer do
   defp escape_char(?r), do: ?\r
   defp escape_char(?"), do: ?"
   defp escape_char(?\\), do: ?\\
+
+  @spec comment_type(char) :: atom
+  defp comment_type(?\s), do: :comm_translator
+  defp comment_type(?:), do: :comm_reference
 
   @spec to_eol_or_eof(binary, binary) :: {binary, binary}
   defp to_eol_or_eof(<<?\n, _ :: binary>> = rest, acc),

@@ -89,33 +89,48 @@ defmodule Gettext.PO.TokenizerTest do
     ]}
   end
 
-  test "single-line comments are ignored" do
+  test "comments are not ignored, but tokenized" do
     str = "# Single-line comment"
-    assert tokenize(str) == {:ok, []}
+    assert tokenize(str) == {:ok, [
+      {:comm_translator, 1, "Single-line comment"}
+    ]}
 
-    str = "#; Single-line non-whitespace comment"
-    assert tokenize(str) == {:ok, []}
+    str = "\t\t  # A comment after whitespace"
+    assert tokenize(str) == {:ok, [
+      {:comm_translator, 1, "A comment after whitespace"}
+    ]}
 
-    str = "\t\t  # A comment"
-    assert tokenize(str) == {:ok, []}
+    str = "#: Single-line reference comment"
+    assert tokenize(str) == {:ok, [
+      {:comm_reference, 1, " Single-line reference comment"}
+    ]}
   end
 
-  test "multi-line comments are ignored" do
+  test "multi-line comments are supported" do
     str = ~S"""
     # Multiline comment
-      #, badly indented,
+      # badly indented,
       #: with weird chåracters
     """
-    assert tokenize(str) == {:ok, []}
 
+    assert tokenize(str) == {:ok, [
+      {:comm_translator, 1, "Multiline comment"},
+      {:comm_translator, 2, "badly indented,"},
+      {:comm_reference, 3, " with weird chåracters"},
+    ]}
+  end
+
+  test "comments are tokenized correctly when between other stuff" do
     str = ~S"""
     # Multiline comment with
     msgid "a string"
     # in it.
     """
+
     assert tokenize(str) == {:ok, [
-      {:msgid, 2},
-      {:str, 2, "a string"},
+      {:comm_translator, 1, "Multiline comment with"},
+      {:msgid, 2}, {:str, 2, "a string"},
+      {:comm_translator, 3, "in it."},
     ]}
   end
 

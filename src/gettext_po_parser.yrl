@@ -1,5 +1,7 @@
-Nonterminals grammar translations translation pluralizations pluralization strings.
-Terminals str msgid msgid_plural msgstr plural_form.
+Nonterminals grammar translations translation pluralizations pluralization
+             strings comments comment.
+Terminals str msgid msgid_plural msgstr plural_form comm_translator
+          comm_reference.
 Rootsymbol grammar.
 
 grammar ->
@@ -11,15 +13,17 @@ translations ->
   translation translations : ['$1'|'$2'].
 
 translation ->
-  msgid strings msgstr strings : {translation, #{
-    msgid => concat('$2'),
-    msgstr => concat('$4')
+  comments msgid strings msgstr strings : {translation, #{
+    comments => '$1',
+    msgid    => concat('$3'),
+    msgstr   => concat('$5')
   }}.
 translation ->
-  msgid strings msgid_plural strings pluralizations : {plural_translation, #{
-    msgid        => concat('$2'),
-    msgid_plural => concat('$4'),
-    msgstr       => plural_forms_map_from_list('$5')
+  comments msgid strings msgid_plural strings pluralizations : {plural_translation, #{
+    comments     => '$1',
+    msgid        => concat('$3'),
+    msgid_plural => concat('$5'),
+    msgstr       => plural_forms_map_from_list('$6')
   }}.
 
 pluralizations ->
@@ -35,6 +39,15 @@ strings ->
 strings ->
   str strings : ['$1'|'$2'].
 
+comments ->
+  '$empty' : [].
+comments ->
+  comment comments : ['$1'|'$2'].
+
+comment ->
+  comm_translator : clean_comment_token('$1').
+comment ->
+  comm_reference : clean_comment_token('$1').
 
 Erlang code.
 
@@ -51,3 +64,8 @@ plural_forms_map_from_list(Pluralizations) ->
 
 extract_plural_form({{plural_form, _Line, PluralForm}, String}) ->
   {PluralForm, String}.
+
+clean_comment_token({comm_translator, _Line, Contents}) ->
+  {translator, Contents};
+clean_comment_token({comm_reference, _Line, Contents}) ->
+  {reference, Contents}.

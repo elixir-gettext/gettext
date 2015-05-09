@@ -26,5 +26,5 @@ defmodule Gettext.PO.PluralTranslation do
     msgstr: %{non_neg_integer => binary},
   }
 
-  defstruct [:msgid, :msgid_plural, :msgstr]
+  defstruct msgid: nil, msgid_plural: nil, msgstr: nil, comments: []
 end

@@ -68,6 +68,41 @@ defmodule Gettext.PO.ParserTest do
     }]}
   end
 
+  test "comments are associated with translations" do
+    parsed = Parser.parse([
+      {:comm_translator, 1, "This is a translation"},
+      {:comm_reference, 2, "lib/foo.ex"},
+      {:comm_translator, 3, "Ah, another comment!"},
+      {:msgid, 4}, {:str, 4, "foo"},
+      {:msgstr, 5}, {:str, 5, "bar"},
+    ])
+
+    assert parsed == {:ok, [%Translation{
+      msgid: "foo",
+      msgstr: "bar",
+      comments: [
+        translator: "This is a translation",
+        reference: "lib/foo.ex",
+        translator: "Ah, another comment!",
+      ],
+    }]}
+  end
+
+  test "comments always belong to the next translation" do
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, "a"},
+      {:msgstr, 3}, {:str, 3, "b"},
+      {:comm_translator, 2, "Comment"},
+      {:msgid, 1}, {:str, 1, "c"},
+      {:msgstr, 3}, {:str, 3, "d"},
+    ])
+
+    assert parsed == {:ok, [
+      %Translation{msgid: "a", msgstr: "b"},
+      %Translation{msgid: "c", msgstr: "d", comments: [translator: "Comment"]},
+    ]}
+  end
+
   test "syntax error when there is no 'msgid'" do
     parsed = Parser.parse [{:msgstr, 1}, {:str, 1, "foo"}]
     assert {:error, 1, _} = parsed
@@ -89,5 +124,22 @@ defmodule Gettext.PO.ParserTest do
   test "'msgid_plural' must come after 'msgid'" do
     parsed = Parser.parse([{:msgid_plural, 1}])
     assert parsed == {:error, 1, "syntax error before: msgid_plural"}
+  end
+
+  test "comments can't be placed between 'msgid' and 'msgstr'" do
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, "foo"},
+      {:comm_translator, 2, "Comment"},
+      {:msgstr, 3}, {:str, 3, "bar"},
+    ])
+    assert {:error, 2, _} = parsed
+
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, "foo"},
+      {:msgid_plural, 2}, {:str, 1, "foo"},
+      {:comm_translator, 3, "Comment"},
+      {:msgstr, 4}, {:plural_form, 4, 0}, {:str, 4, "bar"},
+    ])
+    assert {:error, 3, _} = parsed
   end
 end
