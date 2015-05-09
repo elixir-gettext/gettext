@@ -24,5 +24,5 @@ defmodule Gettext.PO.Translation do
     msgstr: binary,
   }
 
-  defstruct [:msgid, :msgstr]
+  defstruct msgid: nil, msgstr: nil, comments: []
 end
