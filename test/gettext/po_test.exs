@@ -109,7 +109,8 @@ defmodule Gettext.POTest do
   end
 
   test "parse_file!/1: missing file" do
-    assert_raise File.Error, fn ->
+    msg = "could not parse nonexistent: no such file or directory"
+    assert_raise File.Error, msg, fn ->
       PO.parse_file!("nonexistent")
     end
   end
