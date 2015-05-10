@@ -16,6 +16,10 @@ defmodule Gettext.PO.Translation do
 
     * `msgid` - the id of the translation.
     * `msgstr` - the translated string.
+    * `comments` - a list of comments as they are found in the PO file (e.g.,
+      `["# foo"]`).
+    * `references` - a list of references (files this translation comes from) in
+      the form `{file, line}`.
 
   """
 
