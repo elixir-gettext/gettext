@@ -74,9 +74,9 @@ defmodule Gettext.PO.Tokenizer do
   end
 
   # Comments.
-  defp tokenize_line(<<?#, rest :: binary>>, line, acc) do
-    {type, contents, rest} = tokenize_comment(rest)
-    acc = [{type, line, contents}|acc]
+  defp tokenize_line(<<?#, _ :: binary>> = rest, line, acc) do
+    {contents, rest} = to_eol_or_eof(rest, "")
+    acc = [{:comment, line, contents}|acc]
     tokenize_line(rest, line, acc)
   end
 
@@ -158,11 +158,6 @@ defmodule Gettext.PO.Tokenizer do
   defp tokenize_string(<<>>, _acc),
     do: {:error, "missing token \""}
 
-  defp tokenize_comment(<<char, rest :: binary>>) do
-    {contents, rest} = to_eol_or_eof(rest, "")
-    {comment_type(char), contents, rest}
-  end
-
   @spec tokenize_plural_form(binary, binary) ::
     {:ok, non_neg_integer, binary} | {:error, binary}
   defp tokenize_plural_form(<<digit, rest :: binary>>, acc)
@@ -183,10 +178,6 @@ defmodule Gettext.PO.Tokenizer do
   defp escape_char(?r), do: ?\r
   defp escape_char(?"), do: ?"
   defp escape_char(?\\), do: ?\\
-
-  @spec comment_type(char) :: atom
-  defp comment_type(?\s), do: :comm_translator
-  defp comment_type(?:), do: :comm_reference
 
   @spec to_eol_or_eof(binary, binary) :: {binary, binary}
   defp to_eol_or_eof(<<?\n, _ :: binary>> = rest, acc),

@@ -1,7 +1,6 @@
 Nonterminals grammar translations translation pluralizations pluralization
-             strings comments comment.
-Terminals str msgid msgid_plural msgstr plural_form comm_translator
-          comm_reference.
+             strings comments.
+Terminals str msgid msgid_plural msgstr plural_form comment.
 Rootsymbol grammar.
 
 grammar ->
@@ -42,12 +41,8 @@ strings ->
 comments ->
   '$empty' : [].
 comments ->
-  comment comments : ['$1'|'$2'].
+  comment comments : [extract_comment('$1')|'$2'].
 
-comment ->
-  comm_translator : clean_comment_token('$1').
-comment ->
-  comm_reference : clean_comment_token('$1').
 
 Erlang code.
 
@@ -65,7 +60,5 @@ plural_forms_map_from_list(Pluralizations) ->
 extract_plural_form({{plural_form, _Line, PluralForm}, String}) ->
   {PluralForm, String}.
 
-clean_comment_token({comm_translator, _Line, Contents}) ->
-  {translator, Contents};
-clean_comment_token({comm_reference, _Line, Contents}) ->
-  {reference, Contents}.
+extract_comment({comment, _Line, Contents}) ->
+  Contents.

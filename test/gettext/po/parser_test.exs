@@ -70,9 +70,9 @@ defmodule Gettext.PO.ParserTest do
 
   test "comments are associated with translations" do
     parsed = Parser.parse([
-      {:comm_translator, 1, "This is a translation"},
-      {:comm_reference, 2, "lib/foo.ex"},
-      {:comm_translator, 3, "Ah, another comment!"},
+      {:comment, 1, "# This is a translation"},
+      {:comment, 2, "#: lib/foo.ex:32"},
+      {:comment, 3, "# Ah, another comment!"},
       {:msgid, 4}, {:str, 4, "foo"},
       {:msgstr, 5}, {:str, 5, "bar"},
     ])
@@ -81,10 +81,11 @@ defmodule Gettext.PO.ParserTest do
       msgid: "foo",
       msgstr: "bar",
       comments: [
-        translator: "This is a translation",
-        reference: "lib/foo.ex",
-        translator: "Ah, another comment!",
+        "# This is a translation",
+        "#: lib/foo.ex:32",
+        "# Ah, another comment!",
       ],
+      references: [{"lib/foo.ex", 32}],
     }]}
   end
 
@@ -92,14 +93,14 @@ defmodule Gettext.PO.ParserTest do
     parsed = Parser.parse([
       {:msgid, 1}, {:str, 1, "a"},
       {:msgstr, 3}, {:str, 3, "b"},
-      {:comm_translator, 2, "Comment"},
+      {:comment, 2, "# Comment"},
       {:msgid, 1}, {:str, 1, "c"},
       {:msgstr, 3}, {:str, 3, "d"},
     ])
 
     assert parsed == {:ok, [
       %Translation{msgid: "a", msgstr: "b"},
-      %Translation{msgid: "c", msgstr: "d", comments: [translator: "Comment"]},
+      %Translation{msgid: "c", msgstr: "d", comments: ["# Comment"]},
     ]}
   end
 
@@ -129,7 +130,7 @@ defmodule Gettext.PO.ParserTest do
   test "comments can't be placed between 'msgid' and 'msgstr'" do
     parsed = Parser.parse([
       {:msgid, 1}, {:str, 1, "foo"},
-      {:comm_translator, 2, "Comment"},
+      {:comment, 2, "# Comment"},
       {:msgstr, 3}, {:str, 3, "bar"},
     ])
     assert {:error, 2, _} = parsed
@@ -137,9 +138,27 @@ defmodule Gettext.PO.ParserTest do
     parsed = Parser.parse([
       {:msgid, 1}, {:str, 1, "foo"},
       {:msgid_plural, 2}, {:str, 1, "foo"},
-      {:comm_translator, 3, "Comment"},
+      {:comment, 3, "# Comment"},
       {:msgstr, 4}, {:plural_form, 4, 0}, {:str, 4, "bar"},
     ])
     assert {:error, 3, _} = parsed
+  end
+
+  test "reference are extracted into the :reference field of a translation" do
+    parsed = Parser.parse([
+      {:comment, 1, "#: foo.ex:1 "},
+      {:comment, 1, "#: filename with spaces.ex:12"},
+      {:comment, 1, "# Not a reference comment"},
+      {:comment, 1, "# : Not a reference comment either"},
+      {:comment, 1, "#: another/ref/comment.ex:83"},
+      {:msgid, 1}, {:str, 1, "foo"},
+      {:msgstr, 1}, {:str, 3, "bar"},
+    ])
+
+    assert {:ok, [%Translation{references: [
+      {"foo.ex", 1},
+      {"filename with spaces.ex", 12},
+      {"another/ref/comment.ex", 83},
+    ]}]} = parsed
   end
 end
