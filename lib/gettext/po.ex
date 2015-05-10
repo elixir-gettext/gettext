@@ -3,12 +3,15 @@ defmodule Gettext.PO do
   This module provides facilities for working with `.po` files (mainly parsing).
   """
 
+  alias Gettext.PO
   alias Gettext.PO.Tokenizer
   alias Gettext.PO.Parser
   alias Gettext.PO.SyntaxError
 
   @typep line   :: pos_integer
   @typep parsed :: [Gettext.PO.Translation.t]
+
+  defstruct headers: [], translations: []
 
   @doc """
   Parses a string into a list of translations.
@@ -23,7 +26,7 @@ defmodule Gettext.PO do
       ...> msgid "foo"
       ...> msgstr "bar"
       ...> """
-      {:ok, [%Gettext.PO.Translation{msgid: "foo", msgstr: "bar"}]}
+      {:ok, %Gettext.PO{translations: [%Gettext.PO.Translation{msgid: "foo", msgstr: "bar"}], headers: []}}
 
       iex> Gettext.PO.parse_string "foo"
       {:error, 1, "unknown keyword 'foo'"}
@@ -32,8 +35,15 @@ defmodule Gettext.PO do
   @spec parse_string(binary) :: {:ok, parsed} | {:error, line, binary}
   def parse_string(str) do
     case Tokenizer.tokenize(str) do
-      {:ok, tokens}                    -> Parser.parse(tokens)
-      {:error, _line, _reason} = error -> error
+      {:error, _line, _reason} = error ->
+        error
+      {:ok, tokens} ->
+        case Parser.parse(tokens) do
+          {:error, _line, _reason} = error ->
+            error
+          {:ok, headers, translations} ->
+            {:ok, %PO{headers: headers, translations: translations}}
+        end
     end
   end
 

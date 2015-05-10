@@ -4,15 +4,21 @@ defmodule Gettext.PO.Parser do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
+  @typep headers :: [binary]
+
   @doc """
   Parses a list of tokens into a list of translations.
   """
   @spec parse([Gettext.PO.Tokenizer.token]) ::
-    {:ok, [Translation.t]} | {:error, pos_integer, binary}
+    {:ok, headers, [Translation.t]} | {:error, pos_integer, binary}
   def parse(tokens) do
     case :gettext_po_parser.parse(tokens) do
       {:ok, translations} ->
-        {:ok, Enum.map(translations, &to_struct/1)}
+        {headers, translations} =
+          translations
+          |> Enum.map(&to_struct/1)
+          |> extract_headers()
+        {:ok, headers, translations}
       {:error, _reason} = error ->
         parse_error(error)
     end
@@ -41,4 +47,13 @@ defmodule Gettext.PO.Parser do
     [file, line] = ref |> String.strip |> String.split(":")
     {file, String.to_integer(line)}
   end
+
+  # If the first translation has an empty msgid, it's assumed to represent
+  # headers. Headers will be in the msgstr of this "fake" translation, one on
+  # each line. For now, we'll just separate those lines in order to get a list
+  # of headers.
+  defp extract_headers([%Translation{msgid: ""} = t|rest]),
+    do: {String.split(t.msgstr, "\n", trim: true), rest}
+  defp extract_headers(translations),
+    do: {[], translations}
 end
