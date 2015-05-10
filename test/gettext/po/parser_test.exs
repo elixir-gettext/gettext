@@ -161,4 +161,19 @@ defmodule Gettext.PO.ParserTest do
       {"another/ref/comment.ex", 83},
     ]}]} = parsed
   end
+
+  test "headers are parsed when present" do
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, ""},
+      {:msgstr, 1},
+        {:str, 1, "Language: en_US\n"},
+        {:str, 1, "Last-Translator: Jane Doe <jane@doe.com>\n"}
+    ])
+
+    assert parsed == {
+      :ok,
+      ["Language: en_US", "Last-Translator: Jane Doe <jane@doe.com>"],
+      []
+    }
+  end
 end
