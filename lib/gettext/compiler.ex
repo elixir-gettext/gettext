@@ -1,6 +1,7 @@
 defmodule Gettext.Compiler do
   @moduledoc false
 
+  alias Gettext.PO
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
   alias Gettext.Interpolation
@@ -127,7 +128,7 @@ defmodule Gettext.Compiler do
   # definitions.
   defp compile_po_file(path, acc) do
     {locale, domain} = locale_and_domain_from_path(path)
-    translations     = Gettext.PO.parse_file!(path)
+    %PO{translations: translations} = PO.parse_file!(path)
 
     Enum.reduce translations, acc, fn
       translation, acc -> [compile_translation(locale, domain, translation)|acc]

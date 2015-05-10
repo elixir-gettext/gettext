@@ -11,7 +11,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}
     ])
 
-    assert parsed == {:ok, [%Translation{msgid: "hello", msgstr: "ciao"}]}
+    assert parsed == {:ok, [], [%Translation{msgid: "hello", msgstr: "ciao"}]}
   end
 
   test "parse/1 with multiple concatenated strings" do
@@ -20,7 +20,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}, {:str, 3, " mondo"}
     ])
 
-    assert parsed == {:ok, [
+    assert parsed == {:ok, [], [
       %Translation{msgid: "hello world", msgstr: "ciao mondo"}
     ]}
   end
@@ -33,7 +33,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 4}, {:str, 4, "parola"},
     ])
 
-    assert parsed == {:ok, [
+    assert parsed == {:ok, [], [
       %Translation{msgid: "hello", msgstr: "ciao"},
       %Translation{msgid: "word", msgstr: "parola"},
     ]}
@@ -45,7 +45,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "bårπ"},
     ])
 
-    assert parsed == {:ok, [%Translation{msgid: "føø", msgstr: "bårπ"}]}
+    assert parsed == {:ok, [], [%Translation{msgid: "føø", msgstr: "bårπ"}]}
   end
 
   test "parse/1 with a pluralized string" do
@@ -57,7 +57,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 1}, {:plural_form, 1, 2}, {:str, 1, "barres"},
     ])
 
-    assert parsed == {:ok, [%PluralTranslation{
+    assert parsed == {:ok, [], [%PluralTranslation{
       msgid: "foo",
       msgid_plural: "foos",
       msgstr: %{
@@ -77,7 +77,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 5}, {:str, 5, "bar"},
     ])
 
-    assert parsed == {:ok, [%Translation{
+    assert parsed == {:ok, [], [%Translation{
       msgid: "foo",
       msgstr: "bar",
       comments: [
@@ -98,7 +98,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 3}, {:str, 3, "d"},
     ])
 
-    assert parsed == {:ok, [
+    assert parsed == {:ok, [], [
       %Translation{msgid: "a", msgstr: "b"},
       %Translation{msgid: "c", msgstr: "d", comments: ["# Comment"]},
     ]}
@@ -155,10 +155,25 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 1}, {:str, 3, "bar"},
     ])
 
-    assert {:ok, [%Translation{references: [
+    assert {:ok, [], [%Translation{references: [
       {"foo.ex", 1},
       {"filename with spaces.ex", 12},
       {"another/ref/comment.ex", 83},
     ]}]} = parsed
+  end
+
+  test "headers are parsed when present" do
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, ""},
+      {:msgstr, 1},
+        {:str, 1, "Language: en_US\n"},
+        {:str, 1, "Last-Translator: Jane Doe <jane@doe.com>\n"}
+    ])
+
+    assert parsed == {
+      :ok,
+      ["Language: en_US", "Last-Translator: Jane Doe <jane@doe.com>"],
+      []
+    }
   end
 end
