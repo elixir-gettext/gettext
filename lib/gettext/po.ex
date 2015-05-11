@@ -157,20 +157,20 @@ defmodule Gettext.PO do
   end
 
   defp dump_translation(%Translation{} = t) do
-    dump_comments(t.comments) <> ~s"""
+    dump_comments(t.comments) <> """
     msgid "#{t.msgid}"
     msgstr "#{t.msgstr}"
     """
   end
 
   defp dump_translation(%PluralTranslation{} = t) do
-    base = dump_comments(t.comments) <> ~s"""
+    base = dump_comments(t.comments) <> """
     msgid "#{t.msgid}"
     msgid_plural "#{t.msgid_plural}"
     """
 
     Enum.reduce t.msgstr, base, fn({plural_form, str}, acc) ->
-      acc <> ~s"""
+      acc <> """
       msgstr[#{plural_form}] "#{str}"
       """
     end
