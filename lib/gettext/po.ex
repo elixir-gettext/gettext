@@ -7,6 +7,8 @@ defmodule Gettext.PO do
   alias Gettext.PO.Tokenizer
   alias Gettext.PO.Parser
   alias Gettext.PO.SyntaxError
+  alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
 
   @typep line   :: pos_integer
   @typep parsed :: [Gettext.PO.Translation.t]
@@ -128,4 +130,54 @@ defmodule Gettext.PO do
         raise SyntaxError, file: path, line: line, reason: reason
     end
   end
+
+  def dump(%PO{headers: [], translations: translations}) do
+    dump_translations(translations)
+  end
+
+  def dump(%PO{headers: headers, translations: []}) do
+    dump_headers(headers)
+  end
+
+  def dump(%PO{headers: headers, translations: translations}) do
+    dump_headers(headers) <> "\n" <> dump_translations(translations)
+  end
+
+  defp dump_headers(headers) do
+    base = """
+    msgid ""
+    msgstr ""
+    """
+
+    base <> Enum.map_join(headers, "\n", &(~s("#{&1}\\n"))) <> "\n"
+  end
+
+  defp dump_translations(translations) do
+    Enum.map_join(translations, "\n", &dump_translation/1)
+  end
+
+  defp dump_translation(%Translation{} = t) do
+    dump_comments(t.comments) <> ~s"""
+    msgid "#{t.msgid}"
+    msgstr "#{t.msgstr}"
+    """
+  end
+
+  defp dump_translation(%PluralTranslation{} = t) do
+    base = dump_comments(t.comments) <> ~s"""
+    msgid "#{t.msgid}"
+    msgid_plural "#{t.msgid_plural}"
+    """
+
+    Enum.reduce t.msgstr, base, fn({plural_form, str}, acc) ->
+      acc <> ~s"""
+      msgstr[#{plural_form}] "#{str}"
+      """
+    end
+  end
+
+  defp dump_comments([]),
+    do: ""
+  defp dump_comments(comments),
+    do: Enum.join(comments, "\n") <> "\n"
 end

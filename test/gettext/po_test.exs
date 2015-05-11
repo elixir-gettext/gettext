@@ -3,6 +3,7 @@ defmodule Gettext.POTest do
 
   alias Gettext.PO
   alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
   alias Gettext.PO.SyntaxError
 
   doctest PO
@@ -138,5 +139,124 @@ defmodule Gettext.POTest do
     assert_raise File.Error, msg, fn ->
       PO.parse_file!("nonexistent")
     end
+  end
+
+  test "dump/1: single translation" do
+    po = %PO{headers: [], translations: [
+      %Translation{msgid: "foo", msgstr: "bar"},
+    ]}
+
+    assert PO.dump(po) == ~S"""
+    msgid "foo"
+    msgstr "bar"
+    """
+  end
+
+  test "dump/1: single plural translation" do
+    po = %PO{headers: [], translations: [%PluralTranslation{
+      msgid: "one foo",
+      msgid_plural: "%{count} foos",
+      msgstr: %{
+        0 => "one bar",
+        1 => "%{count} bars"
+      }
+    }]}
+
+    assert PO.dump(po) == ~S"""
+    msgid "one foo"
+    msgid_plural "%{count} foos"
+    msgstr[0] "one bar"
+    msgstr[1] "%{count} bars"
+    """
+  end
+
+  test "dump/1: multiple translations" do
+    po = %PO{headers: [], translations: [
+      %Translation{msgid: "foo", msgstr: "bar"},
+      %Translation{msgid: "baz", msgstr: "bong"},
+    ]}
+
+    assert PO.dump(po) == ~S"""
+    msgid "foo"
+    msgstr "bar"
+
+    msgid "baz"
+    msgstr "bong"
+    """
+  end
+
+  test "dump/1: translation with comments" do
+    po = %PO{headers: [], translations: [
+      %Translation{
+        msgid: "foo",
+        msgstr: "bar",
+        comments: ["# comment", "#: foo.ex:32", "# another comment"],
+      }
+    ]}
+
+    assert PO.dump(po) == ~S"""
+    # comment
+    #: foo.ex:32
+    # another comment
+    msgid "foo"
+    msgstr "bar"
+    """
+  end
+
+  test "dump/1: headers" do
+    po = %PO{translations: [], headers: [
+      "Content-Type: text/plain",
+      "Project-Id-Version: xxx",
+    ]}
+
+    assert PO.dump(po) == ~S"""
+    msgid ""
+    msgstr ""
+    "Content-Type: text/plain\n"
+    "Project-Id-Version: xxx\n"
+    """
+  end
+
+  test "dump/1: headers and multiple (plural) translations with comments" do
+    po = %PO{
+      translations: [
+        %Translation{
+          msgid: "foo",
+          msgstr: "bar",
+          comments: ["# comment", "#: foo.ex:32", "# another comment"],
+        },
+        %PluralTranslation{
+          msgid: "a foo, %{name}",
+          msgid_plural: "%{count} foos, %{name}",
+          msgstr: %{0 => "a bar, %{name}", 1 => "%{count} bars, %{name}"},
+          comments: ["# comment 1", "# comment 2", "#: lib/ref.ex:29"],
+        }
+      ],
+      headers: [
+        "Project-Id-Version: 1",
+        "Language: fooesque",
+      ]
+    }
+
+    assert PO.dump(po) == ~S"""
+    msgid ""
+    msgstr ""
+    "Project-Id-Version: 1\n"
+    "Language: fooesque\n"
+
+    # comment
+    #: foo.ex:32
+    # another comment
+    msgid "foo"
+    msgstr "bar"
+
+    # comment 1
+    # comment 2
+    #: lib/ref.ex:29
+    msgid "a foo, %{name}"
+    msgid_plural "%{count} foos, %{name}"
+    msgstr[0] "a bar, %{name}"
+    msgstr[1] "%{count} bars, %{name}"
+    """
   end
 end
