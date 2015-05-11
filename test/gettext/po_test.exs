@@ -259,4 +259,16 @@ defmodule Gettext.POTest do
     msgstr[1] "%{count} bars, %{name}"
     """
   end
+
+  # Individual testing of the `dump(parse(po)) == po` process for different PO
+  # editors.
+  for file <- Path.wildcard("test/fixtures/po_editors/*.po") do
+    editor = Path.basename(file, ".ex")
+
+    test "parsing and dumping gives back the original file (editor: #{editor})" do
+      file              = unquote(file)
+      parsed_and_dumped = file |> PO.parse_file! |> PO.dump
+      assert parsed_and_dumped == File.read!(file)
+    end
+  end
 end
