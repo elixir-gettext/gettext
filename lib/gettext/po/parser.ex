@@ -36,15 +36,16 @@ defmodule Gettext.PO.Parser do
   end
 
   defp extract_references(%{__struct__: _, comments: comments} = translation) do
-    references = for "#:" <> contents <- comments do
-      parse_reference(contents)
-    end
+    references =
+      for "#:" <> contents <- comments,
+        (contents = String.strip(contents)) != "",
+        do: parse_reference(contents)
 
     %{translation | references: references}
   end
 
   defp parse_reference(ref) do
-    [file, line] = ref |> String.strip |> String.split(":")
+    [file, line] = String.split(ref, ":")
     {file, String.to_integer(line)}
   end
 
