@@ -131,16 +131,22 @@ defmodule Gettext.PO do
     end
   end
 
-  def dump(%PO{headers: [], translations: translations}) do
+  def dump(%PO{} = po) do
+    po
+    |> do_dump
+    |> IO.iodata_to_binary
+  end
+
+  def do_dump(%PO{headers: [], translations: translations}) do
     dump_translations(translations)
   end
 
-  def dump(%PO{headers: headers, translations: []}) do
+  def do_dump(%PO{headers: headers, translations: []}) do
     dump_headers(headers)
   end
 
-  def dump(%PO{headers: headers, translations: translations}) do
-    dump_headers(headers) <> "\n" <> dump_translations(translations)
+  def do_dump(%PO{headers: headers, translations: translations}) do
+    [dump_headers(headers), ?\n, dump_translations(translations)]
   end
 
   defp dump_headers(headers) do
@@ -149,35 +155,42 @@ defmodule Gettext.PO do
     msgstr ""
     """
 
-    base <> Enum.map_join(headers, "\n", &(~s("#{&1}\\n"))) <> "\n"
+    [base|Enum.map(headers, &(~s("#{&1}\\n"\n)))]
   end
 
   defp dump_translations(translations) do
-    Enum.map_join(translations, "\n", &dump_translation/1)
+    translations
+    |> Enum.map(&dump_translation/1)
+    |> Enum.intersperse(?\n)
   end
 
   defp dump_translation(%Translation{} = t) do
-    dump_comments(t.comments) <> """
+    translation = """
     msgid "#{t.msgid}"
     msgstr "#{t.msgstr}"
     """
+
+    [dump_comments(t.comments), translation]
   end
 
   defp dump_translation(%PluralTranslation{} = t) do
-    base = dump_comments(t.comments) <> """
+    ids = """
     msgid "#{t.msgid}"
     msgid_plural "#{t.msgid_plural}"
     """
 
-    Enum.reduce t.msgstr, base, fn({plural_form, str}, acc) ->
-      acc <> """
+    [dump_comments(t.comments), ids, dump_plural_msgstr(t.msgstr)]
+  end
+
+  defp dump_comments(comments) do
+    Enum.map comments, &[&1, ?\n]
+  end
+
+  defp dump_plural_msgstr(msgstr) do
+    Enum.map msgstr, fn {plural_form, str} ->
+      """
       msgstr[#{plural_form}] "#{str}"
       """
     end
   end
-
-  defp dump_comments([]),
-    do: ""
-  defp dump_comments(comments),
-    do: Enum.join(comments, "\n") <> "\n"
 end
