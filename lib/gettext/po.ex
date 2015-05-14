@@ -13,6 +13,11 @@ defmodule Gettext.PO do
   @typep line   :: pos_integer
   @typep parsed :: [Gettext.PO.Translation.t]
 
+  @type t :: %__MODULE__{
+    headers: [binary],
+    translations: [Translation.t | PluralTranslation.t],
+  }
+
   defstruct headers: [], translations: []
 
   @doc """
