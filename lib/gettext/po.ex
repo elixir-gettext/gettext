@@ -136,6 +136,37 @@ defmodule Gettext.PO do
     end
   end
 
+  @doc """
+  Dumps a `Gettext.PO` struct as iodata.
+
+  This function dumps a `Gettext.PO` struct (representing a PO file) as iodata,
+  which can later be written to a file or converted to a string with
+  `IO.iodata_to_binary/1`.
+
+  ## Examples
+
+  After running the following code:
+
+      iodata = Gettext.PO.dump %Gettext.PO{
+        headers: ["Last-Translator: Jane Doe"],
+        translations: [
+          %Gettext.PO.Translation{msgid: "foo", msgstr: "bar", comments: "# A comment"}
+        ]
+      }
+
+      File.write!("/tmp/test.po", iodata)
+
+  the `/tmp/test.po` file would look like this:
+
+      msgid ""
+      msgstr ""
+      "Last-Translator: Jane Doe"
+
+      # A comment
+      msgid "foo"
+      msgstr "bar"
+
+  """
   @spec dump(PO.t) :: iodata
   def dump(po)
 
