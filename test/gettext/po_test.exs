@@ -146,7 +146,7 @@ defmodule Gettext.POTest do
       %Translation{msgid: "foo", msgstr: "bar"},
     ]}
 
-    assert PO.dump(po) == ~S"""
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     msgid "foo"
     msgstr "bar"
     """
@@ -162,7 +162,7 @@ defmodule Gettext.POTest do
       }
     }]}
 
-    assert PO.dump(po) == ~S"""
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     msgid "one foo"
     msgid_plural "%{count} foos"
     msgstr[0] "one bar"
@@ -176,7 +176,7 @@ defmodule Gettext.POTest do
       %Translation{msgid: "baz", msgstr: "bong"},
     ]}
 
-    assert PO.dump(po) == ~S"""
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     msgid "foo"
     msgstr "bar"
 
@@ -194,7 +194,7 @@ defmodule Gettext.POTest do
       }
     ]}
 
-    assert PO.dump(po) == ~S"""
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     # comment
     #: foo.ex:32
     # another comment
@@ -209,7 +209,7 @@ defmodule Gettext.POTest do
       "Project-Id-Version: xxx",
     ]}
 
-    assert PO.dump(po) == ~S"""
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     msgid ""
     msgstr ""
     "Content-Type: text/plain\n"
@@ -238,7 +238,7 @@ defmodule Gettext.POTest do
       ]
     }
 
-    assert PO.dump(po) == ~S"""
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     msgid ""
     msgstr ""
     "Project-Id-Version: 1\n"
@@ -260,6 +260,31 @@ defmodule Gettext.POTest do
     """
   end
 
+  test "dump/1: escaped characters in msgid/msgstr" do
+    po = %PO{headers: [], translations: [
+      %Translation{msgid: ~s("quotes"), msgstr: ~s(foo "bar" baz)},
+      %Translation{msgid: ~s(new\nlines\r), msgstr: ~s(and\ttabs)},
+    ]}
+
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+    msgid "\"quotes\""
+    msgstr "foo \"bar\" baz"
+
+    msgid "new\nlines\r"
+    msgstr "and\ttabs"
+    """
+  end
+
+  test "dump/1: double quotes in headers are escaped" do
+    po = %PO{headers: [~s(Foo: "bar")]}
+
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+    msgid ""
+    msgstr ""
+    "Foo: \"bar\"\n"
+    """
+  end
+
   # Individual testing of the `dump(parse(po)) == po` process for different PO
   # editors.
   for file <- Path.wildcard("test/fixtures/po_editors/*.po") do
@@ -267,7 +292,7 @@ defmodule Gettext.POTest do
 
     test "parsing and dumping gives back the original file (editor: #{editor})" do
       file              = unquote(file)
-      parsed_and_dumped = file |> PO.parse_file! |> PO.dump
+      parsed_and_dumped = file |> PO.parse_file! |> PO.dump |> IO.iodata_to_binary
       assert parsed_and_dumped == File.read!(file)
     end
   end

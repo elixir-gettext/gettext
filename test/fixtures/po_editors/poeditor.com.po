@@ -18,8 +18,12 @@ msgid "Hello, %{name}!"
 msgstr "Ciao, %{name}!"
 
 #. A plural translation
-#: lib/errors.ex:32
+#:
 msgid "One error"
 msgid_plural "%{count} errors"
 msgstr[0] "Un errore"
 msgstr[1] "%{count} errori"
+
+#:
+msgid "String with \"double quotes\" in it"
+msgstr "Stringa che contiene \"doppie virgolette\""

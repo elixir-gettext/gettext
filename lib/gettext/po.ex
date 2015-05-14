@@ -136,21 +136,18 @@ defmodule Gettext.PO do
     end
   end
 
-  def dump(%PO{} = po) do
-    po
-    |> do_dump
-    |> IO.iodata_to_binary
-  end
+  @spec dump(PO.t) :: iodata
+  def dump(po)
 
-  def do_dump(%PO{headers: [], translations: translations}) do
+  def dump(%PO{headers: [], translations: translations}) do
     dump_translations(translations)
   end
 
-  def do_dump(%PO{headers: headers, translations: []}) do
+  def dump(%PO{headers: headers, translations: []}) do
     dump_headers(headers)
   end
 
-  def do_dump(%PO{headers: headers, translations: translations}) do
+  def dump(%PO{headers: headers, translations: translations}) do
     [dump_headers(headers), ?\n, dump_translations(translations)]
   end
 
@@ -160,7 +157,7 @@ defmodule Gettext.PO do
     msgstr ""
     """
 
-    [base|Enum.map(headers, &(~s("#{&1}\\n"\n)))]
+    [base|Enum.map(headers, &(~s("#{escape(&1)}\\n"\n)))]
   end
 
   defp dump_translations(translations) do
@@ -171,8 +168,8 @@ defmodule Gettext.PO do
 
   defp dump_translation(%Translation{} = t) do
     translation = """
-    msgid "#{t.msgid}"
-    msgstr "#{t.msgstr}"
+    msgid "#{escape(t.msgid)}"
+    msgstr "#{escape(t.msgstr)}"
     """
 
     [dump_comments(t.comments), translation]
@@ -180,8 +177,8 @@ defmodule Gettext.PO do
 
   defp dump_translation(%PluralTranslation{} = t) do
     ids = """
-    msgid "#{t.msgid}"
-    msgid_plural "#{t.msgid_plural}"
+    msgid "#{escape(t.msgid)}"
+    msgid_plural "#{escape(t.msgid_plural)}"
     """
 
     [dump_comments(t.comments), ids, dump_plural_msgstr(t.msgstr)]
@@ -194,8 +191,18 @@ defmodule Gettext.PO do
   defp dump_plural_msgstr(msgstr) do
     Enum.map msgstr, fn {plural_form, str} ->
       """
-      msgstr[#{plural_form}] "#{str}"
+      msgstr[#{plural_form}] "#{escape(str)}"
       """
     end
   end
+
+  defp escape(str) do
+    for <<char <- str>>, into: "", do: escape_char(char)
+  end
+
+  defp escape_char(?"),   do: ~S(\")
+  defp escape_char(?\n),  do: ~S(\n)
+  defp escape_char(?\t),  do: ~S(\t)
+  defp escape_char(?\r),  do: ~S(\r)
+  defp escape_char(char), do: <<char>>
 end
