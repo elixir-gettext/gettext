@@ -10,15 +10,16 @@ defmodule Gettext.PO do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
-  @typep line   :: pos_integer
-  @typep parsed :: [Gettext.PO.Translation.t]
+  @type line :: pos_integer
+  @type parse_error :: {:error, line, binary}
+  @type translation :: Translation.t | PluralTranslation.t
+
+  defstruct headers: [], translations: []
 
   @type t :: %__MODULE__{
     headers: [binary],
-    translations: [Translation.t | PluralTranslation.t],
+    translations: [translation]
   }
-
-  defstruct headers: [], translations: []
 
   @doc """
   Parses a string into a list of translations.
@@ -39,7 +40,7 @@ defmodule Gettext.PO do
       {:error, 1, "unknown keyword 'foo'"}
 
   """
-  @spec parse_string(binary) :: {:ok, parsed} | {:error, line, binary}
+  @spec parse_string(binary) :: {:ok, t} | parse_error
   def parse_string(str) do
     case Tokenizer.tokenize(str) do
       {:error, _line, _reason} = error ->
@@ -68,7 +69,7 @@ defmodule Gettext.PO do
       ** (Gettext.PO.SyntaxError) 1: no space after 'msgid'
 
   """
-  @spec parse_string!(binary) :: parsed
+  @spec parse_string!(binary) :: t
   def parse_string!(str) do
     case parse_string(str) do
       {:ok, parsed} ->
@@ -99,10 +100,7 @@ defmodule Gettext.PO do
       #=> {:error, :enoent}
 
   """
-  @spec parse_file(Path.t) ::
-    {:ok, parsed}
-    | {:error, line, binary}
-    | {:error, atom}
+  @spec parse_file(Path.t) :: {:ok, t} | parse_error | {:error, atom}
   def parse_file(path) do
     case File.read(path) do
       {:ok, contents}           -> parse_string(contents)
@@ -124,7 +122,7 @@ defmodule Gettext.PO do
       #=> ** (File.Error) could not parse file nonexistent.po: no such file or directory
 
   """
-  @spec parse_file!(Path.t) :: parsed
+  @spec parse_file!(Path.t) :: t
   def parse_file!(path) do
     case parse_file(path) do
       {:ok, parsed} ->
@@ -167,7 +165,7 @@ defmodule Gettext.PO do
       msgstr "bar"
 
   """
-  @spec dump(PO.t) :: iodata
+  @spec dump(t) :: iodata
   def dump(po)
 
   def dump(%PO{headers: [], translations: translations}) do

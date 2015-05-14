@@ -12,8 +12,7 @@ defmodule Gettext.PO.Tokenizer do
     {:msgid, line} |
     {:msgid_plural, line} |
     {:msgstr, line} |
-    {:comm_translator, line, binary} |
-    {:comm_reference, line, binary}
+    {:comment, line, binary}
 
 
   # In this list of keywords *the order matters* because a function clause is

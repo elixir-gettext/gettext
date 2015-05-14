@@ -4,13 +4,11 @@ defmodule Gettext.PO.Parser do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
-  @typep headers :: [binary]
-
   @doc """
   Parses a list of tokens into a list of translations.
   """
   @spec parse([Gettext.PO.Tokenizer.token]) ::
-    {:ok, headers, [Translation.t]} | {:error, pos_integer, binary}
+    {:ok, [binary], [Gettext.PO.translation]} | Gettext.PO.parse_error
   def parse(tokens) do
     case :gettext_po_parser.parse(tokens) do
       {:ok, translations} ->
@@ -24,13 +22,11 @@ defmodule Gettext.PO.Parser do
     end
   end
 
-  @spec to_struct(Map.t) :: Translation.t
   defp to_struct({:translation, translation}),
     do: struct(Translation, translation) |> extract_references()
   defp to_struct({:plural_translation, translation}),
     do: struct(PluralTranslation, translation) |> extract_references()
 
-  @spec parse_error({:error, term}) :: {:error, pos_integer, binary}
   defp parse_error({:error, {line, _module, reason}}) do
     {:error, line, IO.chardata_to_string(reason)}
   end
