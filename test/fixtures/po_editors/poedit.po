@@ -1,0 +1,28 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: POEdit test project\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: Meg Buque\n"
+"Language-Team: Elixir <dummy@example.com>\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.7.6\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+
+msgid "Hello"
+msgstr "Ciao"
+
+msgid "Hello, %{name}!"
+msgstr "Ciao, %{name}!"
+
+msgid "One error"
+msgid_plural "%{count} errors"
+msgstr[0] "Un errore"
+msgstr[1] "%{count} errori"
+
+msgid "String with \"double quotes\" in it"
+msgstr "Stringa che contiene \"doppie virgolette\""

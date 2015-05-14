@@ -7,9 +7,16 @@ defmodule Gettext.PO do
   alias Gettext.PO.Tokenizer
   alias Gettext.PO.Parser
   alias Gettext.PO.SyntaxError
+  alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
 
   @typep line   :: pos_integer
   @typep parsed :: [Gettext.PO.Translation.t]
+
+  @type t :: %__MODULE__{
+    headers: [binary],
+    translations: [Translation.t | PluralTranslation.t],
+  }
 
   defstruct headers: [], translations: []
 
@@ -128,4 +135,105 @@ defmodule Gettext.PO do
         raise SyntaxError, file: path, line: line, reason: reason
     end
   end
+
+  @doc """
+  Dumps a `Gettext.PO` struct as iodata.
+
+  This function dumps a `Gettext.PO` struct (representing a PO file) as iodata,
+  which can later be written to a file or converted to a string with
+  `IO.iodata_to_binary/1`.
+
+  ## Examples
+
+  After running the following code:
+
+      iodata = Gettext.PO.dump %Gettext.PO{
+        headers: ["Last-Translator: Jane Doe"],
+        translations: [
+          %Gettext.PO.Translation{msgid: "foo", msgstr: "bar", comments: "# A comment"}
+        ]
+      }
+
+      File.write!("/tmp/test.po", iodata)
+
+  the `/tmp/test.po` file would look like this:
+
+      msgid ""
+      msgstr ""
+      "Last-Translator: Jane Doe"
+
+      # A comment
+      msgid "foo"
+      msgstr "bar"
+
+  """
+  @spec dump(PO.t) :: iodata
+  def dump(po)
+
+  def dump(%PO{headers: [], translations: translations}) do
+    dump_translations(translations)
+  end
+
+  def dump(%PO{headers: headers, translations: []}) do
+    dump_headers(headers)
+  end
+
+  def dump(%PO{headers: headers, translations: translations}) do
+    [dump_headers(headers), ?\n, dump_translations(translations)]
+  end
+
+  defp dump_headers(headers) do
+    base = """
+    msgid ""
+    msgstr ""
+    """
+
+    [base|Enum.map(headers, &(~s("#{escape(&1)}\\n"\n)))]
+  end
+
+  defp dump_translations(translations) do
+    translations
+    |> Enum.map(&dump_translation/1)
+    |> Enum.intersperse(?\n)
+  end
+
+  defp dump_translation(%Translation{} = t) do
+    translation = """
+    msgid "#{escape(t.msgid)}"
+    msgstr "#{escape(t.msgstr)}"
+    """
+
+    [dump_comments(t.comments), translation]
+  end
+
+  defp dump_translation(%PluralTranslation{} = t) do
+    ids = """
+    msgid "#{escape(t.msgid)}"
+    msgid_plural "#{escape(t.msgid_plural)}"
+    """
+
+    [dump_comments(t.comments), ids, dump_plural_msgstr(t.msgstr)]
+  end
+
+  defp dump_comments(comments) do
+    Enum.map comments, &[&1, ?\n]
+  end
+
+  defp dump_plural_msgstr(msgstr) do
+    Enum.map msgstr, fn {plural_form, str} ->
+      """
+      msgstr[#{plural_form}] "#{escape(str)}"
+      """
+    end
+  end
+
+  defp escape(str) do
+    for <<char <- str>>, into: "", do: escape_char(char)
+  end
+
+  defp escape_char(?"),   do: ~S(\")
+  defp escape_char(?\n),  do: ~S(\n)
+  defp escape_char(?\t),  do: ~S(\t)
+  defp escape_char(?\r),  do: ~S(\r)
+  defp escape_char(char), do: <<char>>
 end
