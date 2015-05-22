@@ -338,4 +338,16 @@ defmodule Gettext.POTest do
     po2 = %PO{headers: ["Last-Translator: Bar"]}
     assert PO.merge(po1, po2) == %PO{headers: ["Last-Translator: Bar"]}
   end
+
+  test "merge/2: all obsolete translations are discarded if :keep_manual_translations is false" do
+    obsolete = [
+      %Translation{msgid: "foo", msgstr: "bar", references: [{"foo.ex", 1}]},
+      %PluralTranslation{msgid: "baz", msgid_plural: "bazes", msgstr: %{}},
+    ]
+
+    old = %PO{translations: obsolete}
+    new = %PO{translations: [%Translation{msgid: "new", msgstr: ""}]}
+
+    assert PO.merge(old, new, keep_manual_translations: false) == new
+  end
 end
