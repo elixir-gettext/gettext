@@ -333,10 +333,14 @@ defmodule Gettext.POTest do
     ]}
   end
 
-  test "merge/2: headers are taken from the most recent PO" do
+  test "merge/2: headers are taken from the oldest PO file" do
     po1 = %PO{headers: ["Last-Translator: Foo", "Content-Type: text/plain"]}
     po2 = %PO{headers: ["Last-Translator: Bar"]}
-    assert PO.merge(po1, po2) == %PO{headers: ["Last-Translator: Bar"]}
+
+    assert PO.merge(po1, po2) == %PO{headers: [
+      "Last-Translator: Foo",
+      "Content-Type: text/plain",
+    ]}
   end
 
   test "merge/2: all obsolete translations are discarded if :keep_manual_translations is false" do
