@@ -49,8 +49,9 @@ defmodule Gettext.PO.Parser do
   # headers. Headers will be in the msgstr of this "fake" translation, one on
   # each line. For now, we'll just separate those lines in order to get a list
   # of headers.
-  defp extract_headers([%Translation{msgid: ""} = t|rest]),
-    do: {String.split(t.msgstr, "\n", trim: true), rest}
+  defp extract_headers([%Translation{msgid: id, msgstr: headers}|rest])
+    when id == "" or id == [""],
+    do: {headers, rest}
   defp extract_headers(translations),
     do: {[], translations}
 end

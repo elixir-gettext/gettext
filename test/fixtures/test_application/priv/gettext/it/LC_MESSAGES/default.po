@@ -5,3 +5,13 @@ msgid "One new email"
 msgid_plural "%{count} new emails"
 msgstr[0] "Una nuova email"
 msgstr[1] "%{count} nuove email"
+
+msgid "Concatenated" " and long "
+  "string"
+msgstr "Stringa" " lunga e "
+  "concatenata"
+
+msgid "A" " friend"
+msgid_plural "%{count}" " friends"
+msgstr[0] "Un" " amico"
+msgstr[1] "%{count}" " amici"

@@ -21,7 +21,7 @@ defmodule Gettext.PO.ParserTest do
     ])
 
     assert parsed == {:ok, [], [
-      %Translation{msgid: "hello world", msgstr: "ciao mondo"}
+      %Translation{msgid: ["hello", " world"], msgstr: ["ciao", " mondo"]}
     ]}
   end
 
@@ -172,7 +172,7 @@ defmodule Gettext.PO.ParserTest do
 
     assert parsed == {
       :ok,
-      ["Language: en_US", "Last-Translator: Jane Doe <jane@doe.com>"],
+      ["Language: en_US\n", "Last-Translator: Jane Doe <jane@doe.com>\n"],
       []
     }
   end

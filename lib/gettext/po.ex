@@ -181,13 +181,19 @@ defmodule Gettext.PO do
     [dump_headers(headers), ?\n, dump_translations(translations)]
   end
 
-  defp dump_headers(headers) do
-    base = """
-    msgid ""
-    msgstr ""
-    """
+  def dump_headers([]) do
+    []
+  end
 
-    [base|Enum.map(headers, &(~s("#{escape(&1)}\\n"\n)))]
+  def dump_headers([first|_] = headers) when first != "" do
+    dump_headers([""|headers])
+  end
+
+  def dump_headers(headers) do
+    [
+      ~s(msgid ""\n),
+      dump_kw_and_strings("msgstr", headers, 0),
+    ]
   end
 
   defp dump_translations(translations) do
@@ -197,21 +203,20 @@ defmodule Gettext.PO do
   end
 
   defp dump_translation(%Translation{} = t) do
-    translation = """
-    msgid "#{escape(t.msgid)}"
-    msgstr "#{escape(t.msgstr)}"
-    """
-
-    [dump_comments(t.comments), translation]
+    [
+      dump_comments(t.comments),
+      dump_kw_and_strings("msgid", t.msgid),
+      dump_kw_and_strings("msgstr", t.msgstr),
+    ]
   end
 
   defp dump_translation(%PluralTranslation{} = t) do
-    ids = """
-    msgid "#{escape(t.msgid)}"
-    msgid_plural "#{escape(t.msgid_plural)}"
-    """
-
-    [dump_comments(t.comments), ids, dump_plural_msgstr(t.msgstr)]
+    [
+      dump_comments(t.comments),
+      dump_kw_and_strings("msgid", t.msgid),
+      dump_kw_and_strings("msgid_plural", t.msgid_plural),
+      dump_plural_msgstr(t.msgstr)
+    ]
   end
 
   defp dump_comments(comments) do
@@ -220,10 +225,21 @@ defmodule Gettext.PO do
 
   defp dump_plural_msgstr(msgstr) do
     Enum.map msgstr, fn {plural_form, str} ->
-      """
-      msgstr[#{plural_form}] "#{escape(str)}"
-      """
+      dump_kw_and_strings("msgstr[#{plural_form}]", str)
     end
+  end
+
+  defp dump_kw_and_strings(keyword, strings, indentation \\ 2)
+
+  defp dump_kw_and_strings(keyword, str, _indentation) when is_binary(str) do
+    ~s(#{keyword} "#{escape(str)}"\n)
+  end
+
+  defp dump_kw_and_strings(keyword, [first|rest], indentation) do
+    # Strings after the first one are indented with two spaces.
+    indent = String.duplicate(" ", indentation)
+    rest = Enum.map(rest, &[indent, ?", escape(&1), ?", ?\n])
+    [dump_kw_and_strings(keyword, first), rest]
   end
 
   defp escape(str) do
