@@ -142,20 +142,27 @@ defmodule Gettext.Compiler do
   end
 
   defp compile_translation(locale, domain, %Translation{} = t) do
+    msgid  = IO.iodata_to_binary(t.msgid)
+    msgstr = IO.iodata_to_binary(t.msgstr)
+
     quote do
-      def lgettext(unquote(locale), unquote(domain), unquote(t.msgid), var!(bindings)) do
-        unquote(compile_interpolation(t.msgstr))
+      def lgettext(unquote(locale), unquote(domain), unquote(msgid), var!(bindings)) do
+        unquote(compile_interpolation(msgstr))
       end
     end
   end
 
   defp compile_translation(locale, domain, %PluralTranslation{} = t) do
+    msgid        = IO.iodata_to_binary(t.msgid)
+    msgid_plural = IO.iodata_to_binary(t.msgid_plural)
+
     clauses = Enum.map t.msgstr, fn({form, str}) ->
+      str = IO.iodata_to_binary(str)
       {:->, [], [[form], compile_interpolation(str)]}
     end
 
     quote do
-      def lngettext(unquote(locale), unquote(domain), unquote(t.msgid), unquote(t.msgid_plural), n, bindings) do
+      def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n, bindings) do
         plural_form    = unquote(@plural_forms).plural(unquote(locale), n)
         var!(bindings) = Map.put(bindings, :count, n)
 

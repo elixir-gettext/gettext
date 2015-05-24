@@ -105,6 +105,17 @@ defmodule GettextTest do
            == {:ok, "Hai 0 messaggi, Jane"}
   end
 
+  test "strings are concatenated before generating function clauses" do
+    msgid = "Concatenated and long string"
+    assert Translator.lgettext("it", "default", msgid)
+           == {:ok, "Stringa lunga e concatenata"}
+
+    msgid        = "A friend"
+    msgid_plural = "%{count} friends"
+    assert Translator.lngettext("it", "default", msgid, msgid_plural, 1, %{})
+           == {:ok, "Un amico"}
+  end
+
   test "lgettext/4: error when keys are missing in an interpolation" do
     msgid = "My name is %{name} and I'm %{age}"
     assert Translator.lgettext("it", "interpolations", msgid, name: "José")
