@@ -50,12 +50,17 @@ defmodule Gettext.PO.Translations do
   @spec same?(Gettext.PO.translation, Gettext.PO.translation) :: boolean
   def same?(translation1, translation2)
 
-  def same?(%Translation{msgid: m}, %Translation{msgid: m}),
-    do: true
-  def same?(%PluralTranslation{msgid: m, msgid_plural: mp}, %PluralTranslation{msgid: m, msgid_plural: mp}),
-    do: true
-  def same?(_, _),
-    do: false
+  def same?(%Translation{msgid: msgid1}, %Translation{msgid: msgid2}) do
+    IO.iodata_to_binary(msgid1) == IO.iodata_to_binary(msgid2)
+  end
+
+  def same?(%PluralTranslation{msgid: m1, msgid_plural: mp1}, %PluralTranslation{msgid: m2, msgid_plural: mp2}) do
+    IO.iodata_to_binary(m1) == IO.iodata_to_binary(m2) and IO.iodata_to_binary(mp1) == IO.iodata_to_binary(mp2)
+  end
+
+  def same?(_, _) do
+    false
+  end
 
   @doc """
   Merges two translations giving precedence to the second one.

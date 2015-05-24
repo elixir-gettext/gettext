@@ -18,7 +18,9 @@ defmodule Gettext.PO.TranslationsTest do
   end
 
   test "same?/2: singular translations" do
-    assert Translations.same?(%Translation{msgid: "foo"}, %Translation{msgid: "foo"})
+    assert Translations.same?(%Translation{msgid: "foo", msgstr: "a"},
+                              %Translation{msgid: "foo", msgstr: "b"})
+
     refute Translations.same?(%Translation{msgid: "a"}, %Translation{msgid: "b"})
   end
 
@@ -41,6 +43,13 @@ defmodule Gettext.PO.TranslationsTest do
 
   test "same?/2: mixed singular and plural translations (always different)" do
     refute Translations.same?(%Translation{msgid: "a"}, %PluralTranslation{msgid: "a"})
+  end
+
+  test "same?/2: ignores if msgids are split as long as they're equal when concatenated" do
+    assert Translations.same?(%Translation{msgid: ["foo", " bar"]},
+                              %Translation{msgid: ["foo ", "bar"]})
+    assert Translations.same?(%PluralTranslation{msgid: ["ab", "c"], msgid_plural: ["de", "f"]},
+                              %PluralTranslation{msgid: ["a", "bc"], msgid_plural: ["d", "ef"]})
   end
 
   test "merge/2: leaves identical translations identical" do
