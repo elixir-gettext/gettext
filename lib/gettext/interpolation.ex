@@ -44,7 +44,7 @@ defmodule Gettext.Interpolation do
       "missing interpolation keys: bar, baz"
 
   """
-  @spec missing_interpolation_keys(Map.t, [atom]) :: binary
+  @spec missing_interpolation_keys(%{}, [atom]) :: binary
   def missing_interpolation_keys(bindings, required) do
     present = Dict.keys(bindings)
     missing = required -- present
@@ -94,7 +94,7 @@ defmodule Gettext.Interpolation do
       {:error, "missing interpolation keys: count"}
 
   """
-  @spec interpolate(binary, Map.t) :: {:ok, binary} | {:error, binary}
+  @spec interpolate(binary, %{}) :: {:ok, binary} | {:error, binary}
   def interpolate(str, bindings) do
     segments = to_interpolatable(str)
     keys     = keys(segments)

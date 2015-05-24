@@ -319,7 +319,7 @@ defmodule Gettext do
   end
 
   @type locale :: binary
-  @type bindings :: Map.t | Keyword.t
+  @type bindings :: %{} | Keyword.t
 
   @doc false
   defmacro __using__(opts) do
