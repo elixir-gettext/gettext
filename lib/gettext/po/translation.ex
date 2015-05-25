@@ -24,8 +24,8 @@ defmodule Gettext.PO.Translation do
   """
 
   @type t :: %__MODULE__{
-    msgid: binary | [binary],
-    msgstr: binary | [binary],
+    msgid: [binary],
+    msgstr: [binary],
     comments: [binary],
     references: [{binary, pos_integer}],
   }

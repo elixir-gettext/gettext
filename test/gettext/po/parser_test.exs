@@ -11,7 +11,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}
     ])
 
-    assert parsed == {:ok, [], [%Translation{msgid: "hello", msgstr: "ciao"}]}
+    assert parsed == {:ok, [], [%Translation{msgid: ["hello"], msgstr: ["ciao"]}]}
   end
 
   test "parse/1 with multiple concatenated strings" do
@@ -34,8 +34,8 @@ defmodule Gettext.PO.ParserTest do
     ])
 
     assert parsed == {:ok, [], [
-      %Translation{msgid: "hello", msgstr: "ciao"},
-      %Translation{msgid: "word", msgstr: "parola"},
+      %Translation{msgid: ["hello"], msgstr: ["ciao"]},
+      %Translation{msgid: ["word"], msgstr: ["parola"]},
     ]}
   end
 
@@ -45,7 +45,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "bårπ"},
     ])
 
-    assert parsed == {:ok, [], [%Translation{msgid: "føø", msgstr: "bårπ"}]}
+    assert parsed == {:ok, [], [%Translation{msgid: ["føø"], msgstr: ["bårπ"]}]}
   end
 
   test "parse/1 with a pluralized string" do
@@ -58,12 +58,12 @@ defmodule Gettext.PO.ParserTest do
     ])
 
     assert parsed == {:ok, [], [%PluralTranslation{
-      msgid: "foo",
-      msgid_plural: "foos",
+      msgid: ["foo"],
+      msgid_plural: ["foos"],
       msgstr: %{
-        0 => "bar",
-        1 => "bars",
-        2 => "barres",
+        0 => ["bar"],
+        1 => ["bars"],
+        2 => ["barres"],
       },
     }]}
   end
@@ -78,8 +78,8 @@ defmodule Gettext.PO.ParserTest do
     ])
 
     assert parsed == {:ok, [], [%Translation{
-      msgid: "foo",
-      msgstr: "bar",
+      msgid: ["foo"],
+      msgstr: ["bar"],
       comments: [
         "# This is a translation",
         "#: lib/foo.ex:32",
@@ -99,8 +99,8 @@ defmodule Gettext.PO.ParserTest do
     ])
 
     assert parsed == {:ok, [], [
-      %Translation{msgid: "a", msgstr: "b"},
-      %Translation{msgid: "c", msgstr: "d", comments: ["# Comment"]},
+      %Translation{msgid: ["a"], msgstr: ["b"]},
+      %Translation{msgid: ["c"], msgstr: ["d"], comments: ["# Comment"]},
     ]}
   end
 

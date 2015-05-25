@@ -35,7 +35,7 @@ defmodule Gettext.PO do
       ...> msgid "foo"
       ...> msgstr "bar"
       ...> """
-      {:ok, %Gettext.PO{translations: [%Gettext.PO.Translation{msgid: "foo", msgstr: "bar"}], headers: []}}
+      {:ok, %Gettext.PO{translations: [%Gettext.PO.Translation{msgid: ["foo"], msgstr: ["bar"]}], headers: []}}
 
       iex> Gettext.PO.parse_string "foo"
       {:error, 1, "unknown keyword 'foo'"}
@@ -229,17 +229,12 @@ defmodule Gettext.PO do
     end
   end
 
-  defp dump_kw_and_strings(keyword, strings, indentation \\ 2)
-
-  defp dump_kw_and_strings(keyword, str, _indentation) when is_binary(str) do
-    ~s(#{keyword} "#{escape(str)}"\n)
-  end
-
-  defp dump_kw_and_strings(keyword, [first|rest], indentation) do
+  defp dump_kw_and_strings(keyword, [first|rest], indentation \\ 2) do
     # Strings after the first one are indented with two spaces.
     indent = String.duplicate(" ", indentation)
-    rest = Enum.map(rest, &[indent, ?", escape(&1), ?", ?\n])
-    [dump_kw_and_strings(keyword, first), rest]
+    rest   = Enum.map(rest, &[indent, ?", escape(&1), ?", ?\n])
+    first  = ~s(#{keyword} "#{escape(first)}"\n)
+    [first, rest]
   end
 
   defp escape(str) do

@@ -25,9 +25,9 @@ defmodule Gettext.PO.PluralTranslation do
   """
 
   @type t :: %__MODULE__{
-    msgid: binary | [binary],
-    msgid_plural: binary | [binary],
-    msgstr: %{non_neg_integer => binary | [binary]},
+    msgid: [binary],
+    msgid_plural: [binary],
+    msgstr: %{non_neg_integer => [binary]},
     comments: [binary],
     references: [{binary, pos_integer}],
   }
