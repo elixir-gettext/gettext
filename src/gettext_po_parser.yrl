@@ -34,20 +34,20 @@ pluralization ->
   msgstr plural_form strings : {'$2', '$3'}.
 
 strings ->
-  str : [extract_string('$1')].
+  str : [extract_simple_token('$1')].
 strings ->
-  str strings : [extract_string('$1')|'$2'].
+  str strings : [extract_simple_token('$1')|'$2'].
 
 comments ->
   '$empty' : [].
 comments ->
-  comment comments : [extract_comment('$1')|'$2'].
+  comment comments : [extract_simple_token('$1')|'$2'].
 
 
 Erlang code.
 
-extract_string({str, _Line, String}) ->
-  String.
+extract_simple_token({_Token, _Line, Value}) ->
+  Value.
 
 plural_forms_map_from_list(Pluralizations) ->
   Tuples = lists:map(fun extract_plural_form/1, Pluralizations),
@@ -56,5 +56,3 @@ plural_forms_map_from_list(Pluralizations) ->
 extract_plural_form({{plural_form, _Line, PluralForm}, String}) ->
   {PluralForm, String}.
 
-extract_comment({comment, _Line, Contents}) ->
-  Contents.
