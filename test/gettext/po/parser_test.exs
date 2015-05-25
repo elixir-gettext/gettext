@@ -11,7 +11,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}
     ])
 
-    assert parsed == {:ok, [], [%Translation{msgid: ["hello"], msgstr: ["ciao"]}]}
+    assert {:ok, [], [%Translation{msgid: ["hello"], msgstr: ["ciao"]}]} = parsed
   end
 
   test "parse/1 with multiple concatenated strings" do
@@ -20,9 +20,9 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}, {:str, 3, " mondo"}
     ])
 
-    assert parsed == {:ok, [], [
+    assert {:ok, [], [
       %Translation{msgid: ["hello", " world"], msgstr: ["ciao", " mondo"]}
-    ]}
+    ]} = parsed
   end
 
   test "parse/1 with multiple translations" do
@@ -33,10 +33,10 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 4}, {:str, 4, "parola"},
     ])
 
-    assert parsed == {:ok, [], [
+    assert {:ok, [], [
       %Translation{msgid: ["hello"], msgstr: ["ciao"]},
       %Translation{msgid: ["word"], msgstr: ["parola"]},
-    ]}
+    ]} = parsed
   end
 
   test "parse/1 with unicode characters in the strings" do
@@ -45,7 +45,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "bårπ"},
     ])
 
-    assert parsed == {:ok, [], [%Translation{msgid: ["føø"], msgstr: ["bårπ"]}]}
+    assert {:ok, [], [%Translation{msgid: ["føø"], msgstr: ["bårπ"]}]} = parsed
   end
 
   test "parse/1 with a pluralized string" do
@@ -57,7 +57,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 1}, {:plural_form, 1, 2}, {:str, 1, "barres"},
     ])
 
-    assert parsed == {:ok, [], [%PluralTranslation{
+    assert {:ok, [], [%PluralTranslation{
       msgid: ["foo"],
       msgid_plural: ["foos"],
       msgstr: %{
@@ -65,7 +65,7 @@ defmodule Gettext.PO.ParserTest do
         1 => ["bars"],
         2 => ["barres"],
       },
-    }]}
+    }]} = parsed
   end
 
   test "comments are associated with translations" do
@@ -77,7 +77,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 5}, {:str, 5, "bar"},
     ])
 
-    assert parsed == {:ok, [], [%Translation{
+    assert {:ok, [], [%Translation{
       msgid: ["foo"],
       msgstr: ["bar"],
       comments: [
@@ -86,7 +86,7 @@ defmodule Gettext.PO.ParserTest do
         "# Ah, another comment!",
       ],
       references: [{"lib/foo.ex", 32}],
-    }]}
+    }]} = parsed
   end
 
   test "comments always belong to the next translation" do
@@ -98,10 +98,10 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 3}, {:str, 3, "d"},
     ])
 
-    assert parsed == {:ok, [], [
+    assert {:ok, [], [
       %Translation{msgid: ["a"], msgstr: ["b"]},
       %Translation{msgid: ["c"], msgstr: ["d"], comments: ["# Comment"]},
-    ]}
+    ]} = parsed
   end
 
   test "syntax error when there is no 'msgid'" do
@@ -160,6 +160,29 @@ defmodule Gettext.PO.ParserTest do
       {"filename with spaces.ex", 12},
       {"another/ref/comment.ex", 83},
     ]}]} = parsed
+  end
+
+  test "the line of a translation is the line of its msgid" do
+    parsed = Parser.parse([
+      {:msgid, 10}, {:str, 10, "foo"},
+      {:msgstr, 11}, {:str, 11, "bar"},
+    ])
+
+    {:ok, [], [%Translation{} = translation]} = parsed
+
+    assert translation.po_source == {nil, 10}
+  end
+
+  test "the line of a plural translation is the line of its msgid" do
+    parsed = Parser.parse([
+      {:msgid, 10}, {:str, 10, "foo"},
+      {:msgid_plural, 11}, {:str, 11, "foos"},
+      {:msgstr, 12}, {:plural_form, 12, 0}, {:str, 12, "bar"},
+    ])
+
+    {:ok, [], [%PluralTranslation{} = translation]} = parsed
+
+    assert translation.po_source == {nil, 10}
   end
 
   test "headers are parsed when present" do

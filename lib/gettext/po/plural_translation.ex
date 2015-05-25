@@ -21,6 +21,8 @@ defmodule Gettext.PO.PluralTranslation do
       `["# foo"]`).
     * `references` - a list of references (files this translation comes from) in
       the form `{file, line}`.
+    * `po_source` - a `{file, line}` tuple which tells the PO file (and line) the
+      translation comes from.
 
   """
 
@@ -30,8 +32,9 @@ defmodule Gettext.PO.PluralTranslation do
     msgstr: %{non_neg_integer => [binary]},
     comments: [binary],
     references: [{binary, pos_integer}],
+    po_source: {Path.t, pos_integer},
   }
 
   defstruct msgid: nil, msgid_plural: nil, msgstr: nil,
-            comments: [], references: []
+            comments: [], references: [], po_source: nil
 end

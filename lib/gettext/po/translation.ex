@@ -20,6 +20,8 @@ defmodule Gettext.PO.Translation do
       `["# foo"]`).
     * `references` - a list of references (files this translation comes from) in
       the form `{file, line}`.
+    * `po_source` - a `{file, line}` tuple which tells the PO file (and line) the
+      translation comes from.
 
   """
 
@@ -28,7 +30,12 @@ defmodule Gettext.PO.Translation do
     msgstr: [binary],
     comments: [binary],
     references: [{binary, pos_integer}],
+    po_source: {Path.t, pos_integer},
   }
 
-  defstruct msgid: nil, msgstr: nil, comments: [], references: []
+  defstruct msgid: nil,
+            msgstr: nil,
+            comments: [],
+            references: [],
+            po_source: nil
 end

@@ -31,11 +31,14 @@ defmodule Gettext.PO do
 
   ## Examples
 
-      iex> Gettext.PO.parse_string """
+      iex> {:ok, po} = Gettext.PO.parse_string """
       ...> msgid "foo"
       ...> msgstr "bar"
       ...> """
-      {:ok, %Gettext.PO{translations: [%Gettext.PO.Translation{msgid: ["foo"], msgstr: ["bar"]}], headers: []}}
+      iex> po.translations
+      [%Gettext.PO.Translation{msgid: ["foo"], msgstr: ["bar"], po_source: {nil, 1}}]
+      iex> po.headers
+      []
 
       iex> Gettext.PO.parse_string "foo"
       {:error, 1, "unknown keyword 'foo'"}
