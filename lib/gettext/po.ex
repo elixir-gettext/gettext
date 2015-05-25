@@ -230,11 +230,13 @@ defmodule Gettext.PO do
   end
 
   defp dump_kw_and_strings(keyword, [first|rest], indentation \\ 2) do
-    # Strings after the first one are indented with two spaces.
-    indent = String.duplicate(" ", indentation)
-    rest   = Enum.map(rest, &[indent, ?", escape(&1), ?", ?\n])
-    first  = ~s(#{keyword} "#{escape(first)}"\n)
+    first = ~s(#{keyword} "#{escape(first)}"\n)
+    rest  = Enum.map rest, &indent_line([?", escape(&1), ?", ?\n], indentation)
     [first, rest]
+  end
+
+  defp indent_line(str, indentation, with \\ " ") do
+    [String.duplicate(with, indentation), str]
   end
 
   defp escape(str) do
