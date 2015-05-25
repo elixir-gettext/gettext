@@ -20,8 +20,14 @@ defmodule Gettext.PO.Parser do
 
   defp do_parse(translations) do
     translations = Enum.map(translations, &to_struct/1)
-    {headers, translations} = extract_headers(translations)
-    {:ok, headers, translations}
+
+    case check_for_duplicates(translations) do
+      {:error, _line, _reason} = error ->
+        error
+      :ok ->
+        {headers, translations} = extract_headers(translations)
+        {:ok, headers, translations}
+    end
   end
 
   defp to_struct({:translation, translation}),
@@ -56,4 +62,35 @@ defmodule Gettext.PO.Parser do
     do: {headers, rest}
   defp extract_headers(translations),
     do: {[], translations}
+
+  defp check_for_duplicates(translations) do
+    if duplicates = (translations |> group_translations_by_id |> find_duplicates) do
+      build_duplicate_error(duplicates)
+    else
+      :ok
+    end
+  end
+
+  defp group_translations_by_id(translations) do
+    Enum.group_by translations, fn
+      %Translation{msgid: id}                          -> id
+      %PluralTranslation{msgid: id, msgid_plural: idp} -> {id, idp}
+    end
+  end
+
+  defp find_duplicates(grouped_translations) do
+    Enum.find(grouped_translations, fn({_, translations}) -> length(translations) > 1 end)
+  end
+
+  defp build_duplicate_error({_, duplicates}) do
+    [last|rest] =
+      duplicates
+      |> Enum.map(fn(%{po_source: {_, line}}) -> line end)
+      |> Enum.sort(&(&1 > &2)) # reverse sort
+
+    lines = rest |> Enum.reverse |> Enum.join(", ")
+
+    reason = "found duplicates of this translation on lines #{lines}"
+    {:error, last, reason}
+  end
 end
