@@ -12,14 +12,16 @@ defmodule Gettext.PO.Parser do
   def parse(tokens) do
     case :gettext_po_parser.parse(tokens) do
       {:ok, translations} ->
-        {headers, translations} =
-          translations
-          |> Enum.map(&to_struct/1)
-          |> extract_headers()
-        {:ok, headers, translations}
+        do_parse(translations)
       {:error, _reason} = error ->
         parse_error(error)
     end
+  end
+
+  defp do_parse(translations) do
+    translations = Enum.map(translations, &to_struct/1)
+    {headers, translations} = extract_headers(translations)
+    {:ok, headers, translations}
   end
 
   defp to_struct({:translation, translation}),

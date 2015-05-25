@@ -107,8 +107,13 @@ defmodule Gettext.PO do
   @spec parse_file(Path.t) :: {:ok, t} | parse_error | {:error, atom}
   def parse_file(path) do
     case File.read(path) do
-      {:ok, contents}           -> parse_string(contents)
-      {:error, _reason} = error -> error
+      {:ok, contents} ->
+        case parse_string(contents) do
+          {:ok, po}                        -> {:ok, populate_po_source_field(po, path)}
+          {:error, _line, _reason} = error -> error
+        end
+      {:error, _reason} = error ->
+        error
     end
   end
 
@@ -136,6 +141,14 @@ defmodule Gettext.PO do
       {:error, line, reason} ->
         raise SyntaxError, file: path, line: line, reason: reason
     end
+  end
+
+  defp populate_po_source_field(%PO{translations: translations} = po, path) do
+    translations = Enum.map translations, fn(%{po_source: {_, line}} = t) ->
+      %{t | po_source: {path, line}}
+    end
+
+    %{po | translations: translations}
   end
 
   @doc """
