@@ -13,16 +13,18 @@ translations ->
 
 translation ->
   comments msgid strings msgstr strings : {translation, #{
-    comments => '$1',
-    msgid    => '$3',
-    msgstr   => '$5'
+    comments  => '$1',
+    msgid     => '$3',
+    msgstr    => '$5',
+    po_source => {nil, extract_line('$2')}
   }}.
 translation ->
   comments msgid strings msgid_plural strings pluralizations : {plural_translation, #{
     comments     => '$1',
     msgid        => '$3',
     msgid_plural => '$5',
-    msgstr       => plural_forms_map_from_list('$6')
+    msgstr       => plural_forms_map_from_list('$6'),
+    po_source    => {nil, extract_line('$2')}
   }}.
 
 pluralizations ->
@@ -48,6 +50,9 @@ Erlang code.
 
 extract_simple_token({_Token, _Line, Value}) ->
   Value.
+
+extract_line({_Token, Line}) ->
+  Line.
 
 plural_forms_map_from_list(Pluralizations) ->
   Tuples = lists:map(fun extract_plural_form/1, Pluralizations),

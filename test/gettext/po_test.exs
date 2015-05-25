@@ -17,10 +17,10 @@ defmodule Gettext.POTest do
       msgstr "indentazione " "e stringhe"
     """
 
-    assert PO.parse_string(str) == {:ok, %PO{headers: [], translations: [
+    assert {:ok, %PO{headers: [], translations: [
       %Translation{msgid: ["hello there"], msgstr: ["ciao"]},
       %Translation{msgid: ["indenting and ", "strings"], msgstr: ["indentazione ", "e stringhe"]},
-    ]}}
+    ]}} = PO.parse_string(str)
   end
 
   test "parse_string/1: invalid strings" do
@@ -46,10 +46,10 @@ defmodule Gettext.POTest do
     msgstr "bar"
     """
 
-    assert PO.parse_string!(str) == %PO{
+    assert %PO{
       translations: [%Translation{msgid: ["foo"], msgstr: ["bar"]}],
       headers: []
-    }
+    } = PO.parse_string!(str)
   end
 
   test "parse_string!/1: invalid strings" do
@@ -94,10 +94,10 @@ defmodule Gettext.POTest do
   test "parse_file/1: valid file contents" do
     fixture_path = Path.expand("../fixtures/valid.po", __DIR__)
 
-    assert PO.parse_file(fixture_path) == {:ok, %PO{headers: [], translations: [
+    assert {:ok, %PO{headers: [], translations: [
       %Translation{msgid: ["hello"], msgstr: ["ciao"]},
       %Translation{msgid: ["how are you,", " friend?"], msgstr: ["come stai,", " amico?"]},
-    ]}}
+    ]}} = PO.parse_file(fixture_path)
   end
 
   test "parse_file/1: invalid file contents" do
@@ -112,13 +112,22 @@ defmodule Gettext.POTest do
     assert PO.parse_file("nonexistent") == {:error, :enoent}
   end
 
+  test "parse_file/1: populates the :po_source field of translations with the parsed file" do
+    fixture_path = Path.expand("../fixtures/valid.po", __DIR__)
+
+    {:ok, po} = PO.parse_file(fixture_path)
+    Enum.each po.translations, fn %{po_source: {file, _line}} ->
+      assert file == fixture_path
+    end
+  end
+
   test "parse_file!/1: valid file contents" do
     fixture_path = Path.expand("../fixtures/valid.po", __DIR__)
 
-    assert PO.parse_file!(fixture_path) == %PO{headers: [], translations: [
+    assert %PO{headers: [], translations: [
       %Translation{msgid: ["hello"], msgstr: ["ciao"]},
       %Translation{msgid: ["how are you,", " friend?"], msgstr: ["come stai,", " amico?"]},
-    ]}
+    ]} = PO.parse_file!(fixture_path)
   end
 
   test "parse_file!/1: invalid file contents" do
@@ -139,6 +148,14 @@ defmodule Gettext.POTest do
     msg = "could not parse nonexistent: no such file or directory"
     assert_raise File.Error, msg, fn ->
       PO.parse_file!("nonexistent")
+    end
+  end
+
+  test "parse_file!/1: populates the :po_source field of translations like parse_file/1" do
+    fixture_path = Path.expand("../fixtures/valid.po", __DIR__)
+
+    Enum.each PO.parse_file!(fixture_path).translations, fn %{po_source: {file, _line}} ->
+      assert file == fixture_path
     end
   end
 
