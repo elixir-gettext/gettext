@@ -15,12 +15,12 @@ defmodule Gettext.PO do
   @type parse_error :: {:error, line, binary}
   @type translation :: Translation.t | PluralTranslation.t
 
-  defstruct headers: [], translations: [], source_file: nil
+  defstruct headers: [], translations: [], file: nil
 
   @type t :: %__MODULE__{
     headers: [binary],
     translations: [translation],
-    source_file: Path.t,
+    file: Path.t,
   }
 
   @doc """
@@ -110,7 +110,7 @@ defmodule Gettext.PO do
     case File.read(path) do
       {:ok, contents} ->
         case parse_string(contents) do
-          {:ok, po}                        -> {:ok, %{po | source_file: path}}
+          {:ok, po}                        -> {:ok, %{po | file: path}}
           {:error, _line, _reason} = error -> error
         end
       {:error, _reason} = error ->

@@ -112,9 +112,9 @@ defmodule Gettext.POTest do
     assert PO.parse_file("nonexistent") == {:error, :enoent}
   end
 
-  test "parse_file!/1: populates the :source_file field with the path of the parsed file" do
+  test "parse_file!/1: populates the :file field with the path of the parsed file" do
     fixture_path = Path.expand("../fixtures/valid.po", __DIR__)
-    assert {:ok, %PO{source_file: ^fixture_path}} = PO.parse_file(fixture_path)
+    assert {:ok, %PO{file: ^fixture_path}} = PO.parse_file(fixture_path)
   end
 
   test "parse_file!/1: valid file contents" do
@@ -147,9 +147,9 @@ defmodule Gettext.POTest do
     end
   end
 
-  test "parse_file/1: populates the :source_file field with the path of the parsed file" do
+  test "parse_file/1: populates the :file field with the path of the parsed file" do
     fixture_path = Path.expand("../fixtures/valid.po", __DIR__)
-    assert %PO{source_file: ^fixture_path} = PO.parse_file!(fixture_path)
+    assert %PO{file: ^fixture_path} = PO.parse_file!(fixture_path)
   end
 
   test "dump/1: single translation" do
