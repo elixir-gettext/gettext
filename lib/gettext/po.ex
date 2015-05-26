@@ -15,11 +15,12 @@ defmodule Gettext.PO do
   @type parse_error :: {:error, line, binary}
   @type translation :: Translation.t | PluralTranslation.t
 
-  defstruct headers: [], translations: []
+  defstruct headers: [], translations: [], source_file: nil
 
   @type t :: %__MODULE__{
     headers: [binary],
-    translations: [translation]
+    translations: [translation],
+    source_file: Path.t,
   }
 
   @doc """
@@ -36,7 +37,7 @@ defmodule Gettext.PO do
       ...> msgstr "bar"
       ...> """
       iex> po.translations
-      [%Gettext.PO.Translation{msgid: ["foo"], msgstr: ["bar"], po_source: {nil, 1}}]
+      [%Gettext.PO.Translation{msgid: ["foo"], msgstr: ["bar"], po_source_line: 1}]
       iex> po.headers
       []
 
@@ -109,7 +110,7 @@ defmodule Gettext.PO do
     case File.read(path) do
       {:ok, contents} ->
         case parse_string(contents) do
-          {:ok, po}                        -> {:ok, populate_po_source_field(po, path)}
+          {:ok, po}                        -> {:ok, %{po | source_file: path}}
           {:error, _line, _reason} = error -> error
         end
       {:error, _reason} = error ->
@@ -141,14 +142,6 @@ defmodule Gettext.PO do
       {:error, line, reason} ->
         raise SyntaxError, file: path, line: line, reason: reason
     end
-  end
-
-  defp populate_po_source_field(%PO{translations: translations} = po, path) do
-    translations = Enum.map translations, fn(%{po_source: {_, line}} = t) ->
-      %{t | po_source: {path, line}}
-    end
-
-    %{po | translations: translations}
   end
 
   @doc """

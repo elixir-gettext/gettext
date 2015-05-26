@@ -169,8 +169,7 @@ defmodule Gettext.PO.ParserTest do
     ])
 
     {:ok, [], [%Translation{} = translation]} = parsed
-
-    assert translation.po_source == {nil, 10}
+    assert translation.po_source_line == 10
   end
 
   test "the line of a plural translation is the line of its msgid" do
@@ -181,8 +180,7 @@ defmodule Gettext.PO.ParserTest do
     ])
 
     {:ok, [], [%PluralTranslation{} = translation]} = parsed
-
-    assert translation.po_source == {nil, 10}
+    assert translation.po_source_line == 10
   end
 
   test "headers are parsed when present" do

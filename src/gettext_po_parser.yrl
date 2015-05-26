@@ -13,18 +13,18 @@ translations ->
 
 translation ->
   comments msgid strings msgstr strings : {translation, #{
-    comments  => '$1',
-    msgid     => '$3',
-    msgstr    => '$5',
-    po_source => {nil, extract_line('$2')}
+    comments       => '$1',
+    msgid          => '$3',
+    msgstr         => '$5',
+    po_source_line => extract_line('$2')
   }}.
 translation ->
   comments msgid strings msgid_plural strings pluralizations : {plural_translation, #{
-    comments     => '$1',
-    msgid        => '$3',
-    msgid_plural => '$5',
-    msgstr       => plural_forms_map_from_list('$6'),
-    po_source    => {nil, extract_line('$2')}
+    comments       => '$1',
+    msgid          => '$3',
+    msgid_plural   => '$5',
+    msgstr         => plural_forms_map_from_list('$6'),
+    po_source_line => extract_line('$2')
   }}.
 
 pluralizations ->

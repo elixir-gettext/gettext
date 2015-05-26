@@ -67,7 +67,7 @@ defmodule Gettext.PO.Parser do
     try do
       Enum.reduce translations, HashDict.new, fn(t, acc) ->
         id = translation_id(t)
-        {_, line} = t.po_source
+        line = t.po_source_line
 
         if old_line = Dict.get(acc, id) do
           throw({old_line, line})
