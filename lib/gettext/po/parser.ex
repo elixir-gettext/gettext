@@ -20,8 +20,14 @@ defmodule Gettext.PO.Parser do
 
   defp do_parse(translations) do
     translations = Enum.map(translations, &to_struct/1)
-    {headers, translations} = extract_headers(translations)
-    {:ok, headers, translations}
+
+    case check_for_duplicates(translations) do
+      {:error, _line, _reason} = error ->
+        error
+      :ok ->
+        {headers, translations} = extract_headers(translations)
+        {:ok, headers, translations}
+    end
   end
 
   defp to_struct({:translation, translation}),
@@ -56,4 +62,29 @@ defmodule Gettext.PO.Parser do
     do: {headers, rest}
   defp extract_headers(translations),
     do: {[], translations}
+
+  defp check_for_duplicates(translations) do
+    try do
+      Enum.reduce translations, HashDict.new, fn(t, acc) ->
+        id = translation_id(t)
+        {_, line} = t.po_source
+
+        if old_line = Dict.get(acc, id) do
+          throw({old_line, line})
+        else
+          Dict.put_new(acc, id, line)
+        end
+      end
+
+      :ok
+    catch
+      {old_line, line} ->
+        {:error, line, "found duplicate of this translation on line #{old_line}"}
+    end
+  end
+
+  defp translation_id(%Translation{msgid: id}),
+    do: id
+  defp translation_id(%PluralTranslation{msgid: id, msgid_plural: idp}),
+    do: {id, idp}
 end
