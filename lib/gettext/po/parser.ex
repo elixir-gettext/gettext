@@ -67,19 +67,17 @@ defmodule Gettext.PO.Parser do
     try do
       Enum.reduce translations, HashDict.new, fn(t, acc) ->
         id = translation_id(t)
-        line = t.po_source_line
-
         if old_line = Dict.get(acc, id) do
-          throw({old_line, line})
+          throw({t, old_line})
         else
-          Dict.put_new(acc, id, line)
+          Dict.put_new(acc, id, t.po_source_line)
         end
       end
 
       :ok
     catch
-      {old_line, line} ->
-        {:error, line, "found duplicate of this translation on line #{old_line}"}
+      {t, old_line} ->
+        build_duplicated_error(t, old_line)
     end
   end
 
@@ -87,4 +85,16 @@ defmodule Gettext.PO.Parser do
     do: id
   defp translation_id(%PluralTranslation{msgid: id, msgid_plural: idp}),
     do: {id, idp}
+
+  defp build_duplicated_error(%Translation{} = t, old_line) do
+    id = IO.iodata_to_binary(t.msgid)
+    {:error, t.po_source_line, "found duplicate on line #{old_line} for msgid: '#{id}'"}
+  end
+
+  defp build_duplicated_error(%PluralTranslation{} = t, old_line) do
+    id  = IO.iodata_to_binary(t.msgid)
+    idp = IO.iodata_to_binary(t.msgid_plural)
+    msg = "found duplicate on line #{old_line} for msgid: '#{id}' and msgid_plural: '#{idp}'"
+    {:error, t.po_source_line, msg}
+  end
 end
