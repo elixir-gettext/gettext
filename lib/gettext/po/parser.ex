@@ -64,33 +64,27 @@ defmodule Gettext.PO.Parser do
     do: {[], translations}
 
   defp check_for_duplicates(translations) do
-    if duplicates = (translations |> group_translations_by_id |> find_duplicates) do
-      build_duplicate_error(duplicates)
-    else
+    try do
+      Enum.reduce translations, HashDict.new, fn(t, acc) ->
+        id = translation_id(t)
+        {_, line} = t.po_source
+
+        if old_line = Dict.get(acc, id) do
+          throw({old_line, line})
+        else
+          Dict.put_new(acc, id, line)
+        end
+      end
+
       :ok
+    catch
+      {old_line, line} ->
+        {:error, line, "found duplicate of this translation on line #{old_line}"}
     end
   end
 
-  defp group_translations_by_id(translations) do
-    Enum.group_by translations, fn
-      %Translation{msgid: id}                          -> id
-      %PluralTranslation{msgid: id, msgid_plural: idp} -> {id, idp}
-    end
-  end
-
-  defp find_duplicates(grouped_translations) do
-    Enum.find(grouped_translations, fn({_, translations}) -> length(translations) > 1 end)
-  end
-
-  defp build_duplicate_error({_, duplicates}) do
-    [last|rest] =
-      duplicates
-      |> Enum.map(fn(%{po_source: {_, line}}) -> line end)
-      |> Enum.sort(&(&1 > &2)) # reverse sort
-
-    lines = rest |> Enum.reverse |> Enum.join(", ")
-
-    reason = "found duplicates of this translation on lines #{lines}"
-    {:error, last, reason}
-  end
+  defp translation_id(%Translation{msgid: id}),
+    do: id
+  defp translation_id(%PluralTranslation{msgid: id, msgid_plural: idp}),
+    do: {id, idp}
 end

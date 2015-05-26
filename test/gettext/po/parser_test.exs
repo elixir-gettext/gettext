@@ -200,14 +200,14 @@ defmodule Gettext.PO.ParserTest do
     }
   end
 
-  test "duplicated plural translations cause an parse error" do
+  test "duplicated plural translations cause a parse error" do
     parsed = Parser.parse([
       {:msgid, 1}, {:str, 1, "foo"}, {:msgstr, 1}, {:str, 1, "bar"},
       {:msgid, 2}, {:str, 2, "foo"}, {:msgstr, 2}, {:str, 2, "baz"},
       {:msgid, 3}, {:str, 3, "foo"}, {:msgstr, 3}, {:str, 3, "bong"},
     ])
 
-    msg = "found duplicates of this translation on lines 1, 2"
-    assert parsed == {:error, 3, msg}
+    msg = "found duplicate of this translation on line 1"
+    assert parsed == {:error, 2, msg}
   end
 end
