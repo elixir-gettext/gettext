@@ -17,6 +17,9 @@ defmodule Gettext.Compiler do
     translations_dir = Application.app_dir(otp_app, priv)
 
     quote do
+      @doc false
+      def __gettext_dir__, do: unquote(translations_dir)
+
       unquote(macros)
       unquote(compile_po_files(translations_dir))
       unquote(dynamic_clauses)

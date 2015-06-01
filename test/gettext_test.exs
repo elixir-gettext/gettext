@@ -29,6 +29,13 @@ defmodule GettextTest do
     end
   end
 
+  test "__gettext_dir__/0: returns the directory where the translations are stored" do
+    assert GettextTest.Translator.__gettext_dir__()
+           == Application.app_dir(:test_application, "priv/gettext")
+    assert GettextTest.TranslatorWithCustomPriv.__gettext_dir__()
+           == Application.app_dir(:test_application, "translations")
+  end
+
   test "found translations return {:ok, translation}" do
     assert Translator.lgettext("it", "default", "Hello world")
            == {:ok, "Ciao mondo"}
