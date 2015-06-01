@@ -214,6 +214,7 @@ defmodule Gettext.PO do
   defp dump_translation(%Translation{} = t) do
     [
       dump_comments(t.comments),
+      dump_references(t.references),
       dump_kw_and_strings("msgid", t.msgid),
       dump_kw_and_strings("msgstr", t.msgstr),
     ]
@@ -222,6 +223,7 @@ defmodule Gettext.PO do
   defp dump_translation(%PluralTranslation{} = t) do
     [
       dump_comments(t.comments),
+      dump_references(t.references),
       dump_kw_and_strings("msgid", t.msgid),
       dump_kw_and_strings("msgid_plural", t.msgid_plural),
       dump_plural_msgstr(t.msgstr)
@@ -229,7 +231,17 @@ defmodule Gettext.PO do
   end
 
   defp dump_comments(comments) do
-    Enum.map comments, &[&1, ?\n]
+    # We dont' want to dump reference comments as they have to be taken care
+    # of by the extractor.
+    comments
+    |> Enum.reject(&match?("#:" <> _, &1))
+    |> Enum.map(&[&1, ?\n])
+  end
+
+  defp dump_references(references) do
+    for {file, line} <- references do
+      "#: #{file}:#{line}\n"
+    end
   end
 
   defp dump_plural_msgstr(msgstr) do

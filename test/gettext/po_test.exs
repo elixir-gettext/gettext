@@ -197,6 +197,8 @@ defmodule Gettext.POTest do
   end
 
   test "dump/1: translation with comments" do
+    # Reference comments are ignored.
+
     po = %PO{headers: [], translations: [
       %Translation{
         msgid: ["foo"],
@@ -207,10 +209,38 @@ defmodule Gettext.POTest do
 
     assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     # comment
-    #: foo.ex:32
     # another comment
     msgid "foo"
     msgstr "bar"
+    """
+  end
+
+  test "dump/1: references" do
+    po = %PO{translations: [
+      %Translation{
+        msgid: ["foo"],
+        msgstr: ["bar"],
+        references: [{"foo.ex", 1}, {"lib/bar.ex", 2}],
+      },
+      %PluralTranslation{
+        msgid: ["foo"],
+        msgid_plural: ["foos"],
+        msgstr: %{0 => [""], 1 => [""]},
+        references: [{"lib/with spaces.ex", 1}],
+      }
+    ]}
+
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+    #: foo.ex:1
+    #: lib/bar.ex:2
+    msgid "foo"
+    msgstr "bar"
+
+    #: lib/with spaces.ex:1
+    msgid "foo"
+    msgid_plural "foos"
+    msgstr[0] ""
+    msgstr[1] ""
     """
   end
 
@@ -283,14 +313,12 @@ defmodule Gettext.POTest do
     "Language: fooesque\n"
 
     # comment
-    #: foo.ex:32
     # another comment
     msgid "foo"
     msgstr "bar"
 
     # comment 1
     # comment 2
-    #: lib/ref.ex:29
     msgid "a foo, %{name}"
     msgid_plural "%{count} foos, %{name}"
     msgstr[0] "a bar, %{name}"
