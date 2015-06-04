@@ -41,9 +41,13 @@ defmodule Gettext.Extractor do
   """
   @spec process_results() :: :ok
   def process_results do
-    for {backend, domains} <- ExtractorAgent.get_all,
+    # Let's remember to call Map.values/1 since `translations` is a map of
+    # `translation_id => translation`.
+
+    for {backend, domains}     <- ExtractorAgent.get_all,
         {domain, translations} <- domains do
-      merge_or_create_pot_file(backend, domain, translations)
+
+      merge_or_create_pot_file(backend, domain, Map.values(translations))
     end
 
     :ok
@@ -76,21 +80,21 @@ defmodule Gettext.Extractor do
   end
 
   defp pot_file(translations) do
-    # First, let's sort all the translations.
-    translations = Enum.sort_by translations, fn
-      %Translation{msgid: id, references: refs} ->
-        {id, refs}
-      %PluralTranslation{msgid: id, msgid_plural: idp, references: refs} ->
-        {id, idp, refs}
-    end
-
-    # Let's sort the references as well.
-    translations = Enum.map(translations, &(%{&1 | references: Enum.sort(&1.references)}))
+    # Sort all the translations and the references of each translation in order
+    # to make as few changes as possible to the PO(T) files.
+    translations =
+      translations
+      |> Enum.sort_by(&Gettext.PO.Translations.key/1)
+      |> Enum.map(&sort_references/1)
 
     %Gettext.PO{translations: translations}
   end
 
   defp pot_path(backend, domain) do
     Path.join(backend.__gettext_dir__(), "#{domain}.pot")
+  end
+
+  defp sort_references(translation) do
+    update_in(translation.references, &Enum.sort/1)
   end
 end
