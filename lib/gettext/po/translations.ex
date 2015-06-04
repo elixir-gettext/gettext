@@ -63,6 +63,34 @@ defmodule Gettext.PO.Translations do
   end
 
   @doc """
+  Returns a "key" that can be used to identify a translation.
+
+  This function returns a "key" that can be used to uniquely identify a
+  translation assuming that no "same" translations exist; for what "same"
+  means, look at the documentation for `same?/2`.
+
+  The purpose of this function is to be used in situations where we'd like to
+  group or sort translations but where we don't need the whole structs.
+
+  ## Examples
+
+      iex> t = %Gettext.PO.Translation{msgid: "foo"}
+      iex> Gettext.PO.Translations.key(t)
+      "foo"
+
+      iex> t = %Gettext.PO.PluralTranslation{msgid: "foo", msgid_plural: "foos"}
+      iex> Gettext.PO.Translations.key(t)
+      {"foo", "foos"}
+
+  """
+  @spec key(Gettext.PO.Translation.t) :: binary
+  @spec key(Gettext.PO.PluralTranslation.t) :: {binary, binary}
+  def key(%Translation{msgid: msgid}),
+    do: IO.iodata_to_binary(msgid)
+  def key(%PluralTranslation{msgid: msgid, msgid_plural: msgid_plural}),
+    do: {IO.iodata_to_binary(msgid), IO.iodata_to_binary(msgid_plural)}
+
+  @doc """
   Merges two translations giving precedence to the second one.
 
   This function is used to merge two **matching** translations (i.e., for which

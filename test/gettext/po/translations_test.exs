@@ -52,6 +52,16 @@ defmodule Gettext.PO.TranslationsTest do
                               %PluralTranslation{msgid: ["a", "bc"], msgid_plural: ["d", "ef"]})
   end
 
+  test "key/1: returns the msgid for regular translations" do
+    t = %Translation{msgid: ["foo"], msgstr: ["bar"], references: [{"foo.ex", 1}]}
+    assert Translations.key(t) == "foo"
+  end
+
+  test "key/1: returns a {msgid, msgid_plural} tuple for plural translations" do
+    t = %PluralTranslation{msgid: ["foo"], msgid_plural: ["foos"], msgstr: %{0 => [""], 1 => [""]}}
+    assert Translations.key(t) == {"foo", "foos"}
+  end
+
   test "merge/2: leaves identical translations identical" do
     t = %Translation{msgid: "foo", msgstr: "bar"}
     assert Translations.merge(t, t) == t
