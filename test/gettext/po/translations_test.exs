@@ -42,7 +42,8 @@ defmodule Gettext.PO.TranslationsTest do
   end
 
   test "same?/2: mixed singular and plural translations (always different)" do
-    refute Translations.same?(%Translation{msgid: "a"}, %PluralTranslation{msgid: "a"})
+    refute Translations.same?(%Translation{msgid: "a"},
+                              %PluralTranslation{msgid: "a", msgid_plural: "as"})
   end
 
   test "same?/2: ignores if msgids are split as long as they're equal when concatenated" do
