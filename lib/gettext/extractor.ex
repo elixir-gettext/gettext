@@ -46,7 +46,6 @@ defmodule Gettext.Extractor do
 
     for {backend, domains}     <- ExtractorAgent.get_all,
         {domain, translations} <- domains do
-
       merge_or_create_pot_file(backend, domain, Map.values(translations))
     end
 
