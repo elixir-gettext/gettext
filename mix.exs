@@ -11,7 +11,7 @@ defmodule Gettext.Mixfile do
 
      # Docs
      name: "Gettext",
-     docs: [source_ref: "v#{@version}",
+     docs: [source_ref: "v#{@version}", main: "Gettext",
             source_url: "https://github.com/elixir-lang/gettext"]]
   end
 
@@ -33,9 +33,7 @@ defmodule Gettext.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    [
-      {:earmark, "~> 0.1", only: :docs},
-      {:ex_doc, "~> 0.7", only: :docs},
-    ]
+    [{:earmark, "~> 0.1", only: :docs},
+     {:ex_doc, "~> 0.7", only: :docs}]
   end
 end
