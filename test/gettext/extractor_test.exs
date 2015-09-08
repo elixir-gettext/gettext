@@ -33,7 +33,7 @@ defmodule Gettext.ExtractorTest do
     end
     """
 
-    Code.compile_string(code, "foo.ex")
+    Code.compile_string(code, Path.join(File.cwd!, "foo.ex"))
 
     expected = %{
       MyGettext => %{

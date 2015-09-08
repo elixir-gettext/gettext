@@ -6,7 +6,7 @@ defmodule Gettext.Mixfile do
   def project do
     [app: :gettext,
      version: @version,
-     elixir: "~> 1.0",
+     elixir: "~> 1.1-beta",
      deps: deps,
 
      # Docs

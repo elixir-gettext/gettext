@@ -18,7 +18,7 @@ defmodule Gettext.Compiler do
 
     quote do
       @doc false
-      def __gettext_dir__, do: unquote(translations_dir)
+      def __gettext__(:priv), do: unquote(priv)
 
       unquote(macros)
       unquote(compile_po_files(translations_dir))

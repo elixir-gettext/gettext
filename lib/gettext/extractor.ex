@@ -38,18 +38,17 @@ defmodule Gettext.Extractor do
 
   @doc """
   Writes or merges POT files based on the results of the extraction.
+
+  Returns a list of paths and their contents to be written to disk.
   """
-  @spec process_results() :: :ok
-  def process_results do
+  @spec dump_pot() :: [{path :: String.t, contents :: binary}]
+  def dump_pot do
     # Let's remember to call Map.values/1 since `translations` is a map of
     # `translation_id => translation`.
-
     for {backend, domains}     <- ExtractorAgent.get_all,
         {domain, translations} <- domains do
       merge_or_create_pot_file(backend, domain, Map.values(translations))
     end
-
-    :ok
   end
 
   defp create_translation_struct({msgid, msgid_plural}, file, line),
@@ -57,13 +56,13 @@ defmodule Gettext.Extractor do
           msgid: [msgid],
           msgid_plural: [msgid_plural],
           msgstr: %{0 => [""], 1 => [""]},
-          references: [{file, line}],
+          references: [{Path.relative_to_cwd(file), line}],
         }
   defp create_translation_struct(msgid, file, line),
     do: %Translation{
           msgid: [msgid],
           msgstr: [""],
-          references: [{file, line}],
+          references: [{Path.relative_to_cwd(file), line}],
         }
 
   defp merge_or_create_pot_file(backend, domain, translations) do
@@ -75,7 +74,7 @@ defmodule Gettext.Extractor do
       new_pot = Gettext.PO.merge(old_pot, new_pot)
     end
 
-    File.write!(pot_path, Gettext.PO.dump(new_pot))
+    {pot_path, Gettext.PO.dump(new_pot)}
   end
 
   defp pot_file(translations) do
@@ -90,7 +89,7 @@ defmodule Gettext.Extractor do
   end
 
   defp pot_path(backend, domain) do
-    Path.join(backend.__gettext_dir__(), "#{domain}.pot")
+    Path.join(backend.__gettext__(:priv), "#{domain}.pot")
   end
 
   defp sort_references(translation) do

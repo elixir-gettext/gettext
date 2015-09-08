@@ -4,16 +4,28 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   @shortdoc "Extracts translations"
 
+  @doc """
+  Extracts translations by recompiling the Elixir source code.
+  """
   def run(_args) do
-    Mix.shell.info "About to extract Gettext translation from source. Recompiling..."
-
     Gettext.Extractor.setup_for_extraction
     force_compile
-    Gettext.Extractor.process_results
+
+    for {path, binary} <- Gettext.Extractor.dump_pot do
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, binary)
+      Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
+    end
+
+    :ok
   end
 
   defp force_compile do
-    Enum.each ~w(compile compile.all compile.elixir), &Mix.Task.reenable/1
-    Mix.Task.run "compile", ["--force"]
+    Enum.map Mix.Tasks.Compile.Elixir.manifests, &make_old_if_exists/1
+    Mix.Task.run "compile"
+  end
+
+  defp make_old_if_exists(path) do
+    :file.change_time(path, {{2000, 1, 1}, {0, 0, 0}})
   end
 end

@@ -32,10 +32,10 @@ defmodule Gettext.PO do
 
   ## Examples
 
-      iex> {:ok, po} = Gettext.PO.parse_string """
+      iex> {:ok, po} = Gettext.PO.parse_string \"""
       ...> msgid "foo"
       ...> msgstr "bar"
-      ...> """
+      ...> \"""
       iex> po.translations
       [%Gettext.PO.Translation{msgid: ["foo"], msgstr: ["bar"], po_source_line: 1}]
       iex> po.headers
