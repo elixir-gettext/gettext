@@ -7,7 +7,7 @@ grammar ->
   translations : '$1'.
 
 translations ->
-  translation : ['$1'].
+  '$empty' : [].
 translations ->
   translation translations : ['$1'|'$2'].
 
@@ -60,4 +60,3 @@ plural_forms_map_from_list(Pluralizations) ->
 
 extract_plural_form({{plural_form, _Line, PluralForm}, String}) ->
   {PluralForm, String}.
-

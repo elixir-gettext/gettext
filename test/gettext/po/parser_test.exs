@@ -220,4 +220,8 @@ defmodule Gettext.PO.ParserTest do
     msg = "found duplicate on line 1 for msgid: 'foo' and msgid_plural: 'foos'"
     assert parsed == {:error, 1, msg}
   end
+
+  test "an empty list of tokens is parsed as an empty list of translations" do
+    assert Parser.parse([]) == {:ok, [], []}
+  end
 end

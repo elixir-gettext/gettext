@@ -165,4 +165,10 @@ defmodule Gettext.PO.TokenizerTest do
     str = ~s(msgstr[0])
     assert tokenize(str) == {:error, 1, "missing space after 'msgstr[0]'"}
   end
+
+  test "empty/whitespace-only strings are tokenized as empty lists of tokens" do
+    assert tokenize("") == {:ok, []}
+    assert tokenize("   ") == {:ok, []}
+    assert tokenize("\r\n\t") == {:ok, []}
+  end
 end
