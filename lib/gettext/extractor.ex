@@ -11,9 +11,8 @@ defmodule Gettext.Extractor do
   For example, starts the agent that stores the translations while they're
   extracted and other similar tasks.
   """
-  @spec setup_for_extraction() :: :ok
-  def setup_for_extraction do
-    Application.put_env(:gettext, :extract_translations, true)
+  @spec setup() :: :ok
+  def setup do
     ExtractorAgent.start_link
     :ok
   end
@@ -23,7 +22,7 @@ defmodule Gettext.Extractor do
   """
   @spec extracting?() :: boolean
   def extracting? do
-    Application.get_env(:gettext, :extract_translations, false)
+    ExtractorAgent.alive?
   end
 
   @doc """
@@ -49,6 +48,8 @@ defmodule Gettext.Extractor do
         {domain, translations} <- domains do
       merge_or_create_pot_file(backend, domain, Map.values(translations))
     end
+  after
+    ExtractorAgent.stop
   end
 
   defp create_translation_struct({msgid, msgid_plural}, file, line),

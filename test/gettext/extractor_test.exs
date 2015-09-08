@@ -1,10 +1,6 @@
 defmodule Gettext.ExtractorTest do
   use ExUnit.Case
-
   alias Gettext.Extractor
-  alias Gettext.ExtractorAgent
-  alias Gettext.PO.Translation
-  alias Gettext.PO.PluralTranslation
 
   defmodule MyGettext do
     use Gettext, otp_app: :test_application
@@ -16,7 +12,7 @@ defmodule Gettext.ExtractorTest do
 
   test "extraction process" do
     refute Extractor.extracting?
-    Extractor.setup_for_extraction
+    Extractor.setup
     assert Extractor.extracting?
 
     code = """
@@ -35,35 +31,34 @@ defmodule Gettext.ExtractorTest do
 
     Code.compile_string(code, Path.join(File.cwd!, "foo.ex"))
 
-    expected = %{
-      MyGettext => %{
-        "default" => %{
-          "foo" => %Translation{
-            msgid: ["foo"],
-            msgstr: [""],
-            references: [{"foo.ex", 6}, {"foo.ex", 8}],
-          },
-        },
-        "errors" => %{
-          {"one error", "%{count} errors"} => %PluralTranslation{
-            msgid: ["one error"],
-            msgid_plural: ["%{count} errors"],
-            msgstr: %{0 => [""], 1 => [""]},
-            references: [{"foo.ex", 7}],
-          },
-        },
-      },
-      MyOtherGettext => %{
-        "greetings" => %{
-          "hi" => %Translation{
-            msgid: ["hi"],
-            msgstr: [""],
-            references: [{"foo.ex", 9}]
-          },
-        },
-      },
-    }
+    expected = [
+      {"priv/gettext/default.pot",
+        """
+        #: foo.ex:6
+        #: foo.ex:8
+        msgid "foo"
+        msgstr ""
+        """},
 
-    assert ExtractorAgent.get_all == expected
+      {"priv/gettext/errors.pot",
+          """
+          #: foo.ex:7
+          msgid "one error"
+          msgid_plural "%{count} errors"
+          msgstr[0] ""
+          msgstr[1] ""
+          """},
+
+      {"translations/greetings.pot",
+          """
+          #: foo.ex:9
+          msgid "hi"
+          msgstr ""
+          """}
+    ]
+
+    dumped = Enum.map(Extractor.dump_pot, fn {k, v} -> {k, IO.iodata_to_binary(v)} end)
+    assert dumped == expected
+    refute Extractor.extracting?
   end
 end

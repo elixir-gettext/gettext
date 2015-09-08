@@ -1,16 +1,21 @@
 defmodule Gettext.ExtractorAgent do
   @moduledoc false
 
+  @name __MODULE__
   @initial_state %{}
 
   def start_link do
-    Agent.start_link(fn -> @initial_state end, name: __MODULE__)
+    Agent.start_link(fn -> @initial_state end, name: @name)
+  end
+
+  def alive? do
+    !!Process.whereis(@name)
   end
 
   def add_translation(backend, domain, translation) do
     key = Gettext.PO.Translations.key(translation)
 
-    Agent.cast __MODULE__, fn(state) ->
+    Agent.cast @name, fn(state) ->
       # Initialize the given backend to an empty map if it wasn't there.
       state = Map.put_new(state, backend, %{})
 
@@ -24,8 +29,12 @@ defmodule Gettext.ExtractorAgent do
     end
   end
 
+  def stop do
+    Agent.stop @name
+  end
+
   def get_all do
-    Agent.get __MODULE__, &(&1)
+    Agent.get @name, &(&1)
   end
 
   defp merge_translations(t1, t2) do

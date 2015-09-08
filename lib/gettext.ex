@@ -79,8 +79,8 @@ defmodule Gettext do
   `my_app/priv/gettext`. This behaviour can be changed by specifying a `:priv`
   option when using `Gettext`:
 
-      # Look for translations in my_app/translations
-      use Gettext, otp_app: :my_app, priv: "translations"
+      # Look for translations in my_app/priv/translations
+      use Gettext, otp_app: :my_app, priv: "priv/translations"
 
   ### Template files (pot)
 
@@ -309,7 +309,9 @@ defmodule Gettext do
       diretory (`priv/gettext` by default, see the `:priv` option).
     * `:priv` - a string representing a directory where translations will be
       searched. The directory is relative to the directory of the application
-      specified by the `:otp_app` option.
+      specified by the `:otp_app` option. It is recommended to always have
+      this directory inside `"priv"`, otherwise some features like the
+      "mix compile.gettext" won't work as expected.
 
   ## Configuration
 

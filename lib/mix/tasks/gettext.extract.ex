@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Gettext.Extract do
   Extracts translations by recompiling the Elixir source code.
   """
   def run(_args) do
-    Gettext.Extractor.setup_for_extraction
+    Gettext.Extractor.setup
     force_compile
 
     for {path, binary} <- Gettext.Extractor.dump_pot do

@@ -20,6 +20,10 @@ defmodule Gettext.Compiler do
       @doc false
       def __gettext__(:priv), do: unquote(priv)
 
+      # The manifest lives in the root of the priv
+      # directory that contains .po/.pot files.
+      @external_resource unquote(Path.join(translations_dir, ".compile.gettext"))
+
       unquote(macros)
       unquote(compile_po_files(translations_dir))
       unquote(dynamic_clauses)
