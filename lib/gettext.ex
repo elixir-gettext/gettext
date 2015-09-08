@@ -1,5 +1,5 @@
 defmodule Gettext do
-  @moduledoc """
+  @moduledoc ~S"""
   Main Gettext module.
 
   The `Gettext` module provides a
@@ -17,8 +17,25 @@ defmodule Gettext do
         use Gettext, otp_app: :my_app
       end
 
-  This will automatically define some macros in the `MyApp.Gettext` module. To
-  learn more about those, check out the "Gettext API" section below.
+  This will automatically define some macros in the `MyApp.Gettext` module.
+  Here are some examples:
+
+      import MyApp.Gettext
+
+      # Simple translation
+      gettext "Here is the string to translate"
+
+      # Plural translation
+      ngettext "Here is the string to translate",
+               "Here are the strings to translate",
+               3
+
+      # Domain-based translation
+      dgettext "errors", "Here is the string to translate"
+
+  The translation will then be looked up from `.po` files. In the following
+  sections we will explore exactly what are those files before we explore
+  the "Gettext API" in detail.
 
   ## Translations
 
@@ -31,12 +48,9 @@ defmodule Gettext do
 
   Gettext for Elixir automatically reads and parses PO files in order to make
   translations available.
-  To do that, a "translator" module needs to call `use Gettext` so that
-  functions and macros can be defined in that module based on the result of
-  parsing PO files.
 
-  Translations for an application must be stored in a directory with the
-  following structure:
+  Translations for an application must be stored in a directory (usually
+  "priv/gettext") with the following structure:
 
       └─ locale
          └─ LC_MESSAGES
@@ -44,10 +58,10 @@ defmodule Gettext do
             ├─ domain_2.po
             └─ domain_3.po
 
-  where `locale` is the locale of the translations, `LC_MESSAGES` is a fixed
-  directory and `domain_i.po` are PO files containing domain-scoped
-  translations. For more information on domains, check out the "Domains" section
-  below.
+  where "locale" is the locale of the translations (for example, "en_US"),
+  "LC_MESSAGES" is a fixed directory and `domain_i.po` are PO files containing
+  domain-scoped translations. For more information on domains, check out the
+  "Domains" section below.
 
   A concrete example of such a directory structure could look like this:
 
@@ -67,6 +81,10 @@ defmodule Gettext do
 
       # Look for translations in my_app/translations
       use Gettext, otp_app: :my_app, priv: "translations"
+
+  ### Template files (pot)
+
+  TODO: Describe the process with mix tasks.
 
   ## Locale
 
@@ -96,7 +114,7 @@ defmodule Gettext do
 
   There are two ways to use Gettext:
 
-    * using macros from the module that `use`s `Gettext`
+    * using macros from your own Gettext module, like `MyApp.Gettext`
     * using functions from the `Gettext` module
 
   These two approaches are different and each one has its own use case.
@@ -123,10 +141,9 @@ defmodule Gettext do
     * `dngettext(domain, msgid, msgid_plural, n, bindings \\ %{})` -
       like `Gettext.dngettext(MyApp.Gettext, domain, msgid, msgid_plural, n, bindings)`
 
-  These macros are macros (and not functions) because they're necessary in order
-  to perform some compile-time operations with PO files (e.g., automatic
-  generation of PO files from source code). However, this sets some constraints:
-  strings passed to any of these macros have to be strings **at compile time**;
+  Using macros are preferred as gettext is able to automatically sync the
+  translations in your code with PO files. This, however, imposes a constraint
+  that strings passed to any of these macros have to be strings **at compile time**;
   that is, they have to be string literals or something that expands to a string
   literal at compile time. A common example of such a thing is module
   attributes. These are valid calls to Gettext macros:
@@ -148,11 +165,8 @@ defmodule Gettext do
       MyApp.Gettext.gettext msgid
       #=> ** (ArgumentError) msgid must be a string literal
 
-  In general, you should try to use these macros (as opposed to the *functions*
-  in the `Gettext` module) as much as possible since they're needed for useful
-  features like automatic generation and merging of PO files. However, using
-  compile-time strings isn't always possible. For this reason, the `Gettext`
-  module provides a set of functions as well.
+  Using compile-time strings isn't always possible. For this reason,
+  the `Gettext` module provides a set of functions as well.
 
   ### Using functions
 
@@ -216,7 +230,8 @@ defmodule Gettext do
       #=> ** (Gettext.Error) missing interpolation keys: name
 
   Keys that are in the interpolation bindings but that don't occur in the string
-  are ignored.
+  are ignored. Interpolations in gettext are often expanded at compile time,
+  ensuring a low performance cost when running them at runtime.
 
   ## Pluralization
 
@@ -236,6 +251,12 @@ defmodule Gettext do
 
       Gettext.locale "it"
       MyApp.Gettext.ngettext "One error", "%{count} errors", 3
+      #=> "3 errori"
+
+  While `dngettext` is used as:
+
+      Gettext.locale "it"
+      MyApp.Gettext.dngettext "errors", "One error", "%{count} errors", 3
       #=> "3 errori"
 
   The `%{count}` interpolation key is a special one since it gets replaced by
