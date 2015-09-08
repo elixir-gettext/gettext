@@ -482,6 +482,41 @@ defmodule Gettext do
     dngettext(backend, "default", msgid, msgid_plural, n, bindings)
   end
 
+  @doc """
+  Runs `fun` with the gettext locale set to `locale`.
+
+  This function just sets the Gettext locale to `locale` before running `fun`
+  and sets it back to its previous value afterwards. Note that `locale/1` is
+  used to set the locale, which is thus set only for the current process (keep
+  this in mind if you plan on spawning processes inside `fun`).
+
+  The value returned by this function is the return value of `fun`.
+
+  ## Examples
+
+      Gettext.locale "fr"
+
+      MyApp.Gettext.gettext("Hello world")
+      #=> "Bonjour monde"
+
+      Gettext.with_locale "it", fn ->
+        MyApp.Gettext.gettext("Hello world")
+      end
+      #=> "Ciao mondo"
+
+  """
+  @spec with_locale(locale, (() -> term)) :: term
+  def with_locale(locale, fun) do
+    previous_locale = Gettext.locale
+    Gettext.locale(locale)
+
+    try do
+      fun.()
+    after
+      Gettext.locale(previous_locale)
+    end
+  end
+
   defp handle_backend_result({atom, string}) when atom in [:ok, :default],
     do: string
   defp handle_backend_result({:error, error}),

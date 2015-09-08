@@ -307,4 +307,27 @@ defmodule GettextTest do
     Gettext.locale "it"
     assert Gettext.gettext(Translator, "Hello %{name}", name: "José") == "Hello José"
   end
+
+  test "with_locale/2 runs a function with a given locale and returns the returned value" do
+    Gettext.locale "fr"
+    assert Gettext.gettext(Translator, "Hello world") == "Hello world" # no 'fr' translation
+    res = Gettext.with_locale "it", fn ->
+      assert Gettext.gettext(Translator, "Hello world") == "Ciao mondo"
+      :foo
+    end
+
+    assert res == :foo
+  end
+
+  test "with_locale/2 resets the locale even if the given function raises" do
+    Gettext.locale "fr"
+
+    assert_raise RuntimeError, fn ->
+      Gettext.with_locale "it", fn -> raise "foo" end
+    end
+    assert Gettext.locale == "fr"
+
+    catch_throw(Gettext.with_locale "it", fn -> throw :foo end)
+    assert Gettext.locale == "fr"
+  end
 end
