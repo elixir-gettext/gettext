@@ -35,6 +35,10 @@ defmodule Gettext.Compiler do
           raise ArgumentError, "msgid must be a string literal"
         end
 
+        if Gettext.Extractor.extracting? do
+          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, msgid)
+        end
+
         quote do
           Gettext.dgettext(unquote(__MODULE__), unquote(domain), unquote(msgid), unquote(bindings))
         end
@@ -52,6 +56,10 @@ defmodule Gettext.Compiler do
 
         unless is_binary(msgid) && is_binary(msgid_plural) do
           raise ArgumentError, "msgid and msgid_plural must be string literals"
+        end
+
+        if Gettext.Extractor.extracting? do
+          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, {msgid, msgid_plural})
         end
 
         quote do
