@@ -1,5 +1,5 @@
 defmodule Gettext.Extractor do
-  @doc false
+  @moduledoc false
 
   alias Gettext.ExtractorAgent
   alias Gettext.PO.Translation

@@ -1,5 +1,5 @@
 defmodule Gettext.ExtractorAgent do
-  @doc false
+  @moduledoc false
 
   @initial_state %{}
 
