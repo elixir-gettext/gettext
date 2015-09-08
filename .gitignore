@@ -2,6 +2,7 @@
 /cover
 /deps
 /doc
+/src/gettext_po_parser.erl
+/tmp
 erl_crash.dump
 *.ez
-src/gettext_po_parser.erl
