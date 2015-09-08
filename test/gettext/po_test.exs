@@ -152,6 +152,11 @@ defmodule Gettext.POTest do
     assert %PO{file: ^fixture_path} = PO.parse_file!(fixture_path)
   end
 
+  test "parse_file(!)/1: empty files don't cause parsing errors" do
+    fixture_path = Path.expand("../fixtures/empty.po", __DIR__)
+    assert %PO{translations: [], headers: []} = PO.parse_file!(fixture_path)
+  end
+
   test "dump/1: single translation" do
     po = %PO{headers: [], translations: [
       %Translation{msgid: ["foo"], msgstr: ["bar"]},
