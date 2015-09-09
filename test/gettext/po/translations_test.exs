@@ -84,4 +84,11 @@ defmodule Gettext.PO.TranslationsTest do
     t2 = %Translation{msgid: "a", references: [{"bar.ex", 1}]}
     assert Translations.merge(t1, t2) == %Translation{msgid: "a", references: [{"bar.ex", 1}]}
   end
+
+  test "merge/2: the msgstr of the old translation will be kept if the :pot_onto_po opt is true" do
+    t1 = %Translation{msgid: "a", msgstr: "foo"}
+    t2 = %Translation{msgid: "a", msgstr: ""}
+    assert Translations.merge(t1, t2, pot_onto_po: true)
+           == %Translation{msgid: "a", msgstr: "foo"}
+  end
 end

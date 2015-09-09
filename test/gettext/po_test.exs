@@ -426,4 +426,11 @@ defmodule Gettext.POTest do
 
     assert PO.merge(old, new, keep_manual_translations: false) == new
   end
+
+  test "merge/2: msgstrs are not overridden if :pot_onto_po is true" do
+    old = %PO{translations: [%Translation{msgid: ["foo"], msgstr: ["foo"]}]}
+    new = %PO{translations: [%Translation{msgid: ["foo"], msgstr: [""]}]}
+
+    assert PO.merge(old, new, pot_onto_po: true) == old
+  end
 end
