@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Compile.Gettext do
 
   def run(_, priv_dir \\ "priv") do
     _ = Mix.Project.get!
-    app_dir = Application.app_dir(Mix.Project.config[:app])
+    app_dir = Mix.Project.app_path()
 
     changed =
       priv_dir
