@@ -22,13 +22,15 @@ defmodule Mix.Tasks.Gettext.Merge do
     Enum.each written_files, fn path ->
       Mix.shell.info "Wrote #{path}"
     end
+
+    if written_files == [], do: :noop, else: :ok
   end
 
   defp priv_prefix(path) do
     parts = Path.split(path)
 
     if index = Enum.find_index(parts, &match?("LC_MESSAGES", &1)) do
-      Enum.take(parts, index - 1) |> Path.join
+      parts |> Enum.take(index - 1) |> Path.join
     else
       :not_in_canonical_dir
     end
@@ -43,14 +45,14 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp merge_dir({root, po_files}) do
-    Enum.map po_files, &merge_po_file(root, &1)
+    Enum.map(po_files, &merge_po_file(root, &1))
   end
 
   defp merge_po_file(root, po_file) do
-    domain = Path.basename(po_file, ".po")
-    pot_file = Path.join(root, "#{domain}.pot")
+    pot_file = po_path_to_pot_path(po_file, root)
+    po_file = Path.join(root, po_file)
 
-    po = Gettext.PO.parse_file!(Path.join(root, po_file))
+    po = Gettext.PO.parse_file!(po_file)
 
     merged =
       if File.exists?(pot_file) do
@@ -60,11 +62,16 @@ defmodule Mix.Tasks.Gettext.Merge do
         po
       end
 
-    {Path.join(root, po_file), Gettext.PO.dump(merged)}
+    {po_file, Gettext.PO.dump(merged)}
   end
 
   defp write_file({path, contents}) do
     File.write!(path, contents)
     path
+  end
+
+  defp po_path_to_pot_path(po_file, root) do
+    domain = Path.basename(po_file, ".po")
+    Path.join(root, "#{domain}.pot")
   end
 end

@@ -10,6 +10,9 @@ defmodule Mix.Tasks.Gettext.MergeTest do
   end
 
   test "updates existing .po files with their respective .pot file" do
+    # Running the task with no .po files does nothing and returns :noop.
+    assert Mix.Tasks.Gettext.Merge.run([], @priv_path) == :noop
+
     # Reference .pot file with a translation that is not in the .po file yet.
     write_file "default.pot", """
     msgid "hello"
@@ -32,7 +35,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     write_file "it/LC_MESSAGES/nomatch.po", nomatch_contents
 
     output = capture_io fn ->
-      Mix.Tasks.Gettext.Merge.run([], @priv_path)
+      assert Mix.Tasks.Gettext.Merge.run([], @priv_path) == :ok
     end
 
     assert output =~ "Wrote #{Path.join(@priv_path, "it/LC_MESSAGES/nomatch.po")}"
