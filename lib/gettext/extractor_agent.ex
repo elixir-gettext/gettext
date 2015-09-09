@@ -2,7 +2,15 @@ defmodule Gettext.ExtractorAgent do
   @moduledoc false
 
   @name __MODULE__
-  @initial_state %{}
+
+  # :translations is a map where keys are Gettext backends and values
+  # are maps. In these maps, keys are domains and values are maps of
+  # translation_id => translation.
+  # :backends is just a list of backends that call `use Gettext`.
+  @initial_state %{
+    translations: %{},
+    backends: [],
+  }
 
   def start_link do
     Agent.start_link(fn -> @initial_state end, name: @name)
@@ -17,15 +25,17 @@ defmodule Gettext.ExtractorAgent do
 
     Agent.cast @name, fn(state) ->
       # Initialize the given backend to an empty map if it wasn't there.
-      state = Map.put_new(state, backend, %{})
+      state = update_in state.translations, &Map.put_new(&1, backend, %{})
 
-      update_in state, [backend, domain], fn(translations) ->
-        if is_nil(translations) do
-          translations = %{}
-        end
-
-        Map.update(translations, key, translation, &merge_translations(&1, translation))
+      update_in state, [:translations, backend, domain], fn(translations) ->
+        Map.update(translations || %{}, key, translation, &merge_translations(&1, translation))
       end
+    end
+  end
+
+  def add_backend(backend) do
+    Agent.cast @name, fn(state) ->
+      update_in state.backends, &[backend|&1]
     end
   end
 
@@ -33,8 +43,12 @@ defmodule Gettext.ExtractorAgent do
     Agent.stop @name
   end
 
-  def get_all do
-    Agent.get @name, &(&1)
+  def get_translations do
+    Agent.get @name, &(&1.translations)
+  end
+
+  def get_backends do
+    Agent.get @name, &(&1.backends)
   end
 
   defp merge_translations(t1, t2) do

@@ -24,6 +24,10 @@ defmodule Gettext.Compiler do
       # directory that contains .po/.pot files.
       @external_resource unquote(Path.join(translations_dir, ".compile.gettext"))
 
+      if Gettext.Extractor.extracting? do
+        Gettext.ExtractorAgent.add_backend(__MODULE__)
+      end
+
       unquote(macros)
       unquote(compile_po_files(translations_dir))
       unquote(dynamic_clauses)
