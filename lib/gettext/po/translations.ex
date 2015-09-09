@@ -96,29 +96,29 @@ defmodule Gettext.PO.Translations do
       %Gettext.PO.Translation{msgid: "foo", msgstr: "b", comments: ["# hey", "# hi"], references: [{"new.ex", 2}]}
 
   """
-  @spec merge(Gettext.PO.translation, Gettext.PO.translation) :: Gettext.PO.translation
-  def merge(old_translation, new_translation) do
+  @spec merge(Gettext.PO.translation, Gettext.PO.translation, Keyword.t) :: Gettext.PO.translation
+  def merge(old_translation, new_translation, opts \\ []) do
     unless same?(old_translation, new_translation) do
       raise ArgumentError, "expected translations to match"
     end
 
-    do_merge(old_translation, new_translation)
+    do_merge(old_translation, new_translation, opts)
   end
 
-  defp do_merge(%Translation{} = old, %Translation{} = new) do
+  defp do_merge(%Translation{} = old, %Translation{} = new, opts) do
     %Translation{
       msgid: new.msgid,
-      msgstr: new.msgstr,
+      msgstr: if(opts[:pot_onto_po], do: old.msgstr, else: new.msgstr),
       comments: merge_comments(old.comments, new.comments),
       references: new.references,
     }
   end
 
-  defp do_merge(%PluralTranslation{} = old, %PluralTranslation{} = new) do
+  defp do_merge(%PluralTranslation{} = old, %PluralTranslation{} = new, opts) do
     %PluralTranslation{
       msgid: new.msgid,
       msgid_plural: new.msgid_plural,
-      msgstr: new.msgstr,
+      msgstr: if(opts[:pot_onto_po], do: old.msgstr, else: new.msgstr),
       comments: merge_comments(old.comments, new.comments),
       references: new.references,
     }

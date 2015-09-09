@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Compile.Gettext do
       |> Path.join("**/*.po")
       |> Path.wildcard()
       |> Enum.group_by(&priv_prefix(&1, app_dir))
-      |> Map.delete(".")
+      |> Map.delete(:not_in_canonical_dir)
       |> change_manifests()
 
     if changed == [], do: :noop, else: :ok
@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Compile.Gettext do
       |> Path.join
       |> Path.join(".compile.gettext")
     else
-      "."
+      :not_in_canonical_dir
     end
   end
 
