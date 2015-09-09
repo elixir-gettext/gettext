@@ -14,7 +14,7 @@ defmodule Gettext.Extractor do
   """
   @spec setup() :: :ok
   def setup do
-    ExtractorAgent.start_link
+    {:ok, _} = ExtractorAgent.start_link
     :ok
   end
 
@@ -37,26 +37,66 @@ defmodule Gettext.Extractor do
   end
 
   @doc """
-  Writes or merges POT files based on the results of the extraction.
+  Returns a list of POT files based o the results of the extraction.
 
-  Returns a list of paths and their contents to be written to disk.
+  Returns a list of paths and their contents to be written to disk. Existing POT
+  files are either purged from obsolete translations (in case no extracted
+  translation ends up in that file) or merged with the extracted translations;
+  new POT files are returned for extracted translations that belong to a POT
+  file that doesn't exist yet.
   """
-  @spec dump_pot() :: [{path :: String.t, contents :: binary}]
-  def dump_pot do
-    extracted_translations = ExtractorAgent.get_translations
+  @spec pot_files() :: [{path :: String.t, contents :: iodata}]
+  def pot_files do
     existing_pot_files = pot_files_for_backends(ExtractorAgent.get_backends)
-    po_structs = create_po_structs_from_extracted_translations(extracted_translations)
+    po_structs = create_po_structs_from_extracted_translations(ExtractorAgent.get_translations)
     merge_pot_files(existing_pot_files, po_structs)
   after
     ExtractorAgent.stop
   end
 
+  # Returns all the .pot files for each of the given `backends`.
+  defp pot_files_for_backends(backends) do
+    Enum.flat_map backends, fn backend ->
+      backend.__gettext__(:priv)
+      |> Path.join("**/*.pot")
+      |> Path.wildcard()
+    end
+  end
+
   # This returns a list of {absolute_path, %Gettext.PO{}} tuples.
+  # `all_translations` looks like this:
+  #
+  #     %{MyBackend => %{"a_domain" => %{"a translation id" => a_translation}}}
+  #
   defp create_po_structs_from_extracted_translations(all_translations) do
     for {backend, domains}     <- all_translations,
         {domain, translations} <- domains do
       create_po_struct(backend, domain, Map.values(translations))
     end
+  end
+
+  # Returns a {path, %Gettext.PO{}} tuple.
+  defp create_po_struct(backend, domain, translations) do
+    {pot_path(backend, domain), po_struct_from_translations(translations)}
+  end
+
+  defp pot_path(backend, domain) do
+    Path.join(backend.__gettext__(:priv), "#{domain}.pot")
+  end
+
+  defp po_struct_from_translations(translations) do
+    # Sort all the translations and the references of each translation in order
+    # to make as few changes as possible to the PO(T) files.
+    translations =
+      translations
+      |> Enum.sort_by(&PO.Translations.key/1)
+      |> Enum.map(&sort_references/1)
+
+    %PO{translations: translations}
+  end
+
+  defp sort_references(translation) do
+    update_in(translation.references, &Enum.sort/1)
   end
 
   defp create_translation_struct({msgid, msgid_plural}, file, line),
@@ -73,46 +113,11 @@ defmodule Gettext.Extractor do
           references: [{Path.relative_to_cwd(file), line}],
         }
 
-  defp create_po_struct(backend, domain, translations) do
-    pot_path = pot_path(backend, domain)
-    pot      = pot_file(translations)
-    {pot_path, pot}
-  end
-
-  defp pot_file(translations) do
-    # Sort all the translations and the references of each translation in order
-    # to make as few changes as possible to the PO(T) files.
-    translations =
-      translations
-      |> Enum.sort_by(&PO.Translations.key/1)
-      |> Enum.map(&sort_references/1)
-
-    %PO{translations: translations}
-  end
-
-  defp pot_path(backend, domain) do
-    Path.join(backend.__gettext__(:priv), "#{domain}.pot")
-  end
-
-  defp sort_references(translation) do
-    update_in(translation.references, &Enum.sort/1)
-  end
-
-  defp pot_files_for_backends(backends) do
-    Enum.flat_map(backends, &pot_files_for_backend/1)
-  end
-
-  defp pot_files_for_backend(backend) do
-    backend.__gettext__(:priv)
-    |> Path.join("**/*.pot")
-    |> Path.wildcard
-  end
-
   # Made public for testing.
   @doc false
   def merge_pot_files(pot_files, po_structs) do
     # pot_files is a list of paths to existing .pot files while po_structs is a
-    # list of {path, struct} for new %Gettext.PO{} struct that we have
+    # list of {path, struct} for new %Gettext.PO{} structs that we have
     # extracted. If we turn pot_files into a list of {path, whatever} tuples,
     # that we can take advantage of Dict.merge/3 to find clashing paths.
     pot_files
@@ -124,11 +129,54 @@ defmodule Gettext.Extractor do
   end
 
   defp merge_existing_and_extracted(path, :existing, extracted) do
-    path |> PO.parse_file! |> PO.merge(extracted)
+    path |> PO.parse_file! |> merge_template(extracted)
   end
 
   defp purge_unmerged_files({path, :existing}),
-    do: {path, path |> PO.parse_file! |> PO.merge(%PO{})}
+    do: {path, path |> PO.parse_file! |> merge_template(%PO{})}
   defp purge_unmerged_files(already_merged),
     do: already_merged
+
+  # Merges a %PO{} struct representing an existing POT file with an
+  # in-memory-only %PO{} struct representing the new POT file.
+  defp merge_template(existing, new) do
+    old_and_merged = Enum.flat_map existing.translations, fn(t) ->
+      cond do
+        same = find_translation(new.translations, t) -> [merge_translations(t, same)]
+        PO.Translations.autogenerated?(t)            -> []
+        true                                         -> [t]
+      end
+    end
+
+    # We reject all translations that appear in `existing` so that we're left
+    # with the translations that only appear in `new`.
+    unique_new = Enum.reject(new.translations, &find_translation(existing.translations, &1))
+
+    %PO{translations: old_and_merged ++ unique_new, headers: existing.headers}
+  end
+
+  defp find_translation(translations, target) do
+    Enum.find translations, &PO.Translations.same?(&1, target)
+  end
+
+  defp merge_translations(%Translation{} = old, %Translation{comments: []} = new) do
+    %Translation{
+      msgid: old.msgid,
+      msgstr: old.msgstr,
+      # The new in-memory translation has no comments.
+      comments: old.comments,
+      references: new.references,
+    }
+  end
+
+  defp merge_translations(%PluralTranslation{} = old, %PluralTranslation{comments: []} = new) do
+    %PluralTranslation{
+      msgid: old.msgid,
+      msgid_plural: old.msgid_plural,
+      msgstr: old.msgstr,
+      # The new in-memory translation has no comments.
+      comments: old.comments,
+      references: new.references,
+    }
+  end
 end

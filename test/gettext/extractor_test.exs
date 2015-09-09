@@ -107,7 +107,7 @@ defmodule Gettext.ExtractorTest do
           """}
     ]
 
-    dumped = Enum.map(Extractor.dump_pot, fn {k, v} -> {k, IO.iodata_to_binary(v)} end)
+    dumped = Enum.map(Extractor.pot_files, fn {k, v} -> {k, IO.iodata_to_binary(v)} end)
     assert dumped == expected
     refute Extractor.extracting?
   end
