@@ -2,6 +2,7 @@ defmodule Gettext.Extractor do
   @moduledoc false
 
   alias Gettext.ExtractorAgent
+  alias Gettext.PO
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
@@ -42,14 +43,20 @@ defmodule Gettext.Extractor do
   """
   @spec dump_pot() :: [{path :: String.t, contents :: binary}]
   def dump_pot do
-    # Let's remember to call Map.values/1 since `translations` is a map of
-    # `translation_id => translation`.
-    for {backend, domains}     <- ExtractorAgent.get_all,
-        {domain, translations} <- domains do
-      merge_or_create_pot_file(backend, domain, Map.values(translations))
-    end
+    extracted_translations = ExtractorAgent.get_translations
+    existing_pot_files = pot_files_for_backends(ExtractorAgent.get_backends)
+    po_structs = create_po_structs_from_extracted_translations(extracted_translations)
+    merge_pot_files(existing_pot_files, po_structs)
   after
     ExtractorAgent.stop
+  end
+
+  # This returns a list of {absolute_path, %Gettext.PO{}} tuples.
+  defp create_po_structs_from_extracted_translations(all_translations) do
+    for {backend, domains}     <- all_translations,
+        {domain, translations} <- domains do
+      create_po_struct(backend, domain, Map.values(translations))
+    end
   end
 
   defp create_translation_struct({msgid, msgid_plural}, file, line),
@@ -66,16 +73,10 @@ defmodule Gettext.Extractor do
           references: [{Path.relative_to_cwd(file), line}],
         }
 
-  defp merge_or_create_pot_file(backend, domain, translations) do
+  defp create_po_struct(backend, domain, translations) do
     pot_path = pot_path(backend, domain)
-    new_pot  = pot_file(translations)
-
-    if File.exists?(pot_path) do
-      old_pot = Gettext.PO.parse_file!(pot_path)
-      new_pot = Gettext.PO.merge(old_pot, new_pot)
-    end
-
-    {pot_path, Gettext.PO.dump(new_pot)}
+    pot      = pot_file(translations)
+    {pot_path, pot}
   end
 
   defp pot_file(translations) do
@@ -83,10 +84,10 @@ defmodule Gettext.Extractor do
     # to make as few changes as possible to the PO(T) files.
     translations =
       translations
-      |> Enum.sort_by(&Gettext.PO.Translations.key/1)
+      |> Enum.sort_by(&PO.Translations.key/1)
       |> Enum.map(&sort_references/1)
 
-    %Gettext.PO{translations: translations}
+    %PO{translations: translations}
   end
 
   defp pot_path(backend, domain) do
@@ -96,4 +97,38 @@ defmodule Gettext.Extractor do
   defp sort_references(translation) do
     update_in(translation.references, &Enum.sort/1)
   end
+
+  defp pot_files_for_backends(backends) do
+    Enum.flat_map(backends, &pot_files_for_backend/1)
+  end
+
+  defp pot_files_for_backend(backend) do
+    backend.__gettext__(:priv)
+    |> Path.join("**/*.pot")
+    |> Path.wildcard
+  end
+
+  # Made public for testing.
+  @doc false
+  def merge_pot_files(pot_files, po_structs) do
+    # pot_files is a list of paths to existing .pot files while po_structs is a
+    # list of {path, struct} for new %Gettext.PO{} struct that we have
+    # extracted. If we turn pot_files into a list of {path, whatever} tuples,
+    # that we can take advantage of Dict.merge/3 to find clashing paths.
+    pot_files
+    |> Enum.map(&{&1, :existing})
+    |> Enum.into(%{})
+    |> Map.merge(Enum.into(po_structs, %{}), &merge_existing_and_extracted/3)
+    |> Enum.map(&purge_unmerged_files/1)
+    |> Enum.map(fn({path, pot}) -> {path, PO.dump(pot)} end)
+  end
+
+  defp merge_existing_and_extracted(path, :existing, extracted) do
+    path |> PO.parse_file! |> PO.merge(extracted)
+  end
+
+  defp purge_unmerged_files({path, :existing}),
+    do: {path, path |> PO.parse_file! |> PO.merge(%PO{})}
+  defp purge_unmerged_files(already_merged),
+    do: already_merged
 end
