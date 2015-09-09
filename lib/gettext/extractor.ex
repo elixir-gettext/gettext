@@ -139,7 +139,9 @@ defmodule Gettext.Extractor do
 
   # Merges a %PO{} struct representing an existing POT file with an
   # in-memory-only %PO{} struct representing the new POT file.
-  defp merge_template(existing, new) do
+  # Made public for testing.
+  @doc false
+  def merge_template(existing, new) do
     old_and_merged = Enum.flat_map existing.translations, fn(t) ->
       cond do
         same = find_translation(new.translations, t) -> [merge_translations(t, same)]
