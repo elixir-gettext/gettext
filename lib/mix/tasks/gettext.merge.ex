@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp run_with_two_args(arg1, arg2, []) do
-    if Path.extname(arg1) == ".po" and Path.extname(arg2) == ".pot" do
+    if Path.extname(arg1) == ".po" and Path.extname(arg2) in [".po", ".pot"] do
       ensure_file_exists!(arg1)
       ensure_file_exists!(arg2)
       {path, contents} = merge_po_with_pot(arg1, arg2)
