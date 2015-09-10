@@ -5,6 +5,7 @@ defmodule Gettext.Extractor do
   alias Gettext.PO
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
+  alias Gettext.Error
 
   @doc """
   Performs some generic setup needed to extract translations from source.
@@ -161,6 +162,8 @@ defmodule Gettext.Extractor do
   end
 
   defp merge_translations(%Translation{} = old, %Translation{comments: []} = new) do
+    ensure_empty_msgstr!(old)
+    ensure_empty_msgstr!(new)
     %Translation{
       msgid: old.msgid,
       msgstr: old.msgstr,
@@ -171,6 +174,8 @@ defmodule Gettext.Extractor do
   end
 
   defp merge_translations(%PluralTranslation{} = old, %PluralTranslation{comments: []} = new) do
+    ensure_empty_msgstr!(old)
+    ensure_empty_msgstr!(new)
     %PluralTranslation{
       msgid: old.msgid,
       msgid_plural: old.msgid_plural,
@@ -180,4 +185,25 @@ defmodule Gettext.Extractor do
       references: new.references,
     }
   end
+
+  defp ensure_empty_msgstr!(%Translation{msgstr: msgstr} = t) do
+    unless blank?(msgstr) do
+      raise Error, "translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+    end
+  end
+
+  defp ensure_empty_msgstr!(%PluralTranslation{msgstr: %{0 => str0, 1 => str1}} = t) do
+    if not blank?(str0) or not blank?(str1) do
+      raise Error,
+        "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+    end
+  end
+
+  defp ensure_empty_msgstr!(%PluralTranslation{} = t) do
+    raise Error,
+      "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+  end
+
+  defp blank?(nil), do: true
+  defp blank?(str), do: IO.iodata_length(str) == 0
 end

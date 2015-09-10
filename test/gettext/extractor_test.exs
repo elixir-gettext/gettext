@@ -99,6 +99,16 @@ defmodule Gettext.ExtractorTest do
     ]}
   end
 
+  test "merge_template/2: non-empty msgstrs raise an error" do
+    po1 = %PO{translations: [%Translation{msgid: "foo", msgstr: "bar"}]}
+    po2 = %PO{translations: [%Translation{msgid: "foo", msgstr: "bar"}]}
+
+    msg = "translation with msgid 'foo' has a non-empty msgstr"
+    assert_raise Gettext.Error, msg, fn ->
+      Extractor.merge_template(po1, po2)
+    end
+  end
+
   test "extraction process" do
     refute Extractor.extracting?
     Extractor.setup
