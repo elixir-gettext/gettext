@@ -12,7 +12,10 @@ defmodule Mix.Tasks.Gettext.Merge do
         run_with_two_args(arg1, arg2, opts)
       {opts, [arg], _} ->
         run_with_one_arg(arg, opts)
-      {_, args, _} when length(args) > 2 ->
+      {_, [], _} ->
+        Mix.raise "gettext.merge requires at least one argument to work." <>
+                  "Use `mix help gettext.merge` to see the usage of this task."
+      {_, _, _} ->
         Mix.raise "Too many arguments for the gettext.merge task. " <>
                   "Use `mix help gettext.merge` to see the usage of this task."
     end

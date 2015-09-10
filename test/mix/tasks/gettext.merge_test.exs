@@ -108,6 +108,14 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     end
   end
 
+  test "passing no arguments raises an error" do
+    msg = "gettext.merge requires at least one argument to work." <>
+          "Use `mix help gettext.merge` to see the usage of this task."
+    assert_raise Mix.Error, msg, fn ->
+      run []
+    end
+  end
+
   defp write_file(path, contents) do
     path = tmp_path(path)
     File.mkdir_p! Path.dirname(path)
