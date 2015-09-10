@@ -79,4 +79,16 @@ defmodule Gettext.PO.Translations do
     do: IO.iodata_to_binary(msgid)
   def key(%PluralTranslation{msgid: msgid, msgid_plural: msgid_plural}),
     do: {IO.iodata_to_binary(msgid), IO.iodata_to_binary(msgid_plural)}
+
+  @doc """
+  Finds a given translation in a list of translations.
+
+  Equality between translations is checked using `same?/2`.
+  """
+  @spec find([Translation.t | PluralTranslation.t], Translation.t) :: nil | Translation.t
+  @spec find([Translation.t | PluralTranslation.t], PluralTranslation.t) :: nil | PluralTranslation.t
+  def find(translations, %{__struct__: s} = target)
+      when is_list(translations) and is_translation(s) do
+    Enum.find(translations, &same?(&1, target))
+  end
 end

@@ -47,20 +47,16 @@ defmodule Gettext.Merger do
 
   defp merge_translations(old, new) do
     merged = Enum.flat_map old, fn(t) ->
-      if same = find_translation(new, t) do
+      if same = PO.Translations.find(new, t) do
         [merge_two_translations(t, same)]
       else
         [t]
       end
     end
 
-    new = Enum.reject(new, &find_translation(old, &1))
+    new = Enum.reject(new, &PO.Translations.find(old, &1))
 
     merged ++ new
-  end
-
-  defp find_translation(translations, target) do
-    Enum.find translations, &PO.Translations.same?(&1, target)
   end
 
   defp merge_two_translations(%Translation{} = old, %Translation{} = new) do
