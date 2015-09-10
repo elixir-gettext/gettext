@@ -103,7 +103,7 @@ defmodule Gettext.Merger do
 
   defp headers_for_new_po_file(po_file) do
     [
-      "Language: #{locale_from_path(po_file)}",
+      ~s(Language: #{locale_from_path(po_file)}\n),
     ]
   end
 
