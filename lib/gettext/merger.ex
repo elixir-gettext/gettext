@@ -50,7 +50,7 @@ defmodule Gettext.Merger do
       if same = PO.Translations.find(new, t) do
         [merge_two_translations(t, same)]
       else
-        [t]
+        []
       end
     end
 
