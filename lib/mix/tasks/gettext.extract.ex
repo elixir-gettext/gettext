@@ -16,16 +16,19 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   """
   def run(args) do
-    changed =
-      extract
-      |> write_changed_files()
-      |> print_changed_files()
+    pot_files = extract()
+
+    for {path, contents} <- pot_files do
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, contents)
+      Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
+    end
 
     case args do
       [] ->
         :ok
       ["--merge"] ->
-        run_merge(changed)
+        run_merge(pot_files)
       _ ->
         Mix.raise "The gettext.extract task only supports the --merge option. " <>
                   "See `mix help gettext.extract` for more information."
@@ -51,29 +54,10 @@ defmodule Mix.Tasks.Gettext.Extract do
     :file.change_time(path, {{2000, 1, 1}, {0, 0, 0}})
   end
 
-  defp write_changed_files(pot_files) do
-    Enum.flat_map pot_files, fn {path, contents} ->
-      File.mkdir_p! Path.dirname(path)
-
-      # Write the file only if it doesn't exist or the contents wouldn't change.
-      if not File.regular?(path) or File.read!(path) != IO.iodata_to_binary(contents) do
-        File.write!(path, contents)
-        [path]
-      else
-        []
-      end
-    end
-  end
-
-  defp print_changed_files(files) do
-    Enum.each files, fn f -> Mix.shell.info("Extracted #{Path.relative_to_cwd(f)}") end
-    files
-  end
-
-  defp run_merge(changed_pot_files) do
-    changed_pot_files
-    |> Enum.map(&Path.dirname/1)
+  defp run_merge(pot_files) do
+    pot_files
+    |> Enum.map(fn {path, _} -> Path.dirname(path) end)
     |> Enum.uniq
-    |> Enum.each(fn priv -> Mix.Task.run("gettext.merge", [priv]) end)
+    |> Enum.each(&Mix.Tasks.Gettext.Merge.run([&1]))
   end
 end
