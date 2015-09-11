@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       File.write!(path, contents)
       Mix.shell.info "Wrote #{path}"
     else
-      Mix.raise "Arguments must be a PO file and a POT file"
+      Mix.raise "Arguments must be a PO file and a PO/POT file"
     end
   end
 

@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     end
 
     # The first file must be be a .po file and the second one a .pot file.
-    assert_raise Mix.Error, "Arguments must be a PO file and a POT file", fn ->
+    assert_raise Mix.Error, "Arguments must be a PO file and a PO/POT file", fn ->
       run ~w(foo.ex bar.exs)
     end
 
