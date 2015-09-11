@@ -62,33 +62,4 @@ defmodule Gettext.PO.TranslationsTest do
     t = %PluralTranslation{msgid: ["foo"], msgid_plural: ["foos"], msgstr: %{0 => [""], 1 => [""]}}
     assert Translations.key(t) == {"foo", "foos"}
   end
-
-  test "merge/2: leaves identical translations identical" do
-    t = %Translation{msgid: "foo", msgstr: "bar"}
-    assert Translations.merge(t, t) == t
-
-    t = %PluralTranslation{msgid: "foo", msgid_plural: "bar"}
-    assert Translations.merge(t, t) == t
-  end
-
-  test "merge/2: translator comments are merged by appending them" do
-    t1 = %Translation{msgid: "a", comments: ["# Foo", "# Bar"]}
-    t2 = %Translation{msgid: "a", comments: ["# Baz", "# Bong"]}
-    assert Translations.merge(t1, t2) == %Translation{msgid: "a", comments: [
-      "# Foo", "# Bar", "# Baz", "# Bong"
-    ]}
-  end
-
-  test "merge/2: references from the old translation are discarded" do
-    t1 = %Translation{msgid: "a", references: [{"foo.ex", 1}]}
-    t2 = %Translation{msgid: "a", references: [{"bar.ex", 1}]}
-    assert Translations.merge(t1, t2) == %Translation{msgid: "a", references: [{"bar.ex", 1}]}
-  end
-
-  test "merge/2: the msgstr of the old translation will be kept if the :pot_onto_po opt is true" do
-    t1 = %Translation{msgid: "a", msgstr: "foo"}
-    t2 = %Translation{msgid: "a", msgstr: ""}
-    assert Translations.merge(t1, t2, pot_onto_po: true)
-           == %Translation{msgid: "a", msgstr: "foo"}
-  end
 end

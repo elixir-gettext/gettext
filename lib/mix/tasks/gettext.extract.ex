@@ -19,12 +19,13 @@ defmodule Mix.Tasks.Gettext.Extract do
     Gettext.Extractor.setup
     force_compile
 
-    for {path, binary} <- Gettext.Extractor.dump_pot do
+    for {path, binary} <- Gettext.Extractor.pot_files do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, binary)
       Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
     end
 
+    Gettext.Extractor.teardown
     :ok
   end
 
