@@ -15,18 +15,34 @@ defmodule Mix.Tasks.Gettext.Extract do
       mix gettext.extract --merge
 
   """
-  def run(_args) do
-    Gettext.Extractor.setup
-    force_compile
+  def run(args) do
+    pot_files = extract()
 
-    for {path, binary} <- Gettext.Extractor.pot_files do
+    for {path, contents} <- pot_files do
       File.mkdir_p!(Path.dirname(path))
-      File.write!(path, binary)
+      File.write!(path, contents)
       Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
     end
 
-    Gettext.Extractor.teardown
+    case args do
+      [] ->
+        :ok
+      ["--merge"] ->
+        run_merge(pot_files)
+      _ ->
+        Mix.raise "The gettext.extract task only supports the --merge option. " <>
+                  "See `mix help gettext.extract` for more information."
+    end
+
     :ok
+  end
+
+  defp extract do
+    Gettext.Extractor.setup
+    force_compile
+    Gettext.Extractor.pot_files
+  after
+    Gettext.Extractor.teardown
   end
 
   defp force_compile do
@@ -36,5 +52,12 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   defp make_old_if_exists(path) do
     :file.change_time(path, {{2000, 1, 1}, {0, 0, 0}})
+  end
+
+  defp run_merge(pot_files) do
+    pot_files
+    |> Enum.map(fn {path, _} -> Path.dirname(path) end)
+    |> Enum.uniq
+    |> Enum.each(&Mix.Tasks.Gettext.Merge.run([&1]))
   end
 end

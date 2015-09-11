@@ -134,15 +134,34 @@ defmodule Gettext.Extractor do
     |> Enum.into(%{})
     |> Map.merge(Enum.into(po_structs, %{}), &merge_existing_and_extracted/3)
     |> Enum.map(&purge_unmerged_files/1)
+    |> Enum.reject(&match?({_, :unchanged}, &1))
     |> Enum.map(fn({path, pot}) -> {path, PO.dump(pot)} end)
   end
 
   defp merge_existing_and_extracted(path, :existing, extracted) do
-    path |> PO.parse_file! |> merge_template(extracted)
+    merge_or_unchanged(path, extracted)
   end
 
+  # Returns :unchanged if merging `existing_path` with `new` changes nothing,
+  # otherwise a %Gettext.PO{} struct with the changed contents.
+  defp merge_or_unchanged(existing_path, new) do
+    existing_contents = File.read!(existing_path)
+    merged =
+      existing_contents
+      |> PO.parse_string!()
+      |> merge_template(new)
+
+    if IO.iodata_to_binary(PO.dump(merged)) == existing_contents do
+      :unchanged
+    else
+      merged
+    end
+  end
+
+  # This function "purges" (merging with an empty %Gettext.PO{}) all the {path,
+  # :existing} tuples, leaving others unchanged.
   defp purge_unmerged_files({path, :existing}),
-    do: {path, path |> PO.parse_file! |> merge_template(%PO{})}
+    do: {path, merge_or_unchanged(path, %PO{})}
   defp purge_unmerged_files(already_merged),
     do: already_merged
 
