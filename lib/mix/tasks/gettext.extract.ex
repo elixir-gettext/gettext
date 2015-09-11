@@ -17,6 +17,7 @@ defmodule Mix.Tasks.Gettext.Extract do
       Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
     end
 
+    Gettext.Extractor.teardown
     :ok
   end
 

@@ -20,6 +20,16 @@ defmodule Gettext.Extractor do
   end
 
   @doc """
+  Performs teardown after the sources have been extracted.
+
+  For now, it only stops the agent that stores the translations.
+  """
+  @spec teardown() :: :ok
+  def teardown do
+    :ok = ExtractorAgent.stop
+  end
+
+  @doc """
   Tells whether translations are being extracted.
   """
   @spec extracting?() :: boolean
@@ -51,8 +61,6 @@ defmodule Gettext.Extractor do
     existing_pot_files = pot_files_for_backends(ExtractorAgent.get_backends)
     po_structs = create_po_structs_from_extracted_translations(ExtractorAgent.get_translations)
     merge_pot_files(existing_pot_files, po_structs)
-  after
-    ExtractorAgent.stop
   end
 
   # Returns all the .pot files for each of the given `backends`.

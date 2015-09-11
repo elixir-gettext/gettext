@@ -166,6 +166,7 @@ defmodule Gettext.ExtractorTest do
 
     dumped = Enum.map(Extractor.pot_files, fn {k, v} -> {k, IO.iodata_to_binary(v)} end)
     assert dumped == expected
+    Extractor.teardown
     refute Extractor.extracting?
   end
 
