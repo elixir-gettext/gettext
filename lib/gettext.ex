@@ -6,9 +6,6 @@ defmodule Gettext do
   [gettext](https://www.gnu.org/software/gettext/)-based API for working with
   localized and internationalized applications.
 
-  For more information on the original GNU gettext remember to refer to the
-  official [GNU gettext manual](https://www.gnu.org/software/gettext/manual/gettext.html).
-
   ## Using Gettext
 
   To use `Gettext`:
@@ -31,7 +28,7 @@ defmodule Gettext do
                3
 
       # Domain-based translation
-      dgettext "errors", "Here is the string to translate"
+      dgettext "errors", "Here is the error message to translate"
 
   The translation will then be looked up from `.po` files. In the following
   sections we will explore exactly what are those files before we explore
@@ -45,9 +42,6 @@ defmodule Gettext do
       # This is a comment
       msgid "Hello world!"
       msgstr "Ciao mondo!"
-
-  Gettext for Elixir automatically reads and parses PO files in order to make
-  translations available.
 
   Translations for an application must be stored in a directory (usually
   "priv/gettext") with the following structure:
@@ -76,15 +70,11 @@ defmodule Gettext do
 
   By default, Gettext expects translations to be stored under the `priv/gettext`
   directory of an application. For the `:my_app` application, that would be
-  `my_app/priv/gettext`. This behaviour can be changed by specifying a `:priv`
+  in `priv/gettext`. This behaviour can be changed by specifying a `:priv`
   option when using `Gettext`:
 
       # Look for translations in my_app/priv/translations
       use Gettext, otp_app: :my_app, priv: "priv/translations"
-
-  ### Template files (pot)
-
-  TODO: Describe the process with mix tasks.
 
   ## Locale
 

@@ -2,10 +2,18 @@ defmodule Mix.Tasks.Gettext.Extract do
   use Mix.Task
   @recursive true
 
-  @shortdoc "Extracts translations"
+  @shortdoc "Extracts translations from source code"
 
   @doc """
   Extracts translations by recompiling the Elixir source code.
+
+      mix gettext.extract
+
+  It is possible to give the `--merge` option to perform merging
+  for every Gettext backend updated during merge:
+
+      mix gettext.extract --merge
+
   """
   def run(_args) do
     Gettext.Extractor.setup

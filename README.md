@@ -6,9 +6,26 @@
 
 ## Installation
 
-TODO: Install instructions
+  1. Add `:gettext` to your list of dependencies in mix.exs:
 
-TODO: Link to docs
+        def deps do
+          [{:gettext, "~> 0.1"}]
+        end
+
+  2. Ensure `:gettext` is started before your application:
+
+        def application do
+          [applications: [:gettext, :logger]]
+        end
+
+  3. Optional: add the `:gettext` compiler so your backends
+    are recompiled when `.po` files change:
+
+        def project do
+          [compilers: [:gettext] ++ Mix.compilers]
+        end
+
+Documentation for the main `Gettext` module and more is available on [hexdocs.pm](http://hexdocs.pm/gettext).
 
 ## Usage
 
@@ -18,12 +35,12 @@ To use gettext, you must define a gettext module:
       use Gettext, otp_app: :my_app
     end
 
-And invoke the gettext API, based on many `*gettext` functions:
+And invoke the gettext API, based on the `*gettext` functions:
 
     import MyApp.Gettext
 
     # Simple translation
-    gettext "Here is the string to translate"
+    gettext "Here is one string to translate"
 
     # Plural translation
     ngettext "Here is the string to translate",
@@ -31,25 +48,54 @@ And invoke the gettext API, based on many `*gettext` functions:
              3
 
     # Domain-based translation
-    dgettext "errors", "Here is the string to translate"
+    dgettext "errors", "Here is an error message to translate"
 
-Translations in gettext are stored in Portable Object files (`.po`). The default domain should be placed at `priv/gettext/en/LC_MESSAGES/domain.po` with the following format:
+Translations in gettext are stored in Portable Object files (`.po`). Files must be placed at `priv/gettext/en/LC_MESSAGES/domain.po`, where `en` is the locale and `domain` is the domain (the default domain is called `default`).
 
-    #: lib/foo/translation.ex:15
+For example, the translation to `pt_BR` of the first two `*gettext` calls in the snippet above must be placed in the `priv/gettext/pt_BR/LC_MESSAGES/default.po` file with contents:
+
+    msgid "Here is one string to translate"
+    msgstr "Aqui está um texto para traduzir"
+
     msgid "Here is the string to translate"
-    msgstr "Aqui está o texto para traduzir"
+    msgid_plural "Here are the strings to translate"
+    msgstr[0] "Aqui está o texto para traduzir"
+    msgstr[1] "Aqui estão os textos para traduzir"
 
-`.po` are text based and can be editted directly by translators. Some may even use existing tools for managing them, such as [Poedit](http://poedit.net/).
+`.po` are text based and can be edited directly by translators. Some may even use existing tools for managing them, such as [Poedit](http://poedit.net/).
 
-### Auto-synchronization
+Finally, because translations are based on strings, your source code does not lose readability as you still see literal strings, like `gettext "here is an example"`, instead of paths like `translate "some.path.convention"`.
 
-Because translations are based on strings, your source code does not lose readability as you still see literal strings, like `gettext "here is an example"`, instead of paths like `translate "some.path.convention"`. Furthermore, by adding `gettext "here is an example"`, your code continues to work as before, as `gettext` will return the given string if no translation is found.
+Read the documentation for the `Gettext` module for more information on locales, interpolation, pluralzation and other features.
 
-Finally, due to the properties above, `gettext` is also able to synchronize `.po` files with your source code. For example, if you add the following to an Elixir file:
+## Workflow
 
-    gettext "Welcome back!"
+`gettext` is able to automatically extract transformations from your source code, alleaviting developers and translators from the repetitive and error-prone work of maintaining translation files.
 
-Running `mix gettext.extract` will automatically sync all existing entries to `.pot` (template files). `.pot` files can then be merged into the `.po` files with `mix gettext.merge`.
+When extracted from source, translations are placed into `.pot` files, which are template files. Those templates files can then be merged into translation files for each specific locale your application is being currently translated to.
+
+In other words, the typical workflow looks like this:
+
+  1. Add `gettext` calls to your source code. No need to touch translation files
+     at this point as gettext will return the given string if no translation
+     available:
+
+        gettext "Welcome back!"
+
+  2. Once source changes are complete, run `mix gettext.extract` to automatically
+     sync all existing entries to `.pot` (template files) in `priv/gettext`:
+
+        mix gettext.extract
+
+  3. `.pot` files can then be merged into the `.po` files with `mix gettext.merge`:
+
+        # Merge .pot into all locales
+        mix gettext.merge priv/gettext
+
+        # Merge .pot into one specific locale
+        mix gettext.merge priv/gettext --locale en
+
+It is also possible to execute both extract and merge operation in one step with `mix gettext.extract --merge`.
 
 ## License
 
