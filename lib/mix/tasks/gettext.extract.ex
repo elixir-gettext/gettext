@@ -72,8 +72,8 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   defp run_merge(changed_pot_files) do
     changed_pot_files
-    |> Enum.group_by(&Path.dirname/1)
-    |> Map.keys
+    |> Enum.map(&Path.dirname/1)
+    |> Enum.uniq
     |> Enum.each(fn priv -> Mix.Task.run("gettext.merge", [priv]) end)
   end
 end
