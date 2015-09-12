@@ -8,22 +8,28 @@
 
   1. Add `:gettext` to your list of dependencies in mix.exs:
 
-        def deps do
-          [{:gettext, "~> 0.1"}]
-        end
+    ```elixir
+    def deps do
+      [{:gettext, "~> 0.1"}]
+    end
+    ```
 
   2. Ensure `:gettext` is started before your application:
 
-        def application do
-          [applications: [:gettext, :logger]]
-        end
+    ```elixir
+    def application do
+      [applications: [:gettext, :logger]]
+    end
+    ```
 
   3. Optional: add the `:gettext` compiler so your backends
     are recompiled when `.po` files change:
 
-        def project do
-          [compilers: [:gettext] ++ Mix.compilers]
-        end
+    ```elixir
+    def project do
+      [compilers: [:gettext] ++ Mix.compilers]
+    end
+    ```
 
 Documentation for the main `Gettext` module and more is available on [hexdocs.pm](http://hexdocs.pm/gettext).
 
@@ -31,36 +37,42 @@ Documentation for the main `Gettext` module and more is available on [hexdocs.pm
 
 To use gettext, you must define a gettext module:
 
-    defmodule MyApp.Gettext do
-      use Gettext, otp_app: :my_app
-    end
+```elixir
+defmodule MyApp.Gettext do
+  use Gettext, otp_app: :my_app
+end
+```
 
 And invoke the gettext API, based on the `*gettext` functions:
 
-    import MyApp.Gettext
+```elixir
+import MyApp.Gettext
 
-    # Simple translation
-    gettext "Here is one string to translate"
+# Simple translation
+gettext "Here is one string to translate"
 
-    # Plural translation
-    ngettext "Here is the string to translate",
-             "Here are the strings to translate",
-             3
+# Plural translation
+ngettext "Here is the string to translate",
+         "Here are the strings to translate",
+         3
 
-    # Domain-based translation
-    dgettext "errors", "Here is an error message to translate"
+# Domain-based translation
+dgettext "errors", "Here is an error message to translate"
+```
 
 Translations in gettext are stored in Portable Object files (`.po`). Files must be placed at `priv/gettext/en/LC_MESSAGES/domain.po`, where `en` is the locale and `domain` is the domain (the default domain is called `default`).
 
 For example, the translation to `pt_BR` of the first two `*gettext` calls in the snippet above must be placed in the `priv/gettext/pt_BR/LC_MESSAGES/default.po` file with contents:
 
-    msgid "Here is one string to translate"
-    msgstr "Aqui está um texto para traduzir"
+```pot
+msgid "Here is one string to translate"
+msgstr "Aqui está um texto para traduzir"
 
-    msgid "Here is the string to translate"
-    msgid_plural "Here are the strings to translate"
-    msgstr[0] "Aqui está o texto para traduzir"
-    msgstr[1] "Aqui estão os textos para traduzir"
+msgid "Here is the string to translate"
+msgid_plural "Here are the strings to translate"
+msgstr[0] "Aqui está o texto para traduzir"
+msgstr[1] "Aqui estão os textos para traduzir"
+```
 
 `.po` are text based and can be edited directly by translators. Some may even use existing tools for managing them, such as [Poedit](http://poedit.net/).
 
