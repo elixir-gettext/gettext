@@ -3,35 +3,38 @@ defmodule Gettext.Mixfile do
 
   @version "0.0.1"
 
+  @description "Internationalization and localization through gettext"
+
+  @repo_url "https://github.com/elixir-lang/gettext"
+
   def project do
     [app: :gettext,
      version: @version,
      elixir: "~> 1.1-beta",
+     build_embedded: Mix.env == :prod,
      deps: deps,
+
+     # Hex
+     package: hex_package,
+     description: @description,
 
      # Docs
      name: "Gettext",
      docs: [source_ref: "v#{@version}", main: "Gettext",
-            source_url: "https://github.com/elixir-lang/gettext"]]
+            source_url: @repo_url]]
   end
 
-  # Configuration for the OTP application
-  #
-  # Type `mix help compile.app` for more information
   def application do
     [applications: [:logger],
      env: [default_locale: "en"]]
   end
 
-  # Dependencies can be Hex packages:
-  #
-  #   {:mydep, "~> 0.3.0"}
-  #
-  # Or git/path repositories:
-  #
-  #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-  #
-  # Type `mix help deps` for more examples and options
+  def hex_package do
+    [contributors: ["Andrea Leopardi", "José Valim"],
+     licenses: ["Apache 2.0"],
+     links: %{"GitHub" => @repo_url}]
+  end
+
   defp deps do
     [{:earmark, "~> 0.1", only: :docs},
      {:ex_doc, "~> 0.7", only: :docs}]
