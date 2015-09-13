@@ -7,7 +7,6 @@ defmodule Gettext.PO do
   alias Gettext.PO.Tokenizer
   alias Gettext.PO.Parser
   alias Gettext.PO.SyntaxError
-  alias Gettext.PO.Translations
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 

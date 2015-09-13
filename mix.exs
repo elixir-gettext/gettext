@@ -1,10 +1,9 @@
 defmodule Gettext.Mixfile do
   use Mix.Project
 
-  @version "0.0.1"
+  @version "0.5.0"
 
   @description "Internationalization and localization through gettext"
-
   @repo_url "https://github.com/elixir-lang/gettext"
 
   def project do
@@ -19,7 +18,7 @@ defmodule Gettext.Mixfile do
      description: @description,
 
      # Docs
-     name: "Gettext",
+     name: "gettext",
      docs: [source_ref: "v#{@version}", main: "Gettext",
             source_url: @repo_url]]
   end
