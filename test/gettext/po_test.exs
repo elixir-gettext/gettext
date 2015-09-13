@@ -114,7 +114,8 @@ defmodule Gettext.POTest do
 
   test "parse_file!/1: populates the :file field with the path of the parsed file" do
     fixture_path = Path.expand("../fixtures/valid.po", __DIR__)
-    assert {:ok, %PO{file: ^fixture_path}} = PO.parse_file(fixture_path)
+    assert %PO{} = po = PO.parse_file!(fixture_path)
+    assert po.file == fixture_path
   end
 
   test "parse_file!/1: valid file contents" do
