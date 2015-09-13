@@ -78,11 +78,11 @@ msgstr[1] "Aqui estão os textos para traduzir"
 
 Finally, because translations are based on strings, your source code does not lose readability as you still see literal strings, like `gettext "here is an example"`, instead of paths like `translate "some.path.convention"`.
 
-Read the documentation for the `Gettext` module for more information on locales, interpolation, pluralzation and other features.
+Read the documentation for the `Gettext` module for more information on locales, interpolation, pluralization and other features.
 
 ## Workflow
 
-`gettext` is able to automatically extract transformations from your source code, alleaviting developers and translators from the repetitive and error-prone work of maintaining translation files.
+`gettext` is able to automatically extract transformations from your source code, alleviating developers and translators from the repetitive and error-prone work of maintaining translation files.
 
 When extracted from source, translations are placed into `.pot` files, which are template files. Those templates files can then be merged into translation files for each specific locale your application is being currently translated to.
 
@@ -107,7 +107,7 @@ In other words, the typical workflow looks like this:
         # Merge .pot into one specific locale
         mix gettext.merge priv/gettext --locale en
 
-It is also possible to execute both extract and merge operation in one step with `mix gettext.extract --merge`.
+It is also possible to execute both the extract and merge operations in one step with `mix gettext.extract --merge`.
 
 ## License
 
