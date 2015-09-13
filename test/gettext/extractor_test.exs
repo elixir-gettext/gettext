@@ -30,11 +30,8 @@ defmodule Gettext.ExtractorTest do
 
     structs = Extractor.merge_pot_files([paths.tomerge, paths.ignored], extracted_po_structs)
 
-    {_, contents} = List.keyfind(structs, paths.ignored, 0)
-    assert IO.iodata_to_binary(contents) == """
-    msgid "ignored"
-    msgstr ""
-    """
+    # Unchanged files are not returned
+    assert List.keyfind(structs, paths.ignored, 0) == nil
 
     {_, contents} = List.keyfind(structs, paths.tomerge, 0)
     assert IO.iodata_to_binary(contents) == """
