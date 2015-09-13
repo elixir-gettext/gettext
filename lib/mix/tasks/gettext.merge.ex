@@ -2,6 +2,29 @@ defmodule Mix.Tasks.Gettext.Merge do
   use Mix.Task
   @recursive true
 
+  @shortdoc "Merge template files into translation files"
+
+  @moduledoc """
+  Merges template files (`.pot` files) into translation files (`.po` files).
+
+  If two files are given as arguments, they must be a `.po` and a `.po`/`.pot`
+  file). The first one is the old PO file, while the second one is the last
+  generated one. They are merged and written over the first file.
+
+      mix gettext.merge priv/gettext/en/LC_MESSAGES/default.pot priv/gettext/default.pot
+
+  If one file is given as an argument, then that file must be a directory
+  containing gettext translations (with `.pot` files at the root level alongside
+  locale directories).
+
+      mix gettext.merge DIR
+
+  If the `--locale LOCALE` option is given, then only the PO files in
+  `DIR/LOCALE/LC_MESSAGES` will be merged with the POT files in `DIR`. If no
+  options are given, then all the PO files for all locales under `DIR` are
+  merged with the POT files in `DIR`.
+  """
+
   alias Gettext.Merger
 
   def run(args) do

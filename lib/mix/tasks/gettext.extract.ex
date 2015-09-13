@@ -4,10 +4,15 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   @shortdoc "Extracts translations from source code"
 
-  @doc """
+  @moduledoc """
   Extracts translations by recompiling the Elixir source code.
 
       mix gettext.extract
+
+  Translations are extracted into POT (Portable Object Template) files (with a
+  `.pot` extension). The location of these files is determined by the `:otp_app`
+  and `:priv` options given by gettext modules when they call `use Gettext`. One
+  POT file is generated for each translation domain.
 
   It is possible to give the `--merge` option to perform merging
   for every Gettext backend updated during merge:
