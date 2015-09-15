@@ -104,6 +104,11 @@ defmodule Gettext.PO.TokenizerTest do
     assert tokenize(str) == {:ok, [
       {:comment, 1, "#: Single-line reference comment"}
     ]}
+
+    str = "#, Flags comment"
+    assert tokenize(str) == {:ok, [
+      {:comment, 1, "#, Flags comment"}
+    ]}
   end
 
   test "multi-line comments are supported" do
