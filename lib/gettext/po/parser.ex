@@ -31,9 +31,9 @@ defmodule Gettext.PO.Parser do
   end
 
   defp to_struct({:translation, translation}),
-    do: struct(Translation, translation) |> extract_references()
+    do: struct(Translation, translation) |> extract_references() |> set_fuzziness()
   defp to_struct({:plural_translation, translation}),
-    do: struct(PluralTranslation, translation) |> extract_references()
+    do: struct(PluralTranslation, translation) |> extract_references() |> set_fuzziness()
 
   defp parse_error({:error, {line, _module, reason}}) do
     {:error, line, IO.chardata_to_string(reason)}
@@ -51,6 +51,15 @@ defmodule Gettext.PO.Parser do
   defp parse_reference(ref) do
     [file, line] = String.split(ref, ":")
     {file, String.to_integer(line)}
+  end
+
+  defp set_fuzziness(%{__struct__: _, comments: comments} = translation) do
+    flags = Enum.flat_map comments, fn
+      "#," <> flags -> String.split(flags, ~r/\s+/, trim: true)
+      _             -> []
+    end
+
+    %{translation | fuzzy: Enum.member?(flags, "fuzzy")}
   end
 
   # If the first translation has an empty msgid, it's assumed to represent

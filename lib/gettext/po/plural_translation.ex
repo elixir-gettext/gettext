@@ -21,6 +21,8 @@ defmodule Gettext.PO.PluralTranslation do
       `["# foo"]`).
     * `references` - a list of references (files this translation comes from) in
       the form `{file, line}`.
+    * `fuzzy` - a boolean that tells whether this translation was marked as
+      fuzzy.
     * `po_source_line` - the line this translation is on in the PO file where it
       comes from.
 
@@ -32,9 +34,10 @@ defmodule Gettext.PO.PluralTranslation do
     msgstr: %{non_neg_integer => [binary]},
     comments: [binary],
     references: [{binary, pos_integer}],
+    fuzzy: boolean,
     po_source_line: pos_integer,
   }
 
   defstruct msgid: nil, msgid_plural: nil, msgstr: nil,
-            comments: [], references: [], po_source_line: nil
+            comments: [], references: [], fuzzy: false, po_source_line: nil
 end

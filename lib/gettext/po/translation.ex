@@ -20,6 +20,8 @@ defmodule Gettext.PO.Translation do
       `["# foo"]`).
     * `references` - a list of references (files this translation comes from) in
       the form `{file, line}`.
+    * `fuzzy` - a boolean that tells whether this translation was marked as
+      fuzzy.
     * `po_source_line` - the line this translation is on in the PO file where it
       comes from.
 
@@ -30,6 +32,7 @@ defmodule Gettext.PO.Translation do
     msgstr: [binary],
     comments: [binary],
     references: [{binary, pos_integer}],
+    fuzzy: boolean,
     po_source_line: pos_integer,
   }
 
@@ -37,5 +40,6 @@ defmodule Gettext.PO.Translation do
             msgstr: nil,
             comments: [],
             references: [],
+            fuzzy: false,
             po_source_line: nil
 end
