@@ -162,6 +162,19 @@ defmodule Gettext.PO.ParserTest do
     ]}]} = parsed
   end
 
+  test "if there's a 'fuzzy' flag, it sets the :fuzzy field of a translation to true" do
+    parsed = Parser.parse([
+      {:comment, 1, "#, flag fuzzy other-flag"},
+      {:msgid, 2}, {:str, 2, "foo"},
+      {:msgstr, 3}, {:str, 3, "bar"},
+    ])
+
+    assert {:ok, [], [%Translation{
+      fuzzy: true,
+      comments: ["#, flag fuzzy other-flag"],
+    }]} = parsed
+  end
+
   test "the line of a translation is the line of its msgid" do
     parsed = Parser.parse([
       {:msgid, 10}, {:str, 10, "foo"},
