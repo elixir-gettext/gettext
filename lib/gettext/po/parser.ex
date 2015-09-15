@@ -31,9 +31,9 @@ defmodule Gettext.PO.Parser do
   end
 
   defp to_struct({:translation, translation}),
-    do: struct(Translation, translation) |> extract_references()
+    do: struct(Translation, translation) |> extract_references() |> extract_flags()
   defp to_struct({:plural_translation, translation}),
-    do: struct(PluralTranslation, translation) |> extract_references()
+    do: struct(PluralTranslation, translation) |> extract_references() |> extract_flags()
 
   defp parse_error({:error, {line, _module, reason}}) do
     {:error, line, IO.chardata_to_string(reason)}
@@ -51,6 +51,20 @@ defmodule Gettext.PO.Parser do
   defp parse_reference(ref) do
     [file, line] = String.split(ref, ":")
     {file, String.to_integer(line)}
+  end
+
+  defp extract_flags(%{__struct__: _, comments: comments} = translation) do
+    flags =
+      comments
+      |> Stream.filter(&match?("#," <> _, &1))
+      |> Stream.flat_map(&split_flags/1)
+      |> Enum.into(MapSet.new)
+
+    %{translation | flags: flags}
+  end
+
+  defp split_flags("#," <> flags) do
+    String.split(flags, ~r/\s+/, trim: true)
   end
 
   # If the first translation has an empty msgid, it's assumed to represent

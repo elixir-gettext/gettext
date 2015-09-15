@@ -162,6 +162,19 @@ defmodule Gettext.PO.ParserTest do
     ]}]} = parsed
   end
 
+  test "flags are extracted in to the :flags field of a translation" do
+    parsed = Parser.parse([
+      {:comment, 1, "#, flag other-flag"},
+      {:comment, 2, "# comment"},
+      {:comment, 3, "#, other-flag other-other-flag"},
+      {:msgid, 4}, {:str, 4, "foo"},
+      {:msgstr, 5}, {:str, 5, "bar"},
+    ])
+
+    assert {:ok, [], [%Translation{flags: flags}]} = parsed
+    assert Enum.sort(flags) == ~w(flag other-flag other-other-flag)
+  end
+
   test "the line of a translation is the line of its msgid" do
     parsed = Parser.parse([
       {:msgid, 10}, {:str, 10, "foo"},
