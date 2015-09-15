@@ -250,6 +250,19 @@ defmodule Gettext.POTest do
     """
   end
 
+  test "dump/1: flags" do
+    flags = ~w(foo bar baz) |> Enum.into(MapSet.new)
+    po = %PO{translations: [
+      %Translation{flags: flags, comments: ["#, ignored-flags"], msgid: ["foo"], msgstr: ["bar"]},
+    ]}
+
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+    #, bar baz foo
+    msgid "foo"
+    msgstr "bar"
+    """
+  end
+
   test "dump/1: headers" do
     po = %PO{translations: [], headers: [
       "Content-Type: text/plain\n",

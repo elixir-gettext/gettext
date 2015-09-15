@@ -31,7 +31,7 @@ defmodule Gettext.PO.Translation do
     msgstr: [binary],
     comments: [binary],
     references: [{binary, pos_integer}],
-    flags: nil | Set.t,
+    flags: Set.t,
     po_source_line: pos_integer,
   }
 
@@ -39,6 +39,6 @@ defmodule Gettext.PO.Translation do
             msgstr: nil,
             comments: [],
             references: [],
-            flags: nil,
+            flags: MapSet.new,
             po_source_line: nil
 end
