@@ -35,8 +35,11 @@ defmodule Gettext.PO do
       ...> msgid "foo"
       ...> msgstr "bar"
       ...> \"""
-      iex> po.translations
-      [%Gettext.PO.Translation{msgid: ["foo"], msgstr: ["bar"], po_source_line: 1}]
+      iex> [t] = po.translations
+      iex> t.msgid
+      ["foo"]
+      iex> t.msgstr
+      ["bar"]
       iex> po.headers
       []
 
