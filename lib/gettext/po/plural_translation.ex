@@ -33,7 +33,7 @@ defmodule Gettext.PO.PluralTranslation do
     msgstr: %{non_neg_integer => [binary]},
     comments: [binary],
     references: [{binary, pos_integer}],
-    flags: Set.t,
+    flags: MapSet.t,
     po_source_line: pos_integer,
   }
 
