@@ -235,12 +235,7 @@ defmodule Gettext.PO do
   end
 
   defp dump_comments(comments) do
-    # We don't dump neither reference nor flag comments as they're fields in the
-    # translation.
-    comments
-    |> Enum.reject(&match?("#:" <> _, &1))
-    |> Enum.reject(&match?("#," <> _, &1))
-    |> Enum.map(&[&1, ?\n])
+    Enum.map(comments, &[&1, ?\n])
   end
 
   defp dump_references(references) do

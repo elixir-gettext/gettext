@@ -203,13 +203,11 @@ defmodule Gettext.POTest do
   end
 
   test "dump/1: translation with comments" do
-    # Reference comments are ignored.
-
     po = %PO{headers: [], translations: [
       %Translation{
         msgid: ["foo"],
         msgstr: ["bar"],
-        comments: ["# comment", "#: foo.ex:32", "# another comment"],
+        comments: ["# comment", "# another comment"],
       }
     ]}
 
@@ -251,12 +249,16 @@ defmodule Gettext.POTest do
   end
 
   test "dump/1: flags" do
-    flags = ~w(foo bar baz) |> Enum.into(MapSet.new)
     po = %PO{translations: [
-      %Translation{flags: flags, comments: ["#, ignored-flags"], msgid: ["foo"], msgstr: ["bar"]},
+      %Translation{
+        flags: ~w(foo bar baz) |> Enum.into(MapSet.new),
+        comments: ["# other comment"],
+        msgid: ["foo"],
+        msgstr: ["bar"]},
     ]}
 
     assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+    # other comment
     #, bar baz foo
     msgid "foo"
     msgstr "bar"
@@ -310,13 +312,13 @@ defmodule Gettext.POTest do
         %Translation{
           msgid: ["foo"],
           msgstr: ["bar"],
-          comments: ["# comment", "#: foo.ex:32", "# another comment"],
+          comments: ["# comment", "# another comment"],
         },
         %PluralTranslation{
           msgid: ["a foo, %{name}"],
           msgid_plural: ["%{count} foos, %{name}"],
           msgstr: %{0 => ["a bar, %{name}"], 1 => ["%{count} bars, %{name}"]},
-          comments: ["# comment 1", "# comment 2", "#: lib/ref.ex:29"],
+          comments: ["# comment 1", "# comment 2"],
         }
       ],
       headers: [

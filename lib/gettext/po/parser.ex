@@ -40,12 +40,13 @@ defmodule Gettext.PO.Parser do
   end
 
   defp extract_references(%{__struct__: _, comments: comments} = translation) do
+    {reference_comments, other_comments} = Enum.partition(comments, &match?("#:" <> _, &1))
     references =
-      for "#:" <> contents <- comments,
+      for "#:" <> contents <- reference_comments,
         (contents = String.strip(contents)) != "",
         do: parse_reference(contents)
 
-    %{translation | references: references}
+    %{translation | references: references, comments: other_comments}
   end
 
   defp parse_reference(ref) do
@@ -54,17 +55,15 @@ defmodule Gettext.PO.Parser do
   end
 
   defp extract_flags(%{__struct__: _, comments: comments} = translation) do
-    flags =
-      comments
-      |> Stream.filter(&match?("#," <> _, &1))
-      |> Stream.flat_map(&split_flags/1)
-      |> Enum.into(MapSet.new)
-
-    %{translation | flags: flags}
+    {flag_comments, other_comments} = Enum.partition(comments, &match?("#," <> _, &1))
+    %{translation | flags: parse_flags(flag_comments), comments: other_comments}
   end
 
-  defp split_flags("#," <> flags) do
-    String.split(flags, ~r/\s+/, trim: true)
+  defp parse_flags(flag_comments) do
+    flag_comments
+    |> Stream.map(fn("#," <> content) -> content end)
+    |> Stream.flat_map(&String.split(&1, ~r/\s+/, trim: true))
+    |> Enum.into(MapSet.new)
   end
 
   # If the first translation has an empty msgid, it's assumed to represent

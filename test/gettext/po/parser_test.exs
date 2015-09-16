@@ -82,7 +82,6 @@ defmodule Gettext.PO.ParserTest do
       msgstr: ["bar"],
       comments: [
         "# This is a translation",
-        "#: lib/foo.ex:32",
         "# Ah, another comment!",
       ],
       references: [{"lib/foo.ex", 32}],
@@ -155,11 +154,17 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 1}, {:str, 3, "bar"},
     ])
 
-    assert {:ok, [], [%Translation{references: [
+    assert {:ok, [], [%Translation{} = t]} = parsed
+    assert t.references == [
       {"foo.ex", 1},
       {"filename with spaces.ex", 12},
       {"another/ref/comment.ex", 83},
-    ]}]} = parsed
+    ]
+    # All the reference comments are removed.
+    assert t.comments == [
+      "# Not a reference comment",
+      "# : Not a reference comment either",
+    ]
   end
 
   test "flags are extracted in to the :flags field of a translation" do
@@ -171,8 +176,9 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 5}, {:str, 5, "bar"},
     ])
 
-    assert {:ok, [], [%Translation{flags: flags}]} = parsed
-    assert Enum.sort(flags) == ~w(flag other-flag other-other-flag)
+    assert {:ok, [], [%Translation{} = t]} = parsed
+    assert Enum.sort(t.flags) == ~w(flag other-flag other-other-flag)
+    assert t.comments == ["# comment"]
   end
 
   test "the line of a translation is the line of its msgid" do
