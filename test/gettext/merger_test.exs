@@ -56,4 +56,14 @@ defmodule Gettext.MergerTest do
     assert %PO{translations: [t]} = Merger.merge(old_po, new_pot)
     assert t.references == [{"bar.ex", 1}]
   end
+
+  test "merge/2: new translations are fuzzy matched against obsolete translations" do
+    old_po = %PO{translations: [%Translation{msgid: "hello world!", msgstr: ["foo"]}]}
+    new_pot = %PO{translations: [%Translation{msgid: "hello worlds!"}]}
+
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot)
+    assert MapSet.member?(t.flags, "fuzzy")
+    assert t.msgid == "hello worlds!"
+    assert t.msgstr == ["foo"]
+  end
 end

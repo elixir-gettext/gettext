@@ -5,6 +5,8 @@ defmodule Gettext.Merger do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
+  @min_jaro_distance 0.8
+
   @doc """
   Merges a PO file with a POT file given their paths.
 
@@ -53,17 +55,45 @@ defmodule Gettext.Merger do
   end
 
   defp merge_translations(old, new) do
-    merged = Enum.flat_map old, fn(t) ->
+    {new, merged, obsolete} = merge_matching_translations(old, new)
+    new = match_fuzzy_translations(new, obsolete)
+    merged ++ new
+  end
+
+  defp merge_matching_translations(old, new) do
+    {new, merged, obsolete} = Enum.reduce old, {new, [], []}, fn t, {new, merged, obsolete} ->
       if same = PO.Translations.find(new, t) do
-        [merge_two_translations(t, same)]
+        {List.delete(new, same), [merge_two_translations(t, same)|merged], obsolete}
       else
-        []
+        {new, merged, [t|obsolete]}
       end
     end
 
-    new = Enum.reject(new, &PO.Translations.find(old, &1))
+    {new, Enum.reverse(merged), Enum.reverse(obsolete)}
+  end
 
-    merged ++ new
+  defp match_fuzzy_translations(new, obsolete) do
+    Enum.map new, fn(t) ->
+      if match = find_fuzzy_match(t, obsolete) do
+        %{t | msgstr: match.msgstr} |> PO.Translations.make_fuzzy
+      else
+        t
+      end
+    end
+  end
+
+  defp find_fuzzy_match(target, translations) do
+    candidates =
+      translations
+      |> Enum.map(fn(t) -> {t, PO.Translations.jaro_distance(t, target)} end)
+      |> Enum.filter(fn({_, jaro_distance}) -> jaro_distance >= @min_jaro_distance end)
+
+    if candidates == [] do
+      nil
+    else
+      {t, _jaro_distance} = Enum.max_by(candidates, fn({_, jaro_distance}) -> jaro_distance end)
+      t
+    end
   end
 
   defp merge_two_translations(%Translation{} = old, %Translation{} = new) do
