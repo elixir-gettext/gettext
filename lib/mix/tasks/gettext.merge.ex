@@ -97,9 +97,15 @@ defmodule Mix.Tasks.Gettext.Merge do
     pot_dir
     |> Path.join("**/*.pot")
     |> Path.wildcard()
-    |> Enum.map(&find_matching_po(&1, po_dir))
-    |> Enum.map(&merge_or_create/1)
-    |> Enum.each(&write_file/1)
+    |> Enum.map(fn pot_file ->
+      Task.async fn ->
+        pot_file
+        |> find_matching_po(po_dir)
+        |> merge_or_create()
+        |> write_file()
+      end
+    end)
+    |> Enum.map(&Task.await/1)
 
     # Now warn for every PO file that has no matching POT file.
     po_dir
