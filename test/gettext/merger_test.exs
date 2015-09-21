@@ -66,4 +66,17 @@ defmodule Gettext.MergerTest do
     assert t.msgid == "hello worlds!"
     assert t.msgstr == ["foo"]
   end
+
+  test "merge/2: exact matches have precedence over fuzzy matches" do
+    old_po = %PO{translations: [%Translation{msgid: "hello world!", msgstr: ["foo"]},
+                                %Translation{msgid: "hello worlds!", msgstr: ["bar"]}]}
+    new_pot = %PO{translations: [%Translation{msgid: "hello world!"}]}
+
+    # Let's check that the "hello worlds!" translation is discarded even if it's
+    # a fuzzy match for "hello world!".
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot)
+    refute MapSet.member?(t.flags, "fuzzy")
+    assert t.msgid == "hello world!"
+    assert t.msgstr == ["foo"]
+  end
 end

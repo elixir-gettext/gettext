@@ -4,6 +4,7 @@ defmodule Gettext.Merger do
   alias Gettext.PO
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
+  alias Gettext.Fuzzy
 
   @min_jaro_distance 0.8
 
@@ -55,44 +56,43 @@ defmodule Gettext.Merger do
   end
 
   defp merge_translations(old, new) do
-    {new, merged, obsolete} = merge_matching_translations(old, new)
-    new = match_fuzzy_translations(new, obsolete)
-    merged ++ new
-  end
+    # First, we convert the list of old translations into a dict for
+    # constant-time lookup.
+    old = for t <- old, into: HashDict.new, do: {PO.Translations.key(t), t}
 
-  defp merge_matching_translations(old, new) do
-    {new, merged, obsolete} = Enum.reduce old, {new, [], []}, fn t, {new, merged, obsolete} ->
-      if same = PO.Translations.find(new, t) do
-        {List.delete(new, same), [merge_two_translations(t, same)|merged], obsolete}
-      else
-        {new, merged, [t|obsolete]}
-      end
+    # Then, we do a first pass through the list of new translation and we mark
+    # all exact matches as {key, translation, exact_match}, taking the exact matches
+    # out of `old` at the same time.
+    {new, old} = Enum.map_reduce new, old, fn(t, old) ->
+      key = PO.Translations.key(t)
+      {same, old} = HashDict.pop(old, key)
+      {{key, t, same}, old}
     end
 
-    {new, Enum.reverse(merged), Enum.reverse(obsolete)}
-  end
-
-  defp match_fuzzy_translations(new, obsolete) do
-    Enum.map new, fn(t) ->
-      if match = find_fuzzy_match(t, obsolete) do
-        %{t | msgstr: match.msgstr} |> PO.Translations.make_fuzzy
-      else
-        t
-      end
+    # Now, tuples like {key, translation, nil} identify translations with no
+    # exact match. For those translations, we look for a fuzzy match. We ditch
+    # the obsolete translations altogether.
+    {new, _obsolete} = Enum.map_reduce new, old, fn
+      {key, t, nil}, old       -> find_fuzzy_match(key, t, old)
+      {_, t, exact_match}, old -> {merge_two_translations(exact_match, t), old}
     end
+
+    new
   end
 
-  defp find_fuzzy_match(target, translations) do
+  # Returns {fuzzy_matched_translation, updated_old_translations} if a match is
+  # found, otherwise {original_translation, old_translations}.
+  defp find_fuzzy_match(key, target, old_translations) do
     candidates =
-      translations
-      |> Enum.map(fn(t) -> {t, PO.Translations.jaro_distance(t, target)} end)
-      |> Enum.filter(fn({_, jaro_distance}) -> jaro_distance >= @min_jaro_distance end)
+      old_translations
+      |> Enum.map(fn {k, t} -> {k, t, Fuzzy.jaro_distance(key, k)} end)
+      |> Enum.filter(fn {_, _, jaro_distance} -> jaro_distance >= @min_jaro_distance end)
 
     if candidates == [] do
-      nil
+      {target, old_translations}
     else
-      {t, _jaro_distance} = Enum.max_by(candidates, fn({_, jaro_distance}) -> jaro_distance end)
-      t
+      {k, t, _jaro_distance} = Enum.max_by(candidates, fn {_, _, jaro_distance} -> jaro_distance end)
+      {Fuzzy.merge(target, t), HashDict.delete(old_translations, k)}
     end
   end
 
