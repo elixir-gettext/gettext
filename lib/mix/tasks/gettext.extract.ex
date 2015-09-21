@@ -24,10 +24,12 @@ defmodule Mix.Tasks.Gettext.Extract do
     pot_files = extract()
 
     for {path, contents} <- pot_files do
-      File.mkdir_p!(Path.dirname(path))
-      File.write!(path, contents)
-      Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
-    end
+      Task.async fn ->
+        File.mkdir_p!(Path.dirname(path))
+        File.write!(path, contents)
+        Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
+      end
+    end |> Enum.map(&Task.await/1)
 
     case args do
       [] ->
@@ -63,6 +65,7 @@ defmodule Mix.Tasks.Gettext.Extract do
     pot_files
     |> Enum.map(fn {path, _} -> Path.dirname(path) end)
     |> Enum.uniq
-    |> Enum.each(&Mix.Tasks.Gettext.Merge.run([&1]))
+    |> Enum.map(&Task.async(fn -> Mix.Tasks.Gettext.Merge.run([&1]) end))
+    |> Enum.map(&Task.await/1)
   end
 end
