@@ -98,20 +98,9 @@ defmodule Gettext.PO.Translations do
   This function just adds the `"fuzzy"` flag to the `:flags` field of the given
   translation.
   """
-  @spec make_fuzzy(Translation.t) :: Translation.t
-  @spec make_fuzzy(PluralTranslation.t) :: PluralTranslation.t
-  def make_fuzzy(%{__struct__: s, flags: flags} = t) when is_translation(s) do
+  @spec mark_as_fuzzy(Translation.t) :: Translation.t
+  @spec mark_as_fuzzy(PluralTranslation.t) :: PluralTranslation.t
+  def mark_as_fuzzy(%{__struct__: s, flags: flags} = t) when is_translation(s) do
     %{t | flags: MapSet.put(flags, "fuzzy")}
-  end
-
-  @doc """
-  Returns the Jaro distance between the msgids of the given translations.
-
-  If the translations are not of the same type (e.g., a translation and a plural
-  translation), `-1` is returned.
-  """
-  @spec jaro_distance(Gettext.PO.translation, Gettext.PO.translation) :: 0..1 | -1
-  def jaro_distance(t1, t2) do
-    String.jaro_distance(IO.iodata_to_binary(t1.msgid), IO.iodata_to_binary(t2.msgid))
   end
 end
