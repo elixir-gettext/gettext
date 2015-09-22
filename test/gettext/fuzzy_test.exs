@@ -5,6 +5,12 @@ defmodule Gettext.FuzzyTest do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
+  test "matcher/1" do
+    assert Fuzzy.matcher(0.5).("foo", "foo") == {:match, 1.0}
+    assert Fuzzy.matcher(0.5).("foo", "bar") == :nomatch
+    assert Fuzzy.matcher(0.0).("foo", "bar") == {:match, 0.0}
+  end
+
   test "jaro_distance/2" do
     assert Fuzzy.jaro_distance("foo", {"foo", "bar"}) == 1.0
     assert Fuzzy.jaro_distance({"foo", "bar"}, "foo") == 1.0

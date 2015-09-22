@@ -83,15 +83,17 @@ defmodule Gettext.Merger do
   # Returns {fuzzy_matched_translation, updated_old_translations} if a match is
   # found, otherwise {original_translation, old_translations}.
   defp find_fuzzy_match(key, target, old_translations) do
+    matcher = Fuzzy.matcher(@min_jaro_distance)
+
     candidates =
       old_translations
-      |> Enum.map(fn {k, t} -> {k, t, Fuzzy.jaro_distance(key, k)} end)
-      |> Enum.filter(fn {_, _, jaro_distance} -> jaro_distance >= @min_jaro_distance end)
+      |> Enum.map(fn {k, t} -> {k, t, matcher.(k, key)} end)
+      |> Enum.reject(&match?({_, _, :nomatch}, &1))
 
     if candidates == [] do
       {target, old_translations}
     else
-      {k, t, _jaro_distance} = Enum.max_by(candidates, fn {_, _, jaro_distance} -> jaro_distance end)
+      {k, t, _} = Enum.max_by(candidates, fn {_, _, {:match, distance}} -> distance end)
       {Fuzzy.merge(target, t), HashDict.delete(old_translations, k)}
     end
   end

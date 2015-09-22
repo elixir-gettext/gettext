@@ -5,6 +5,25 @@ defmodule Gettext.Fuzzy do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
+  @type translation_key :: binary | {binary, binary}
+
+  @doc """
+  Returns a matcher function that takes two translation keys and checks if they
+  match.
+
+  `String.jaro_distance/2` (which calculates the Jaro distance) is used to
+  measure the distance between the two translations. `threshold` is the minimum
+  distance that means a match. `{:match, distance}` is returned in case of a
+  match, `:nomatch` otherwise.
+  """
+  @spec matcher(0..1) :: (translation_key, translation_key -> {:match, 0..1} | :nomatch)
+  def matcher(threshold) do
+    fn(old_key, new_key) ->
+      distance = jaro_distance(old_key, new_key)
+      if distance >= threshold, do: {:match, distance}, else: :nomatch
+    end
+  end
+
   @doc """
   Finds the Jaro distance between the msgids of two translations.
 
@@ -12,7 +31,7 @@ defmodule Gettext.Fuzzy do
   the Jaro distance of the msgids of the two translations, even if one (or both)
   of them is a plural translation.
   """
-  @spec jaro_distance(binary | {binary, binary}, binary | {binary, binary}) :: 0..1
+  @spec jaro_distance(translation_key, translation_key) :: 0..1
   def jaro_distance(key1, key2)
 
   # Apparently, msgmerge only looks at the msgid when performing fuzzy
