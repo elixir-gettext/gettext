@@ -14,6 +14,7 @@ defmodule Gettext.Compiler do
     opts             = Module.get_attribute(env.module, :gettext_opts)
     otp_app          = Keyword.fetch!(opts, :otp_app)
     priv             = Keyword.get(opts, :priv, @default_priv)
+    external_file    = Path.join(".compile", priv) |> String.replace("/", "_")
     translations_dir = Application.app_dir(otp_app, priv)
 
     quote do
@@ -22,7 +23,7 @@ defmodule Gettext.Compiler do
 
       # The manifest lives in the root of the priv
       # directory that contains .po/.pot files.
-      @external_resource unquote(Path.join(translations_dir, ".compile.gettext"))
+      @external_resource unquote(Application.app_dir(otp_app, external_file))
 
       if Gettext.Extractor.extracting? do
         Gettext.ExtractorAgent.add_backend(__MODULE__)

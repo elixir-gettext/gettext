@@ -1,8 +1,8 @@
 defmodule Mix.Tasks.Compile.GettextTest do
   use ExUnit.Case, async: true
 
-  @po_path "../../../tmp/compile.gettext" |> Path.expand(__DIR__) |> Path.relative_to_cwd
-  @manifest_path Application.app_dir(:gettext, @po_path)
+  @po_path "../../../tmp/gettext" |> Path.expand(__DIR__) |> Path.relative_to_cwd
+  @manifest_path Application.app_dir(:gettext)
 
   setup do
     File.rm_rf!(@po_path)
@@ -11,45 +11,45 @@ defmodule Mix.Tasks.Compile.GettextTest do
   end
 
   test "touches manifest file when necessary" do
-    assert read_manifest("foo/.compile.gettext") == []
+    assert read_manifest(".compile_tmp_gettext_foo") == []
     assert run([]) == :noop
-    assert read_manifest("foo/.compile.gettext") == []
+    assert read_manifest(".compile_tmp_gettext_foo") == []
 
     # Write .po file out of place
     write_po "hello.po"
     assert run([]) == :noop
-    assert read_manifest("foo/.compile.gettext") == []
+    assert read_manifest(".compile_tmp_gettext_foo") == []
 
     # Write proper .po file
     write_po "foo/en/LC_MESSAGES/hello.po"
     assert run([]) == :ok
-    assert read_manifest("foo/.compile.gettext") ==
-           ["tmp/compile.gettext/foo/en/LC_MESSAGES/hello.po"]
+    assert read_manifest(".compile_tmp_gettext_foo") ==
+           ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
 
     # Write another .po file
     write_po "foo/en/LC_MESSAGES/world.po"
     assert run([]) == :ok
-    assert read_manifest("foo/.compile.gettext") ==
-           ["tmp/compile.gettext/foo/en/LC_MESSAGES/hello.po",
-            "tmp/compile.gettext/foo/en/LC_MESSAGES/world.po"]
+    assert read_manifest(".compile_tmp_gettext_foo") ==
+           ["tmp/gettext/foo/en/LC_MESSAGES/hello.po",
+            "tmp/gettext/foo/en/LC_MESSAGES/world.po"]
 
     # Remove .po file
     remove_po "foo/en/LC_MESSAGES/world.po"
     assert run([]) == :ok
-    assert read_manifest("foo/.compile.gettext") ==
-           ["tmp/compile.gettext/foo/en/LC_MESSAGES/hello.po"]
+    assert read_manifest(".compile_tmp_gettext_foo") ==
+           ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
 
     # Write .po file to another directory
     write_po "bar/en/LC_MESSAGES/world.po"
     assert run([]) == :ok
-    assert read_manifest("foo/.compile.gettext") ==
-           ["tmp/compile.gettext/foo/en/LC_MESSAGES/hello.po"]
+    assert read_manifest(".compile_tmp_gettext_foo") ==
+           ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
 
     # Touch existing .po file
     touch_po "foo/en/LC_MESSAGES/hello.po"
     assert run([]) == :ok
-    assert read_manifest("foo/.compile.gettext") ==
-           ["tmp/compile.gettext/foo/en/LC_MESSAGES/hello.po"]
+    assert read_manifest(".compile_tmp_gettext_foo") ==
+           ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
   end
 
   defp run(args) do

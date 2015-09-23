@@ -26,9 +26,11 @@ defmodule Mix.Tasks.Compile.Gettext do
     parts = Path.split(path)
 
     if index = Enum.find_index(parts, & &1 == "LC_MESSAGES") do
-      [app_dir|Enum.take(parts, index - 1)]
-      |> Path.join
-      |> Path.join(".compile.gettext")
+      filename =
+        [".compile"|Enum.take(parts, index - 1)]
+        |> Path.join()
+        |> String.replace("/", "_")
+      Path.join(app_dir, filename)
     else
       :not_in_canonical_dir
     end
