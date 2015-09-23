@@ -14,9 +14,9 @@ defmodule Gettext.Merger do
   This function returns the contents (as iodata) of the merged file, which will
   be written to a PO file.
   """
-  @spec merge_files(Path.t, Path.t) :: iodata
-  def merge_files(po_file, pot_file) do
-    merge(PO.parse_file!(po_file), PO.parse_file!(pot_file)) |> PO.dump
+  @spec merge_files(Path.t, Path.t, Keyword.t) :: iodata
+  def merge_files(po_file, pot_file, opts) do
+    merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), opts) |> PO.dump
   end
 
   @doc """
@@ -46,16 +46,16 @@ defmodule Gettext.Merger do
         by the references in the POT file
 
   """
-  @spec merge(PO.t, PO.t) :: PO.t
-  def merge(%PO{} = old, %PO{} = new) do
+  @spec merge(PO.t, PO.t, Keyword.t) :: PO.t
+  def merge(%PO{} = old, %PO{} = new, opts) do
     %PO{
       headers: old.headers,
       file: old.file,
-      translations: merge_translations(old.translations, new.translations),
+      translations: merge_translations(old.translations, new.translations, opts),
     }
   end
 
-  defp merge_translations(old, new) do
+  defp merge_translations(old, new, opts) do
     # First, we convert the list of old translations into a dict for
     # constant-time lookup.
     old = for t <- old, into: HashDict.new, do: {PO.Translations.key(t), t}
@@ -73,8 +73,14 @@ defmodule Gettext.Merger do
     # exact match. For those translations, we look for a fuzzy match. We ditch
     # the obsolete translations altogether.
     {new, _obsolete} = Enum.map_reduce new, old, fn
-      {key, t, nil}, old       -> find_fuzzy_match(key, t, old)
-      {_, t, exact_match}, old -> {merge_two_translations(exact_match, t), old}
+      {key, t, nil}, old ->
+        if Keyword.fetch!(opts, :fuzzy) do
+          find_fuzzy_match(key, t, old, Keyword.fetch!(opts, :fuzzy_threshold))
+        else
+          {t, old}
+        end
+      {_, t, exact_match}, old ->
+        {merge_two_translations(exact_match, t), old}
     end
 
     new
@@ -82,8 +88,8 @@ defmodule Gettext.Merger do
 
   # Returns {fuzzy_matched_translation, updated_old_translations} if a match is
   # found, otherwise {original_translation, old_translations}.
-  defp find_fuzzy_match(key, target, old_translations) do
-    matcher = Fuzzy.matcher(@min_jaro_distance)
+  defp find_fuzzy_match(key, target, old_translations, threshold) do
+    matcher = Fuzzy.matcher(threshold)
 
     candidates =
       old_translations

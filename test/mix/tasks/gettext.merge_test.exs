@@ -116,6 +116,14 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     end
   end
 
+  test "passing a :fuzzy_threshold outside of 0..1 raises an error" do
+    File.mkdir_p!(@priv_path)
+
+    assert_raise Mix.Error, "The :fuzzy_threshold option must be a float in 0..1", fn ->
+     run [@priv_path, "--fuzzy-threshold", "5.0"]
+    end
+  end
+
   defp write_file(path, contents) do
     path = tmp_path(path)
     File.mkdir_p! Path.dirname(path)
