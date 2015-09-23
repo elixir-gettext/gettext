@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     _ = Mix.Project.get!
 
     parse_switches = [locale: :string, fuzzy: :boolean, fuzzy_threshold: :float]
-    case OptionParser.parse(args, strict: parse_switches) do
+    case OptionParser.parse(args, switches: parse_switches) do
       {opts, [arg1, arg2], _} ->
         run_with_two_args(arg1, arg2, opts)
       {opts, [arg], _} ->
@@ -53,6 +53,9 @@ defmodule Mix.Tasks.Gettext.Merge do
       {_, [], _} ->
         Mix.raise "gettext.merge requires at least one argument to work." <>
                   "Use `mix help gettext.merge` to see the usage of this task."
+      {_, _, [_|_] = errors} ->
+        for {key, _} <- errors, do: Mix.shell.error "#{key} is invalid"
+        Mix.raise "`mix gettext.merge` aborted."
       {_, _, _} ->
         Mix.raise "Too many arguments for the gettext.merge task. " <>
                   "Use `mix help gettext.merge` to see the usage of this task."
