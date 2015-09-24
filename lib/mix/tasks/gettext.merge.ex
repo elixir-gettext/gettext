@@ -5,19 +5,64 @@ defmodule Mix.Tasks.Gettext.Merge do
   @shortdoc "Merge template files into translation files"
 
   @moduledoc """
-  Merges template files (`.pot` files) into translation files (`.po` files).
+  Merges PO/POT files with PO files.
 
-  If two files are given as arguments, they must be a `.po` and a `.po`/`.pot`
-  file). The first one is the old PO file, while the second one is the last
-  generated one. They are merged and written over the first file.
+  This task is used when translations in the source code change: when they do,
+  `mix gettext.extract` is usually used to extract the new translations to POT
+  files. At this point, developers or translators can use this task to "sync"
+  the newly updated POT files with the existing locale-specific PO files. All
+  the metadata for each translation (like position in the source code, comments
+  and so on) is taken from the newly updated POT file; the only things taken
+  from the PO file are the actual translated strings.
 
-      mix gettext.merge priv/gettext/en/LC_MESSAGES/default.pot priv/gettext/default.pot
+  #### Fuzzy matching
 
-  If one file is given as an argument, then that file must be a directory
+  Translations in the updated PO/POT file that have an exact match (a
+  translation with the same msgid) in the old PO file are merged as described
+  above. When a translation in the update PO/POT files has no match in the old
+  PO file, a fuzzy match for that translation is attempted. For example, assume
+  we have this POT file:
+
+      msgid "hello, world!"
+      msgstr ""
+
+  and we merge it with this PO file:
+
+      # notice no exclamation point here
+      msgid "hello, world"
+      msgstr "ciao, mondo"
+
+  Since the two translations are very similar, the msgstr from the existing
+  translation will be taken over to the new translation, which will however be
+  marked as *fuzzy*:
+
+      #, fuzzy
+      msgid "hello, world!"
+      msgstr "ciao, mondo!"
+
+  Generally, a `fuzzy` flag calls for review from a translator.
+
+  Fuzzy matching can be configured (e.g., the threshold for translation
+  similarity can be tweaked) or disabled entirely; lool at the "Options" section
+  below.
+
+  ## Usage
+
+      mix gettext.merge OLD_FILE UPDATED_FILE [OPTIONS]
+      mix gettext.merge DIR [OPTIONS]
+
+  If two files are given as arguments, they must be a `.po` file and a
+  `.po`/`.pot` file. The first one is the old PO file, while the second one is
+  the last generated one. They are merged and written over the first file. For
+  example:
+
+      mix gettext.merge priv/gettext/en/LC_MESSAGES/default.po priv/gettext/default.pot
+
+  If only one argument is given, then that argument must be a directory
   containing gettext translations (with `.pot` files at the root level alongside
   locale directories).
 
-      mix gettext.merge DIR
+      mix gettext.merge priv/gettext
 
   If the `--locale LOCALE` option is given, then only the PO files in
   `DIR/LOCALE/LC_MESSAGES` will be merged with the POT files in `DIR`. If no

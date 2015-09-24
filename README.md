@@ -60,7 +60,7 @@ ngettext "Here is the string to translate",
 dgettext "errors", "Here is an error message to translate"
 ```
 
-Translations in gettext are stored in Portable Object files (`.po`). Files must be placed at `priv/gettext/en/LC_MESSAGES/domain.po`, where `en` is the locale and `domain` is the domain (the default domain is called `default`).
+Translations in gettext are stored in Portable Object files (`.po`). Such files must be placed at `priv/gettext/en/LC_MESSAGES/domain.po`, where `en` is the locale and `domain` is the domain (the default domain is called `default`).
 
 For example, the translation to `pt_BR` of the first two `*gettext` calls in the snippet above must be placed in the `priv/gettext/pt_BR/LC_MESSAGES/default.po` file with contents:
 
@@ -89,17 +89,16 @@ When extracted from source, translations are placed into `.pot` files, which are
 In other words, the typical workflow looks like this:
 
   1. Add `gettext` calls to your source code. No need to touch translation files
-     at this point as gettext will return the given string if no translation
+     at this point as gettext will return the given string if no translation is
      available:
 
         gettext "Welcome back!"
 
-  2. Once source changes are complete, run `mix gettext.extract` to automatically
-     sync all existing entries to `.pot` (template files) in `priv/gettext`:
+  2. Once changes to the source are complete, run `mix gettext.extract` to automatically sync all existing entries to `.pot` (template files) in `priv/gettext`:
 
         mix gettext.extract
 
-  3. `.pot` files can then be merged into the `.po` files with `mix gettext.merge`:
+  3. `.pot` files can then be merged into locale-specific `.po` files with `mix gettext.merge`:
 
         # Merge .pot into all locales
         mix gettext.merge priv/gettext
