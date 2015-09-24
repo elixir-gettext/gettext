@@ -1,4 +1,6 @@
 defmodule Gettext.PO.Translations do
+  @moduledoc false
+
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
