@@ -19,11 +19,11 @@ defmodule Mix.Tasks.Gettext.Extract do
 
       mix gettext.extract --merge
 
-  The following options are forwarded to the `gettext.merge` task, which is
-  called internally by this task:
+  All other options passed to `gettext.extract` are forwarded to the
+  `gettext.merge` task (`Mix.Tasks.Gettext.Merge`), which is called internally
+  by this task. For example:
 
-    * `--fuzzy`
-    * `--fuzzy-threshold`
+      mix gettext.extract --merge --no-fuzzy
 
   """
   def run(args) do

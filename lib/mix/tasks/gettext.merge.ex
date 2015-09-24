@@ -33,11 +33,10 @@ defmodule Mix.Tasks.Gettext.Merge do
       files.
     * `--fuzzy-threshold` - a float between `0` and `1` which represents the
       miminum Jaro distance needed for two translations to be considered a fuzzy
-      match.
+      match. Overrides the global `:fuzzy_threshold` option in the config for
+      the `:gettext` application.
 
   """
-
-  @default_merging_opts fuzzy: true, fuzzy_threshold: 0.8
 
   alias Gettext.Merger
 
@@ -173,7 +172,8 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp validate_merging_opts!(opts) do
-    opts = Keyword.merge(@default_merging_opts, Keyword.take(opts, [:fuzzy, :fuzzy_threshold]))
+    default = [fuzzy: true, fuzzy_threshold: Application.get_env(:gettext, :fuzzy_threshold)]
+    opts = Keyword.merge(default, Keyword.take(opts, [:fuzzy, :fuzzy_threshold]))
 
     unless opts[:fuzzy_threshold] in 0..1 do
       Mix.raise "The :fuzzy_threshold option must be a float in 0..1"
