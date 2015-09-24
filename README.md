@@ -31,7 +31,7 @@
     end
     ```
 
-Documentation for the main `Gettext` module and more is available on [hexdocs.pm](http://hexdocs.pm/gettext).
+Documentation for the main `Gettext` module and more is available on [hexdocs.pm][docs-gettext].
 
 ## Usage
 
@@ -74,11 +74,11 @@ msgstr[0] "Aqui está o texto para traduzir"
 msgstr[1] "Aqui estão os textos para traduzir"
 ```
 
-`.po` are text based and can be edited directly by translators. Some may even use existing tools for managing them, such as [Poedit](http://poedit.net/).
+`.po` are text based and can be edited directly by translators. Some may even use existing tools for managing them, such as [Poedit][poedit] or [poeditor.com][poeditor.com].
 
 Finally, because translations are based on strings, your source code does not lose readability as you still see literal strings, like `gettext "here is an example"`, instead of paths like `translate "some.path.convention"`.
 
-Read the documentation for the `Gettext` module for more information on locales, interpolation, pluralization and other features.
+Read the [documentation for the `Gettext` module][docs-gettext-module] for more information on locales, interpolation, pluralization and other features.
 
 ## Workflow
 
@@ -124,3 +124,8 @@ Copyright 2015 Plataformatec
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
+
+[docs-gettext]: http://hexdocs.pm/gettext
+[docs-gettext-module]: http://hexdocs.pm/gettext/Gettext.html
+[poedit]: http://poedit.net/
+[poeditor.com]: https://poeditor.com
