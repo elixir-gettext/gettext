@@ -4,6 +4,9 @@ defmodule Gettext.Merger do
   alias Gettext.PO
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
+  alias Gettext.Fuzzy
+
+  @min_jaro_distance 0.8
 
   @doc """
   Merges a PO file with a POT file given their paths.
@@ -11,9 +14,9 @@ defmodule Gettext.Merger do
   This function returns the contents (as iodata) of the merged file, which will
   be written to a PO file.
   """
-  @spec merge_files(Path.t, Path.t) :: iodata
-  def merge_files(po_file, pot_file) do
-    merge(PO.parse_file!(po_file), PO.parse_file!(pot_file)) |> PO.dump
+  @spec merge_files(Path.t, Path.t, Keyword.t) :: iodata
+  def merge_files(po_file, pot_file, opts) do
+    merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), opts) |> PO.dump
   end
 
   @doc """
@@ -43,27 +46,62 @@ defmodule Gettext.Merger do
         by the references in the POT file
 
   """
-  @spec merge(PO.t, PO.t) :: PO.t
-  def merge(%PO{} = old, %PO{} = new) do
+  @spec merge(PO.t, PO.t, Keyword.t) :: PO.t
+  def merge(%PO{} = old, %PO{} = new, opts) do
     %PO{
       headers: old.headers,
       file: old.file,
-      translations: merge_translations(old.translations, new.translations),
+      translations: merge_translations(old.translations, new.translations, opts),
     }
   end
 
-  defp merge_translations(old, new) do
-    merged = Enum.flat_map old, fn(t) ->
-      if same = PO.Translations.find(new, t) do
-        [merge_two_translations(t, same)]
-      else
-        []
-      end
+  defp merge_translations(old, new, opts) do
+    # First, we convert the list of old translations into a dict for
+    # constant-time lookup.
+    old = for t <- old, into: HashDict.new, do: {PO.Translations.key(t), t}
+
+    # Then, we do a first pass through the list of new translation and we mark
+    # all exact matches as {key, translation, exact_match}, taking the exact matches
+    # out of `old` at the same time.
+    {new, old} = Enum.map_reduce new, old, fn(t, old) ->
+      key = PO.Translations.key(t)
+      {same, old} = HashDict.pop(old, key)
+      {{key, t, same}, old}
     end
 
-    new = Enum.reject(new, &PO.Translations.find(old, &1))
+    # Now, tuples like {key, translation, nil} identify translations with no
+    # exact match. For those translations, we look for a fuzzy match. We ditch
+    # the obsolete translations altogether.
+    {new, _obsolete} = Enum.map_reduce new, old, fn
+      {key, t, nil}, old ->
+        if Keyword.fetch!(opts, :fuzzy) do
+          find_fuzzy_match(key, t, old, Keyword.fetch!(opts, :fuzzy_threshold))
+        else
+          {t, old}
+        end
+      {_, t, exact_match}, old ->
+        {merge_two_translations(exact_match, t), old}
+    end
 
-    merged ++ new
+    new
+  end
+
+  # Returns {fuzzy_matched_translation, updated_old_translations} if a match is
+  # found, otherwise {original_translation, old_translations}.
+  defp find_fuzzy_match(key, target, old_translations, threshold) do
+    matcher = Fuzzy.matcher(threshold)
+
+    candidates =
+      old_translations
+      |> Enum.map(fn {k, t} -> {k, t, matcher.(k, key)} end)
+      |> Enum.reject(&match?({_, _, :nomatch}, &1))
+
+    if candidates == [] do
+      {target, old_translations}
+    else
+      {k, t, _} = Enum.max_by(candidates, fn {_, _, {:match, distance}} -> distance end)
+      {Fuzzy.merge(target, t), HashDict.delete(old_translations, k)}
+    end
   end
 
   defp merge_two_translations(%Translation{} = old, %Translation{} = new) do

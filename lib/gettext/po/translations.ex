@@ -91,4 +91,16 @@ defmodule Gettext.PO.Translations do
       when is_list(translations) and is_translation(s) do
     Enum.find(translations, &same?(&1, target))
   end
+
+  @doc """
+  Marks the given translation as "fuzzy".
+
+  This function just adds the `"fuzzy"` flag to the `:flags` field of the given
+  translation.
+  """
+  @spec mark_as_fuzzy(Translation.t) :: Translation.t
+  @spec mark_as_fuzzy(PluralTranslation.t) :: PluralTranslation.t
+  def mark_as_fuzzy(%{__struct__: s, flags: flags} = t) when is_translation(s) do
+    %{t | flags: MapSet.put(flags, "fuzzy")}
+  end
 end

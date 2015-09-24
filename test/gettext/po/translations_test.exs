@@ -62,4 +62,12 @@ defmodule Gettext.PO.TranslationsTest do
     t = %PluralTranslation{msgid: ["foo"], msgid_plural: ["foos"], msgstr: %{0 => [""], 1 => [""]}}
     assert Translations.key(t) == {"foo", "foos"}
   end
+
+  test "mark_as_fuzzy/1" do
+    t = Translations.mark_as_fuzzy(%Translation{})
+    assert MapSet.member?(t.flags, "fuzzy")
+
+    t = Translations.mark_as_fuzzy(%PluralTranslation{})
+    assert MapSet.member?(t.flags, "fuzzy")
+  end
 end
