@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.1
+
+Bugfixes
+
+* Fix a bug with the `mix gettext.merge` task that was failing in Elixir v1.1.1
+  because `0.5 in 0..1` returns `false` with it
+
 ## v0.6.0
 
 * Add a `:flags` field to the `Gettext.PO.Translation` and
