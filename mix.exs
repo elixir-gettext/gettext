@@ -25,7 +25,7 @@ defmodule Gettext.Mixfile do
 
   def application do
     [applications: [:logger],
-     env: [default_locale: "en", fuzzy_threshold: 0.8]]
+     env: [default_locale: "en"]]
   end
 
   def hex_package do

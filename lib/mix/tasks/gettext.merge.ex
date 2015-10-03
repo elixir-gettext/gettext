@@ -83,6 +83,8 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   """
 
+  @default_fuzzy_threshold 0.8
+
   alias Gettext.Merger
 
   def run(args) do
@@ -217,10 +219,12 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp validate_merging_opts!(opts) do
-    default = [fuzzy: true, fuzzy_threshold: Application.get_env(:gettext, :fuzzy_threshold)]
-    opts = Keyword.merge(default, Keyword.take(opts, [:fuzzy, :fuzzy_threshold]))
+    default_threshold = Application.get_env(:gettext, :fuzzy_threshold, @default_fuzzy_threshold)
+    defaults = [fuzzy: true, fuzzy_threshold: default_threshold]
+    opts = Keyword.merge(defaults, Keyword.take(opts, [:fuzzy, :fuzzy_threshold]))
 
-    unless opts[:fuzzy_threshold] in 0..1 do
+    threshold = opts[:fuzzy_threshold]
+    unless threshold >= 0.0 and threshold <= 1.0 do
       Mix.raise "The :fuzzy_threshold option must be a float in 0..1"
     end
 
