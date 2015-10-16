@@ -138,8 +138,7 @@ defmodule Gettext.ExtractorTest do
     expected = [
       {"priv/gettext/default.pot",
         """
-        #: foo.ex:14
-        #: foo.ex:16
+        #: foo.ex:14 foo.ex:16
         msgid "foo"
         msgstr ""
         """},

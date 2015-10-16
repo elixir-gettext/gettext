@@ -22,6 +22,8 @@ defmodule Gettext.PO do
     file: Path.t,
   }
 
+  @reference_wrapping_column 80
+
   @doc """
   Parses a string into a list of translations.
 
@@ -238,10 +240,28 @@ defmodule Gettext.PO do
     Enum.map(comments, &[&1, ?\n])
   end
 
+  defp dump_references([]) do
+    ""
+  end
+
   defp dump_references(references) do
-    for {file, line} <- references do
-      "#: #{file}:#{line}\n"
+    # This function outputs a bunch of #: comments with as many references on
+    # each line as there can be under @reference_wrapping_column columns.
+    # In the flat_map_reduce, we insert newlines and comment delimiters (#:)
+    # when references wrap, building an iolist. At the end, we need to insert
+    # the first comment delimiter and the last newline.
+    wrapping_column = @reference_wrapping_column - String.length("#:")
+    {iolist, _} = Enum.flat_map_reduce references, 0, fn({file, line}, line_length) ->
+      ref = " #{file}:#{line}"
+      ref_length = String.length(ref)
+      if (ref_length + line_length) > wrapping_column do
+        {[?\n, "#:", ref], ref_length}
+      else
+        {[ref], line_length + ref_length}
+      end
     end
+
+    ["#:", iolist, ?\n]
   end
 
   defp dump_flags(flags) do
