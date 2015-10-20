@@ -22,7 +22,8 @@ defmodule Gettext.PO do
     file: Path.t,
   }
 
-  @reference_wrapping_column 80
+  @wrapping_column 80
+  @reference_comment_length String.length("#:")
 
   @doc """
   Parses a string into a list of translations.
@@ -250,7 +251,7 @@ defmodule Gettext.PO do
     # In the flat_map_reduce, we insert newlines and comment delimiters (#:)
     # when references wrap, building an iolist. At the end, we need to insert
     # the first comment delimiter and the last newline.
-    wrapping_column = @reference_wrapping_column - String.length("#:")
+    wrapping_column = @wrapping_column - @reference_comment_length
     {iolist, _} = Enum.flat_map_reduce references, 0, fn({file, line}, line_length) ->
       ref = " #{file}:#{line}"
       ref_length = String.length(ref)
