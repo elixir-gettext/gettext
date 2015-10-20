@@ -230,21 +230,39 @@ defmodule Gettext.POTest do
         msgid: ["foo"],
         msgid_plural: ["foos"],
         msgstr: %{0 => [""], 1 => [""]},
-        references: [{"lib/with spaces.ex", 1}],
+        references: [{"lib/with spaces.ex", 1}, {"lib/with other spaces.ex", 2}],
       }
     ]}
 
     assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
-    #: foo.ex:1
-    #: lib/bar.ex:2
+    #: foo.ex:1 lib/bar.ex:2
     msgid "foo"
     msgstr "bar"
 
-    #: lib/with spaces.ex:1
+    #: lib/with spaces.ex:1 lib/with other spaces.ex:2
     msgid "foo"
     msgid_plural "foos"
     msgstr[0] ""
     msgstr[1] ""
+    """
+  end
+
+  test "dump/1: references are wrapped" do
+    po = %PO{translations: [
+      %Translation{
+        msgid: ["foo"],
+        msgstr: ["bar"],
+        references: [{String.duplicate("a", 50) <> ".ex", 1},
+                     {String.duplicate("b", 50) <> ".ex", 2}],
+      },
+    ]}
+
+
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+    #: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.ex:1
+    #: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ex:2
+    msgid "foo"
+    msgstr "bar"
     """
   end
 

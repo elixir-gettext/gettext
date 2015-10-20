@@ -243,4 +243,18 @@ defmodule Gettext.PO.ParserTest do
   test "an empty list of tokens is parsed as an empty list of translations" do
     assert Parser.parse([]) == {:ok, [], []}
   end
+
+  test "multiple references on the same line are parsed correctly" do
+    parsed = Parser.parse([
+      {:comment, 1, "#: foo.ex:1 bar.ex:2 with spaces.ex:3"},
+      {:comment, 2, "#: baz.ex:3"},
+      {:msgid, 3}, {:str, 3, "foo"}, {:msgstr, 3}, {:str, 3, "bar"},
+    ])
+
+    assert {:ok, [], [%Translation{} = t]} = parsed
+    assert t.references == [{"foo.ex", 1},
+                            {"bar.ex", 2},
+                            {"with spaces.ex", 3},
+                            {"baz.ex", 3}]
+  end
 end
