@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.0-dev
+
+* When dumping PO files, dump as many references as possible on one line,
+  wrapping at the 80th column
+* Parse multiple references in the same reference comment
+
 ## v0.6.1
 
 Bugfixes
