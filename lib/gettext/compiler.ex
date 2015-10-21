@@ -20,6 +20,7 @@ defmodule Gettext.Compiler do
     quote do
       @doc false
       def __gettext__(:priv), do: unquote(priv)
+      def __gettext__(:otp_app), do: unquote(otp_app)
 
       # The manifest lives in the root of the priv
       # directory that contains .po/.pot files.
