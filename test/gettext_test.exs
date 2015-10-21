@@ -15,23 +15,29 @@ defmodule GettextTest do
   require TranslatorWithCustomPriv
 
   test "the default locale is \"en\"" do
-    assert Gettext.locale == "en"
+    assert Gettext.get_locale(Translator) == "en"
   end
 
-  test "locale/0-1: sets and gets the locale" do
-    Gettext.locale("pt_BR")
-    assert Gettext.locale == "pt_BR"
+  test "get_locale/1 and put_locale/2: setting/getting the locale" do
+    Gettext.put_locale(Translator, "pt_BR")
+    assert Gettext.get_locale(Translator) == "pt_BR"
+    assert Gettext.get_locale(TranslatorWithCustomPriv) == "en"
   end
 
-  test "locale/0-1: only accepts binaries" do
-    assert_raise ArgumentError, "locale/1 only accepts binary locales", fn ->
-      Gettext.locale :en
+  test "put_locale/2: only accepts binaries" do
+    assert_raise ArgumentError, "put_locale/2 only accepts binary locales", fn ->
+      Gettext.put_locale(Translator, :en)
     end
   end
 
   test "__gettext__(:priv): returns the directory where the translations are stored" do
-    assert GettextTest.Translator.__gettext__(:priv) == "priv/gettext"
-    assert GettextTest.TranslatorWithCustomPriv.__gettext__(:priv) == "translations"
+    assert Translator.__gettext__(:priv) == "priv/gettext"
+    assert TranslatorWithCustomPriv.__gettext__(:priv) == "translations"
+  end
+
+  test "__gettext__(:otp_app): returns the otp app for the given backend" do
+    assert Translator.__gettext__(:otp_app) == :test_application
+    assert TranslatorWithCustomPriv.__gettext__(:otp_app) == :test_application
   end
 
   test "found translations return {:ok, translation}" do
@@ -162,7 +168,7 @@ defmodule GettextTest do
   end
 
   test "dgettext/3: binary msgid at compile-time" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
 
     assert Translator.dgettext("errors", "Invalid email address")
            == "Indirizzo email non valido"
@@ -181,7 +187,7 @@ defmodule GettextTest do
   @gettext_msgid "Hello world"
 
   test "gettext/2: binary-ish msgid at compile-time" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
     assert Translator.gettext("Hello world") == "Ciao mondo"
     assert Translator.gettext(@gettext_msgid) == "Ciao mondo"
   end
@@ -207,7 +213,7 @@ defmodule GettextTest do
   end
 
   test "dngettext/5" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
     assert Translator.dngettext(
       "interpolations",
       "You have one message, %{name}",
@@ -239,7 +245,7 @@ defmodule GettextTest do
   @ngettext_msgid_plural "%{count} new emails"
 
   test "ngettext/4" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
     assert Translator.ngettext("One new email", "%{count} new emails", 1)
            == "Una nuova email"
     assert Translator.ngettext("One new email", "%{count} new emails", 2)
@@ -252,7 +258,7 @@ defmodule GettextTest do
   end
 
   test "the d?n?gettext macros support a kw list for interpolation" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
     assert Translator.gettext("%{msg}", msg: "foo") == "foo"
   end
 
@@ -261,7 +267,7 @@ defmodule GettextTest do
   # Gettext`).
 
   test "dgettext/4" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
 
     msgid = "Invalid email address"
     assert Gettext.dgettext(Translator, "errors", msgid)
@@ -276,13 +282,13 @@ defmodule GettextTest do
   end
 
   test "gettext/3" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
     assert Gettext.gettext(Translator, "Hello world") == "Ciao mondo"
     assert Gettext.gettext(Translator, "Nonexistent") == "Nonexistent"
   end
 
   test "dngettext/6" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
     msgid        = "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
     assert Gettext.dngettext(Translator, "interpolations", msgid, msgid_plural, 1, %{name: "Meg"})
@@ -292,7 +298,7 @@ defmodule GettextTest do
   end
 
   test "ngettext/5" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
     msgid        = "One cake, %{name}"
     msgid_plural = "%{count} cakes, %{name}"
     assert Gettext.ngettext(Translator, msgid, msgid_plural, 1, %{name: "Meg"})
@@ -302,14 +308,14 @@ defmodule GettextTest do
   end
 
   test "the d?n?gettext functions support kw list for interpolations" do
-    Gettext.locale "it"
+    Gettext.put_locale Translator, "it"
     assert Gettext.gettext(Translator, "Hello %{name}", name: "José") == "Hello José"
   end
 
-  test "with_locale/2 runs a function with a given locale and returns the returned value" do
-    Gettext.locale "fr"
+  test "with_locale/3 runs a function with a given locale and returns the returned value" do
+    Gettext.put_locale Translator, "fr"
     assert Gettext.gettext(Translator, "Hello world") == "Hello world" # no 'fr' translation
-    res = Gettext.with_locale "it", fn ->
+    res = Gettext.with_locale Translator, "it", fn ->
       assert Gettext.gettext(Translator, "Hello world") == "Ciao mondo"
       :foo
     end
@@ -317,15 +323,22 @@ defmodule GettextTest do
     assert res == :foo
   end
 
-  test "with_locale/2 resets the locale even if the given function raises" do
-    Gettext.locale "fr"
+  test "with_locale/3 resets the locale even if the given function raises" do
+    Gettext.put_locale Translator, "fr"
 
     assert_raise RuntimeError, fn ->
-      Gettext.with_locale "it", fn -> raise "foo" end
+      Gettext.with_locale Translator, "it", fn -> raise "foo" end
     end
-    assert Gettext.locale == "fr"
+    assert Gettext.get_locale(Translator) == "fr"
 
-    catch_throw(Gettext.with_locale "it", fn -> throw :foo end)
-    assert Gettext.locale == "fr"
+    catch_throw(Gettext.with_locale Translator, "it", fn -> throw :foo end)
+    assert Gettext.get_locale(Translator) == "fr"
+  end
+
+  test "with_locale/3: doesn't raise if no locale was set (defaulting to 'en')" do
+    Process.delete(Translator)
+    Gettext.with_locale Translator, "it", fn ->
+      assert Gettext.gettext(Translator, "Hello world") == "Ciao mondo"
+    end
   end
 end
