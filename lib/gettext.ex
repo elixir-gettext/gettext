@@ -420,9 +420,9 @@ defmodule Gettext do
 
   ## Examples
 
-      Gettext.put_locale("pt_BR")
+      Gettext.put_locale(MyApp.Gettext, "pt_BR")
       #=> nil
-      Gettext.get_locale()
+      Gettext.get_locale(MyApp.Gettext)
       #=> "pt_BR"
 
   """
