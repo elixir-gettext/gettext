@@ -6,7 +6,7 @@
   wrapping at the 80th column
 * Parse multiple references in the same reference comment
 * Remove `Gettext.locale/0-1` and `Gettext.with_locale/2` in favour of
-  `Gettext.put_locale/2`, `Gettext.get_locale/2`, and `Gettext.with_locale/3`
+  `Gettext.get_locale/1`, `Gettext.put_locale/2`, and `Gettext.with_locale/3`
   which now work by setting/getting the locale on a per-backend basis (instead
   of a global one)
 * Remove the `:default_locale` config option for the `:gettext` application in
