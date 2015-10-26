@@ -16,7 +16,7 @@ defmodule Gettext.Fuzzy do
   distance that means a match. `{:match, distance}` is returned in case of a
   match, `:nomatch` otherwise.
   """
-  @spec matcher(0..1) :: (translation_key, translation_key -> {:match, 0..1} | :nomatch)
+  @spec matcher(float) :: (translation_key, translation_key -> {:match, float} | :nomatch)
   def matcher(threshold) do
     fn(old_key, new_key) ->
       distance = jaro_distance(old_key, new_key)
@@ -31,7 +31,7 @@ defmodule Gettext.Fuzzy do
   the Jaro distance of the msgids of the two translations, even if one (or both)
   of them is a plural translation.
   """
-  @spec jaro_distance(translation_key, translation_key) :: 0..1
+  @spec jaro_distance(translation_key, translation_key) :: float
   def jaro_distance(key1, key2)
 
   # Apparently, msgmerge only looks at the msgid when performing fuzzy
