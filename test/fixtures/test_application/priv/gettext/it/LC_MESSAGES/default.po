@@ -15,3 +15,11 @@ msgid "A" " friend"
 msgid_plural "%{count}" " friends"
 msgstr[0] "Un" " amico"
 msgstr[1] "%{count}" " amici"
+
+msgid "Empty msgstr!"
+msgstr "" ""
+
+msgid "Not even one msgstr"
+msgid_plural "Not even %{count} msgstrs"
+msgstr[0] ""
+msgstr[1] "<not empty>"

@@ -146,7 +146,8 @@ defmodule Gettext.Compiler do
   end
 
   # `acc` is a list of already compiled translation, i.e., of quoted function
-  # definitions.
+  # definitions. Here, we prepend a quoted function definition to that list for
+  # each translation in the given PO file.
   defp compile_po_file(path, acc) do
     {locale, domain} = locale_and_domain_from_path(path)
     %PO{translations: translations} = PO.parse_file!(path)
@@ -166,9 +167,15 @@ defmodule Gettext.Compiler do
     msgid  = IO.iodata_to_binary(t.msgid)
     msgstr = IO.iodata_to_binary(t.msgstr)
 
-    quote do
-      def lgettext(unquote(locale), unquote(domain), unquote(msgid), var!(bindings)) do
-        unquote(compile_interpolation(msgstr))
+    # Only actually generate this function clause if the msgstr is not empty. If
+    # it's empty, not generating this clause (by returning `nil` from this `if`)
+    # means that the dynamic clause will be executed, returning `{:default,
+    # msgid}` (with interpolation and so on).
+    if msgstr != "" do
+      quote do
+        def lgettext(unquote(locale), unquote(domain), unquote(msgid), var!(bindings)) do
+          unquote(compile_interpolation(msgstr))
+        end
       end
     end
   end
@@ -177,17 +184,23 @@ defmodule Gettext.Compiler do
     msgid        = IO.iodata_to_binary(t.msgid)
     msgid_plural = IO.iodata_to_binary(t.msgid_plural)
 
-    clauses = Enum.map t.msgstr, fn({form, str}) ->
-      str = IO.iodata_to_binary(str)
-      {:->, [], [[form], compile_interpolation(str)]}
-    end
+    msgstr = Enum.map(t.msgstr, fn {form, str} -> {form, IO.iodata_to_binary(str)} end)
 
-    quote do
-      def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n, bindings) do
-        plural_form    = unquote(@plural_forms).plural(unquote(locale), n)
-        var!(bindings) = Map.put(bindings, :count, n)
+    # If any of the msgstrs is empty, then we skip the generation of this
+    # function clause. The reason we do this is the same as for the
+    # `%Translation{}` clause.
+    unless Enum.any?(msgstr, &match?({_, ""}, &1)) do
+      clauses = Enum.map msgstr, fn({form, str}) ->
+        {:->, [], [[form], compile_interpolation(str)]}
+      end
 
-        case plural_form, do: unquote(clauses)
+      quote do
+        def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n, bindings) do
+          plural_form    = unquote(@plural_forms).plural(unquote(locale), n)
+          var!(bindings) = Map.put(bindings, :count, n)
+
+          case plural_form, do: unquote(clauses)
+        end
       end
     end
   end

@@ -288,6 +288,13 @@ defmodule Gettext do
       MyApp.Gettext.ngettext "One error", "%{count} errors", 3
       #=> "3 errors"
 
+  ### Empty translations
+
+  When a `msgstr` is empty (`""`), the translation is considered missing and the
+  behaviour described above for missing translation is applied. A plural
+  translation is considered to have an empty `msgstr` if at least one
+  translation in the `msgstr` is empty.
+
   ## Compile-time features
 
   As mentioned above, using the gettext macros (as opposed to functions) allows
