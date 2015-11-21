@@ -142,7 +142,7 @@ defmodule Gettext.Compiler do
   @spec compile_po_files(Path.t) :: Macro.t
   def compile_po_files(dir) do
     # `true` means recursively. The last argument is the initial accumulator.
-    :filelib.fold_files(dir, "\.po$", true, &compile_po_file(&1, &2), [])
+    :filelib.fold_files(String.to_char_list(dir), '\.po$', true, &compile_po_file(&1, &2), [])
   end
 
   # `acc` is a list of already compiled translation, i.e., of quoted function
