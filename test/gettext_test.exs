@@ -62,6 +62,11 @@ defmodule GettextTest do
            == {:default, "Hello world"}
   end
 
+  test "translations with empty msgstrs fallback to {:default, _}" do
+    assert Translator.lgettext("it", "default", "Empty msgstr!")
+           == {:default, "Empty msgstr!"}
+  end
+
   test "a custom 'priv' directory can be used to store translations" do
     assert TranslatorWithCustomPriv.lgettext("it", "default", "Hello world")
            == {:ok, "Ciao mondo"}
@@ -85,6 +90,16 @@ defmodule GettextTest do
            == {:default, "foo"}
     assert Translator.lngettext("it", "not a domain", "foo", "foos", 10)
            == {:default, "foos"}
+  end
+
+  test "plural translations with empty msgstrs fallback to {:default, _}" do
+    msgid        = "Not even one msgstr"
+    msgid_plural = "Not even %{count} msgstrs"
+
+    assert Translator.lngettext("it", "default", msgid, msgid_plural, 1)
+           == {:default, "Not even one msgstr"}
+    assert Translator.lngettext("it", "default", msgid, msgid_plural, 2)
+           == {:default, "Not even 2 msgstrs"}
   end
 
   test "interpolation is supported by lgettext" do
