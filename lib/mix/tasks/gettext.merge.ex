@@ -139,7 +139,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp merge_locale_dir(pot_dir, locale, opts) do
     locale_dir = locale_dir(pot_dir, locale)
-    ensure_dir_exists!(locale_dir)
+    create_missing_locale_dir(locale_dir)
     merge_dirs(locale_dir, pot_dir, opts)
   end
 
@@ -216,6 +216,13 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp ensure_dir_exists!(path) do
     unless File.dir?(path), do: Mix.raise("No such directory: #{path}")
+  end
+
+  defp create_missing_locale_dir(dir) do
+    unless File.dir?(dir) do
+      File.mkdir_p!(dir)
+      Mix.shell.info "Created directory #{dir}"
+    end
   end
 
   defp validate_merging_opts!(opts) do

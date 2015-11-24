@@ -124,6 +124,24 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     end
   end
 
+  test "non existing locale/LC_MESSAGES directories are created" do
+    write_file "foo.pot", """
+    msgid "foo"
+    msgstr ""
+    """
+
+    created_dir = Path.join [@priv_path, "en", "LC_MESSAGES"]
+
+    refute File.dir?(created_dir)
+
+    output = capture_io fn ->
+      run [@priv_path, "--locale", "en"]
+    end
+
+    assert File.dir?(created_dir)
+    assert output =~ "Created directory #{created_dir}"
+  end
+
   defp write_file(path, contents) do
     path = tmp_path(path)
     File.mkdir_p! Path.dirname(path)
