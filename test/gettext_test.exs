@@ -205,26 +205,25 @@ defmodule GettextTest do
     Gettext.put_locale Translator, "it"
     assert Translator.gettext("Hello world") == "Ciao mondo"
     assert Translator.gettext(@gettext_msgid) == "Ciao mondo"
+    assert Translator.gettext(~s(Hello world)) == "Ciao mondo"
   end
 
   test "dgettext/3 and gettext/2: non-binary msgid at compile-time" do
+    msg = "msgid and msgid_plural must be string literals"
+
     code = quote do
       require Translator
       msgid = "Invalid email address"
       Translator.dgettext("errors", msgid)
     end
-    assert_raise ArgumentError, "msgid must be a string literal", fn ->
-      Code.eval_quoted code
-    end
+    assert_raise ArgumentError, msg, fn -> Code.eval_quoted(code) end
 
     code = quote do
       require Translator
-      msgid = "Hello world"
-      Translator.gettext(msgid)
+      msgid_plural = ~s(foo #{1 + 1} bar)
+      Translator.dngettext("default", "foo", msgid_plural, 1)
     end
-    assert_raise ArgumentError, "msgid must be a string literal", fn ->
-      Code.eval_quoted code
-    end
+    assert_raise ArgumentError, msg, fn -> Code.eval_quoted(code) end
   end
 
   test "dngettext/5" do

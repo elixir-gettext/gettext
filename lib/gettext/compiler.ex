@@ -39,11 +39,7 @@ defmodule Gettext.Compiler do
   defp macros do
     quote unquote: false do
       defmacro dgettext(domain, msgid, bindings \\ Macro.escape(%{})) do
-        msgid = Macro.expand(msgid, __CALLER__)
-
-        unless is_binary(msgid) do
-          raise ArgumentError, "msgid must be a string literal"
-        end
+        msgid = Gettext.Compiler.expand_to_binary(msgid, __CALLER__)
 
         if Gettext.Extractor.extracting? do
           Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, msgid)
@@ -61,12 +57,8 @@ defmodule Gettext.Compiler do
       end
 
       defmacro dngettext(domain, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
-        msgid        = Macro.expand(msgid, __CALLER__)
-        msgid_plural = Macro.expand(msgid_plural, __CALLER__)
-
-        unless is_binary(msgid) && is_binary(msgid_plural) do
-          raise ArgumentError, "msgid and msgid_plural must be string literals"
-        end
+        msgid        = Gettext.Compiler.expand_to_binary(msgid, __CALLER__)
+        msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, __CALLER__)
 
         if Gettext.Extractor.extracting? do
           Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, {msgid, msgid_plural})
@@ -132,6 +124,32 @@ defmodule Gettext.Compiler do
           {:error, _} = error -> error
         end
       end
+    end
+  end
+
+  # TODO Remove this once Elixir will fix ~s to expand to just a binary when
+  #      there's no interpolation.
+  @doc """
+  Expands the given `msgid` in the given `env`, raising if it doesn't expand to
+  a binary.
+
+  This function doesn't just check that the expansion of `msgid` (via
+  `Macro.expand/2`) is a binary; it also takes care of `{:<<>>, _, binaries}`
+  ASTs (e.g., the `~s` sigil expands to such AST).
+  """
+  @spec expand_to_binary(binary, Macro.Env.t) :: binary | no_return
+  def expand_to_binary(msgid, env) do
+    raiser = fn ->
+      raise ArgumentError, "msgid and msgid_plural must be string literals"
+    end
+
+    case Macro.expand(msgid, env) do
+      msgid when is_binary(msgid) ->
+        msgid
+      {:<<>>, _, pieces} ->
+        if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces, ""), else: raiser.()
+      _ ->
+        raiser.()
     end
   end
 
