@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
   end
 
   test "passing no arguments raises an error" do
-    msg = "gettext.merge requires at least one argument to work." <>
+    msg = "gettext.merge requires at least one argument to work. " <>
           "Use `mix help gettext.merge` to see the usage of this task."
     assert_raise Mix.Error, msg, fn ->
       run []
