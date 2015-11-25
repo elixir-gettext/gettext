@@ -29,18 +29,11 @@ defmodule Mix.Tasks.Gettext.Extract do
   def run(args) do
     pot_files = extract()
 
-    for {path, contents} <- pot_files do
-      Task.async fn ->
-        File.mkdir_p!(Path.dirname(path))
-        File.write!(path, contents)
-        Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
-      end
-    end |> Enum.map(&Task.await/1)
-
     case args do
       [] ->
-        :ok
+        write_extracted_files(pot_files)
       ["--merge"] ->
+        write_extracted_files(pot_files)
         run_merge(pot_files, args)
       _ ->
         Mix.raise "The gettext.extract task only supports the --merge option. " <>
@@ -48,6 +41,16 @@ defmodule Mix.Tasks.Gettext.Extract do
     end
 
     :ok
+  end
+
+  defp write_extracted_files(pot_files) do
+    for {path, contents} <- pot_files do
+      Task.async fn ->
+        File.mkdir_p!(Path.dirname(path))
+        File.write!(path, contents)
+        Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
+      end
+    end |> Enum.map(&Task.await/1)
   end
 
   defp extract do
