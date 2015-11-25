@@ -98,13 +98,13 @@ defmodule Mix.Tasks.Gettext.Merge do
         run_with_one_arg(arg, opts)
       {_, [], _} ->
         Mix.raise "gettext.merge requires at least one argument to work. " <>
-                  "Use `mix help gettext.merge` to see the usage of this task."
+                  "Use `mix help gettext.merge` to see the usage of this task"
       {_, _, [_|_] = errors} ->
         for {key, _} <- errors, do: Mix.shell.error "#{key} is invalid"
-        Mix.raise "`mix gettext.merge` aborted."
+        Mix.raise "`mix gettext.merge` aborted"
       {_, _, _} ->
         Mix.raise "Too many arguments for the gettext.merge task. " <>
-                  "Use `mix help gettext.merge` to see the usage of this task."
+                  "Use `mix help gettext.merge` to see the usage of this task"
     end
   end
 
@@ -232,7 +232,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
     threshold = opts[:fuzzy_threshold]
     unless threshold >= 0.0 and threshold <= 1.0 do
-      Mix.raise "The :fuzzy_threshold option must be a float in 0..1"
+      Mix.raise "The :fuzzy_threshold option must be a float >= 0.0 and <= 1.0"
     end
 
     opts

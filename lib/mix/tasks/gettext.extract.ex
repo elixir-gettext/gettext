@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Gettext.Extract do
         run_merge(pot_files, args)
       _ ->
         Mix.raise "The gettext.extract task only supports the --merge option. " <>
-                  "See `mix help gettext.extract` for more information."
+                  "See `mix help gettext.extract` for more information"
     end
 
     :ok

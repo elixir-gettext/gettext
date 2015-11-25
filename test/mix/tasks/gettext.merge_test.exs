@@ -102,7 +102,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
 
   test "passing more than one argument raises an error" do
     msg = "Too many arguments for the gettext.merge task. Use " <>
-          "`mix help gettext.merge` to see the usage of this task."
+          "`mix help gettext.merge` to see the usage of this task"
     assert_raise Mix.Error, msg, fn ->
       run ~w(foo bar baz bong)
     end
@@ -110,7 +110,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
 
   test "passing no arguments raises an error" do
     msg = "gettext.merge requires at least one argument to work. " <>
-          "Use `mix help gettext.merge` to see the usage of this task."
+          "Use `mix help gettext.merge` to see the usage of this task"
     assert_raise Mix.Error, msg, fn ->
       run []
     end
@@ -119,7 +119,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
   test "passing a :fuzzy_threshold outside of 0..1 raises an error" do
     File.mkdir_p!(@priv_path)
 
-    assert_raise Mix.Error, "The :fuzzy_threshold option must be a float in 0..1", fn ->
+    assert_raise Mix.Error, "The :fuzzy_threshold option must be a float >= 0.0 and <= 1.0", fn ->
      run [@priv_path, "--fuzzy-threshold", "5.0"]
     end
   end
