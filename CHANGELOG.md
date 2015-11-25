@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.8.0
+
+* Fix a bug with the `*gettext` macros, which raised an error when given
+  compile-time strings in the form of `~s`/`~S` sigils.
+* Create missing locale directories (e.g., `en/LC_MESSAGES`) when running the
+  `gettext.merge` Mix task.
+* Fallback to default translations (i.e., the `msgid`) when the `msgstr` (or one
+  or more `msgstr` strings for plural translations) is empty.
+
 ## v0.7.0
 
 * When dumping PO files, dump as many references as possible on one line,
