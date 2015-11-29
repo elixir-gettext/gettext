@@ -208,22 +208,24 @@ defmodule GettextTest do
     assert Translator.gettext(~s(Hello world)) == "Ciao mondo"
   end
 
-  test "dgettext/3 and gettext/2: non-binary msgid at compile-time" do
-    msg = "msgid and msgid_plural must be string literals"
-
+  test "dgettext/3 and dngettext/2: non-binary msgid at compile-time" do
     code = quote do
       require Translator
       msgid = "Invalid email address"
       Translator.dgettext("errors", msgid)
     end
-    assert_raise ArgumentError, msg, fn -> Code.eval_quoted(code) end
+    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
+    assert ArgumentError.message(error) =~ "*gettext macros expect translation keys"
+    assert ArgumentError.message(error) =~ "Gettext.gettext(GettextTest.Translator, string)"
 
     code = quote do
       require Translator
       msgid_plural = ~s(foo #{1 + 1} bar)
       Translator.dngettext("default", "foo", msgid_plural, 1)
     end
-    assert_raise ArgumentError, msg, fn -> Code.eval_quoted(code) end
+    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
+    assert ArgumentError.message(error) =~ "*gettext macros expect translation keys"
+    assert ArgumentError.message(error) =~ "Gettext.gettext(GettextTest.Translator, string)"
   end
 
   test "dngettext/5" do
@@ -242,17 +244,6 @@ defmodule GettextTest do
       2,
       %{name: "James"}
     ) == "Hai 2 messaggi, James"
-  end
-
-  test "dngettext/5: non-literal string arguments" do
-    code = quote do
-      require Translator
-      msgid_plural = "foos"
-      Translator.dngettext("foo", "foo", msgid_plural, 4)
-    end
-    assert_raise ArgumentError, "msgid and msgid_plural must be string literals", fn ->
-      Code.eval_quoted code
-    end
   end
 
   @ngettext_msgid "One new email"

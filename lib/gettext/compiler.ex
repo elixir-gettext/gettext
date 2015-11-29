@@ -39,7 +39,7 @@ defmodule Gettext.Compiler do
   defp macros do
     quote unquote: false do
       defmacro dgettext(domain, msgid, bindings \\ Macro.escape(%{})) do
-        msgid = Gettext.Compiler.expand_to_binary(msgid, __CALLER__)
+        msgid = Gettext.Compiler.expand_to_binary(msgid, __MODULE__, __CALLER__)
 
         if Gettext.Extractor.extracting? do
           Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, msgid)
@@ -57,8 +57,8 @@ defmodule Gettext.Compiler do
       end
 
       defmacro dngettext(domain, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
-        msgid        = Gettext.Compiler.expand_to_binary(msgid, __CALLER__)
-        msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, __CALLER__)
+        msgid        = Gettext.Compiler.expand_to_binary(msgid, __MODULE__, __CALLER__)
+        msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, __MODULE__, __CALLER__)
 
         if Gettext.Extractor.extracting? do
           Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, {msgid, msgid_plural})
@@ -137,10 +137,21 @@ defmodule Gettext.Compiler do
   `Macro.expand/2`) is a binary; it also takes care of `{:<<>>, _, binaries}`
   ASTs (e.g., the `~s` sigil expands to such AST).
   """
-  @spec expand_to_binary(binary, Macro.Env.t) :: binary | no_return
-  def expand_to_binary(msgid, env) do
+  @spec expand_to_binary(binary, module, Macro.Env.t) :: binary | no_return
+  def expand_to_binary(msgid, gettext_module, env) do
     raiser = fn ->
-      raise ArgumentError, "msgid and msgid_plural must be string literals"
+      raise ArgumentError, """
+      *gettext macros expect translation keys (msgid and msgid_plural)
+      to expand to strings at compile-time.
+
+      Dynamic translations should be avoided as they limit gettext's
+      ability to extract translations from your source code. If you are
+      sure you need dynamic lookup, you can use the functions in the Gettext
+      module:
+
+          string = "hello world"
+          Gettext.gettext(#{inspect gettext_module}, string)
+      """
     end
 
     case Macro.expand(msgid, env) do
