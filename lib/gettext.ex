@@ -610,17 +610,7 @@ defmodule Gettext do
   """
   @spec known_locales(backend) :: [locale]
   def known_locales(backend) do
-    translations_dir = Application.app_dir(backend.__gettext__(:otp_app),
-                                           backend.__gettext__(:priv))
-
-    case File.ls(translations_dir) do
-      {:ok, dirs} ->
-        Enum.filter(dirs, &File.dir?(Path.join(translations_dir, &1)))
-      {:error, :enoent} ->
-        []
-      {:error, reason} ->
-        raise File.Error, reason: reason, action: "list directory", path: translations_dir
-    end
+    backend.__gettext__(:known_locales)
   end
 
   defp handle_backend_result({atom, string}) when atom in [:ok, :default],

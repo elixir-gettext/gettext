@@ -16,11 +16,13 @@ defmodule Gettext.Compiler do
     priv             = Keyword.get(opts, :priv, @default_priv)
     external_file    = Path.join(".compile", priv) |> String.replace("/", "_")
     translations_dir = Application.app_dir(otp_app, priv)
+    known_locales    = known_locales(translations_dir)
 
     quote do
       @doc false
       def __gettext__(:priv), do: unquote(priv)
       def __gettext__(:otp_app), do: unquote(otp_app)
+      def __gettext__(:known_locales), do: unquote(known_locales)
 
       # The manifest lives in the root of the priv
       # directory that contains .po/.pot files.
@@ -271,6 +273,19 @@ defmodule Gettext.Compiler do
         quote do: unquote(acc) <> to_string(unquote(Macro.var(key, __MODULE__)))
       str, acc ->
         quote do: unquote(acc) <> unquote(str)
+    end
+  end
+
+  # Returns all the locales in `translations_dir` (which are the locales known
+  # by the compiled backend).
+  defp known_locales(translations_dir) do
+    case File.ls(translations_dir) do
+      {:ok, files} ->
+        Enum.filter(files, &File.dir?(Path.join(translations_dir, &1)))
+      {:error, :enoent} ->
+        []
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "list directory", path: translations_dir
     end
   end
 end
