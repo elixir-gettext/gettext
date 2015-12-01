@@ -346,4 +346,9 @@ defmodule GettextTest do
       assert Gettext.gettext(Translator, "Hello world") == "Ciao mondo"
     end
   end
+
+  test "known_locales/1: returns all the locales for which a backend has PO files" do
+    assert Gettext.known_locales(Translator) == ["it"]
+    assert Gettext.known_locales(TranslatorWithCustomPriv) == ["it"]
+  end
 end

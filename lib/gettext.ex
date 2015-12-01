@@ -581,6 +581,48 @@ defmodule Gettext do
     end
   end
 
+  @doc """
+  Returns all the locales for which PO files exist for the given `backend`.
+
+  If the translations directory for the given backend doesn't exist, then an
+  empty list is returned.
+
+  ## Examples
+
+  With the following backend:
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app
+      end
+
+  and the following translations directory:
+
+      my_app/priv/gettext
+      ├─ en
+      ├─ it
+      └─ pt_BR
+
+  then:
+
+      Gettext.known_locales(MyApp.Gettext)
+      #=> ["en", "it", "pt_BR"]
+
+  """
+  @spec known_locales(backend) :: [locale]
+  def known_locales(backend) do
+    translations_dir = Application.app_dir(backend.__gettext__(:otp_app),
+                                           backend.__gettext__(:priv))
+
+    case File.ls(translations_dir) do
+      {:ok, dirs} ->
+        Enum.filter(dirs, &File.dir?(Path.join(translations_dir, &1)))
+      {:error, :enoent} ->
+        []
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "list directory", path: translations_dir
+    end
+  end
+
   defp handle_backend_result({atom, string}) when atom in [:ok, :default],
     do: string
   defp handle_backend_result({:error, error}),
