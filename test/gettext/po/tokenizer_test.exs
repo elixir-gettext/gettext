@@ -31,6 +31,15 @@ defmodule Gettext.PO.TokenizerTest do
     assert tokenize(str) == {:error, 1, "unknown keyword 'msg'"}
   end
 
+  test "unexpected tokens are printed nicely (with byte codepoints)" do
+    # Just to know this, but bom is "" when inspected.
+    bom = <<0xef, 0xbb, 0xbf>>
+    msg = ~s[unexpected token: "#{bom}" (codepoint U+FEFF)]
+    assert tokenize(bom <> ~s(msgid "foo")) == {:error, 1, msg}
+
+    assert tokenize("å") == {:error, 1, ~s[unexpected token: "å" (codepoint U+00E5)]}
+  end
+
   test "single simple string" do
     str = ~s("foo bar")
     assert tokenize(str) == {:ok, [{:str, 1, "foo bar"}]}
