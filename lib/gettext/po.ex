@@ -24,6 +24,7 @@ defmodule Gettext.PO do
 
   @wrapping_column 80
   @reference_comment_length String.length("#:")
+  @bom <<0xef, 0xbb, 0xbf>> # (see prune_bom/2)
 
   @doc """
   Parses a string into a list of translations.
@@ -52,6 +53,8 @@ defmodule Gettext.PO do
   """
   @spec parse_string(binary) :: {:ok, t} | parse_error
   def parse_string(str) do
+    str = prune_bom(str, "nofile")
+
     case Tokenizer.tokenize(str) do
       {:error, _line, _reason} = error ->
         error
@@ -114,7 +117,7 @@ defmodule Gettext.PO do
   def parse_file(path) do
     case File.read(path) do
       {:ok, contents} ->
-        case parse_string(contents) do
+        case parse_string(prune_bom(contents, path)) do
           {:ok, po}                        -> {:ok, %{po | file: path}}
           {:error, _line, _reason} = error -> error
         end
@@ -299,4 +302,34 @@ defmodule Gettext.PO do
   defp escape_char(?\t),  do: ~S(\t)
   defp escape_char(?\r),  do: ~S(\r)
   defp escape_char(char), do: <<char>>
+
+  # This function removes a BOM byte sequence from the start of the given string
+  # if this sequence is present. A BOM byte sequence
+  # (https://en.wikipedia.org/wiki/Byte_order_mark) is a thing that Unicode uses
+  # as a kind of metadata for a file; it's placed at the start of the file. GNU
+  # Gettext blows up if it finds a BOM sequence at the start of a file (as you
+  # can check with the `msgfmt` program); here, we don't blow up but we print a
+  # warning saying the BOM is present and suggesting to remove it.
+  #
+  # Note that `file` is used to give a nicer warning in case the BOM is
+  # present. This function is in fact called by both parse_string/1 and
+  # parse_file/1. Since parse_file/1 relies on parse_string/1, in case
+  # parse_file/1 is called this function is called twice but that's ok because
+  # in case of BOM, parse_file/1 will remove it first and parse_string/1 won't
+  # issue the warning again as its call to prune_bom/2 will be a no-op.
+  defp prune_bom(str, file)
+
+  defp prune_bom(@bom <> str, file) do
+    file_or_string = if file == "nofile", do: "string", else: "file"
+    IO.puts :stderr, "#{file}: warning: the #{file_or_string} being parsed starts"
+                     <> " with a BOM byte sequence (#{inspect @bom, binaries: :as_binaries})."
+                     <> " These bytes are ignored by Gettext but it's recommended to remove"
+                     <> " them. To know more about BOM, read"
+                     <> " https://en.wikipedia.org/wiki/Byte_order_mark."
+    str
+  end
+
+  defp prune_bom(str, _) when is_binary(str) do
+    str
+  end
 end

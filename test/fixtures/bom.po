@@ -1,0 +1,4 @@
+﻿# NOTE: the BOM sequence isn't visible in most editors. Just don't change this
+# file :)
+msgid "foo"
+msgstr "bar"
