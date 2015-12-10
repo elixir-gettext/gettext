@@ -1,12 +1,16 @@
 defmodule Gettext.POTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   alias Gettext.PO
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
   alias Gettext.PO.SyntaxError
 
   doctest PO
+
+  @bom <<0xef, 0xbb, 0xbf>>
 
   test "parse_string/1: valid string" do
     str = """
@@ -38,6 +42,19 @@ defmodule Gettext.POTest do
     bar"
     """
     assert PO.parse_string(str) == {:error, 1, "newline in string"}
+  end
+
+  test "parse_string/1: BOM byte sequence at the beginning" do
+    str = @bom <> """
+    msgid "foo"
+    msgstr "bar"
+    """
+
+    output = capture_io :stderr, fn ->
+      assert {:ok, %Gettext.PO{}} = PO.parse_string(str)
+    end
+
+    assert output =~ "nofile: warning: the string being parsed starts with a BOM byte sequence"
   end
 
   test "parse_string!/1: valid strings" do
@@ -110,6 +127,17 @@ defmodule Gettext.POTest do
 
   test "parse_file/1: missing file" do
     assert PO.parse_file("nonexistent") == {:error, :enoent}
+  end
+
+  test "parse_file/1: file starting with a BOM byte sequence" do
+    fixture_path = Path.expand("../fixtures/bom.po", __DIR__)
+    output = capture_io :stderr, fn ->
+      assert {:ok, po} = PO.parse_file(fixture_path)
+      assert [%Translation{msgid: ["foo"], msgstr: ["bar"]}] = po.translations
+    end
+
+    assert output =~ "#{fixture_path}: warning: the file being parsed starts with a BOM"
+    refute output =~ "nofile: warning: the string being parsed"
   end
 
   test "parse_file!/1: populates the :file field with the path of the parsed file" do

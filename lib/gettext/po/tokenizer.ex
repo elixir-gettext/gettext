@@ -127,12 +127,24 @@ defmodule Gettext.PO.Tokenizer do
   end
 
   # Unknown keyword.
-  # An unknown keyword is assumed at this point. In order to generate a nice and
-  # informative error message, the whole keyword (up to the first non-word
-  # character) is retrieved with `next_word/1` instead of just the first
-  # character.
-  defp tokenize_line(binary, line, _acc) when is_binary(binary) do
+  # At this point, there has to be a syntax error. Here, since the first byte is
+  # a letter (we don't take care of unicode ot fancy stuff, just ASCII letters),
+  # we assume there's an unknown keyword. We parse it with a regex
+  # (`next_word/1`) so that the error message is informative.
+  defp tokenize_line(<<letter, _ :: binary>> = binary, line, _acc)
+      when letter in ?a..?z or letter in ?A..?Z do
     {:error, line, "unknown keyword '#{next_word(binary)}'"}
+  end
+
+  # Unknown token.
+  # Last resort: this is just a plain unexpected token. We take the first
+  # Unicode char of the given binary and build an informative error message
+  # (with the codepoint of the char).
+  defp tokenize_line(binary, line, _acc) when is_binary(binary) do
+    # To get the first Unicode char, we convert to char list first.
+    [char|_] = String.to_char_list(binary)
+    msg = :io_lib.format('unexpected token: "~ts" (codepoint U+~4.16.0B)', [[char], char])
+    {:error, line, :unicode.characters_to_binary(msg)}
   end
 
   # Parses the double-quotes-delimited string `str` into a single string. Note
