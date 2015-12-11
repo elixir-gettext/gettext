@@ -21,11 +21,15 @@ defmodule Gettext.Merger do
 
   @doc """
   Merges two `Gettext.PO` structs representing a PO file and an updated POT (or
-  PO) file into a new `Gettext.PO` struct. `old` is an existing PO file (that
-  contains translations) which will be "updated" with the translations in the
-  `new` POT or PO file. Translations in `old` will kept as long as they match
-  with translations in `new`; all other translations will be discarded (as `new`
-  is considered to be the reference).
+  PO) file into a new `Gettext.PO` struct.
+
+  `old` is an existing PO file (that contains translations) which will be
+  "updated" with the translations in the `new` POT or PO file. Translations in
+  `old` will kept as long as they match with translations in `new`; all other
+  translations will be discarded (as `new` is considered to be the reference).
+
+  The `Gettext.PO` struct that this function returns is *alway* meant to be a PO
+  file, not a POT file.
 
   `new` can be:
 
