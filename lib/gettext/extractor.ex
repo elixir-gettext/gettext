@@ -217,7 +217,9 @@ defmodule Gettext.Extractor do
     # with the translations that only appear in `new`.
     unique_new = Enum.reject(new.translations, &PO.Translations.find(existing.translations, &1))
 
-    %PO{translations: old_and_merged ++ unique_new, headers: existing.headers}
+    %PO{translations: old_and_merged ++ unique_new,
+        headers: existing.headers,
+        top_of_the_file_comments: existing.top_of_the_file_comments}
   end
 
   defp merge_translations(%Translation{} = old, %Translation{comments: []} = new) do

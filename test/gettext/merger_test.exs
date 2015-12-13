@@ -94,8 +94,8 @@ defmodule Gettext.MergerTest do
     msgstr "bar"
     """
 
-    merged = Merger.new_po_file(new_po_path, pot_path)
-    assert IO.iodata_to_binary(merged) == ~S"""
+    merged = Merger.new_po_file(new_po_path, pot_path) |> IO.iodata_to_binary()
+    assert String.ends_with?(merged, ~S"""
     msgid ""
     msgstr ""
     "Language: it\n"
@@ -103,7 +103,8 @@ defmodule Gettext.MergerTest do
     # A comment
     msgid "foo"
     msgstr "bar"
-    """
+    """)
+    assert String.starts_with?(merged, "## `msgid`s in this file come from POT")
   end
 
   defp write_file(path, contents) do

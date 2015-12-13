@@ -25,8 +25,8 @@ defmodule Gettext.PO.Parser do
       {:error, _line, _reason} = error ->
         error
       :ok ->
-        {headers, translations} = extract_headers(translations)
-        {:ok, headers, translations}
+        {top_comments, headers, translations} = extract_top_comments_and_headers(translations)
+        {:ok, top_comments, headers, translations}
     end
   end
 
@@ -82,11 +82,14 @@ defmodule Gettext.PO.Parser do
   # headers. Headers will be in the msgstr of this "fake" translation, one on
   # each line. For now, we'll just separate those lines in order to get a list
   # of headers.
-  defp extract_headers([%Translation{msgid: id, msgstr: headers}|rest])
-    when id == "" or id == [""],
-    do: {headers, rest}
-  defp extract_headers(translations),
-    do: {[], translations}
+  defp extract_top_comments_and_headers([%Translation{msgid: id, msgstr: headers, comments: comments}|rest])
+      when id == "" or id == [""] do
+    {comments, headers, rest}
+  end
+
+  defp extract_top_comments_and_headers(translations) do
+    {[], [], translations}
+  end
 
   defp check_for_duplicates(translations) do
     try do

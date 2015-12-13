@@ -8,6 +8,13 @@ defmodule Gettext.Merger do
 
   @min_jaro_distance 0.8
 
+  @new_po_informative_comment """
+  ## `msgid`s in this file come from POT (.pot) files. Do not add, change, or
+  ## remove `msgid`s manually here as they're tied to the ones in the
+  ## corresponding POT file (with the same domain). Use `mix gettext.extract
+  ## --merge` or `mix gettext.merge` to merge POT files into PO files.
+  """
+
   @doc """
   Merges a PO file with a POT file given their paths.
 
@@ -53,6 +60,7 @@ defmodule Gettext.Merger do
   @spec merge(PO.t, PO.t, Keyword.t) :: PO.t
   def merge(%PO{} = old, %PO{} = new, opts) do
     %PO{
+      top_of_the_file_comments: old.top_of_the_file_comments,
       headers: old.headers,
       file: old.file,
       translations: merge_translations(old.translations, new.translations, opts),
@@ -150,7 +158,7 @@ defmodule Gettext.Merger do
       translations: strip_double_hash_comments(pot.translations),
     }
 
-    PO.dump(po)
+    [@new_po_informative_comment, PO.dump(po)]
   end
 
   defp headers_for_new_po_file(po_file) do

@@ -11,7 +11,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}
     ])
 
-    assert {:ok, [], [%Translation{msgid: ["hello"], msgstr: ["ciao"]}]} = parsed
+    assert {:ok, [], [], [%Translation{msgid: ["hello"], msgstr: ["ciao"]}]} = parsed
   end
 
   test "parse/1 with multiple concatenated strings" do
@@ -20,7 +20,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "ciao"}, {:str, 3, " mondo"}
     ])
 
-    assert {:ok, [], [
+    assert {:ok, [], [], [
       %Translation{msgid: ["hello", " world"], msgstr: ["ciao", " mondo"]}
     ]} = parsed
   end
@@ -33,7 +33,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 4}, {:str, 4, "parola"},
     ])
 
-    assert {:ok, [], [
+    assert {:ok, [], [], [
       %Translation{msgid: ["hello"], msgstr: ["ciao"]},
       %Translation{msgid: ["word"], msgstr: ["parola"]},
     ]} = parsed
@@ -45,7 +45,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 2}, {:str, 2, "bårπ"},
     ])
 
-    assert {:ok, [], [%Translation{msgid: ["føø"], msgstr: ["bårπ"]}]} = parsed
+    assert {:ok, [], [], [%Translation{msgid: ["føø"], msgstr: ["bårπ"]}]} = parsed
   end
 
   test "parse/1 with a pluralized string" do
@@ -57,7 +57,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 1}, {:plural_form, 1, 2}, {:str, 1, "barres"},
     ])
 
-    assert {:ok, [], [%PluralTranslation{
+    assert {:ok, [], [], [%PluralTranslation{
       msgid: ["foo"],
       msgid_plural: ["foos"],
       msgstr: %{
@@ -77,7 +77,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 5}, {:str, 5, "bar"},
     ])
 
-    assert {:ok, [], [%Translation{
+    assert {:ok, [], [], [%Translation{
       msgid: ["foo"],
       msgstr: ["bar"],
       comments: [
@@ -97,7 +97,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 3}, {:str, 3, "d"},
     ])
 
-    assert {:ok, [], [
+    assert {:ok, [], [], [
       %Translation{msgid: ["a"], msgstr: ["b"]},
       %Translation{msgid: ["c"], msgstr: ["d"], comments: ["# Comment"]},
     ]} = parsed
@@ -154,7 +154,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 1}, {:str, 3, "bar"},
     ])
 
-    assert {:ok, [], [%Translation{} = t]} = parsed
+    assert {:ok, [], [], [%Translation{} = t]} = parsed
     assert t.references == [
       {"foo.ex", 1},
       {"filename with spaces.ex", 12},
@@ -176,7 +176,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 5}, {:str, 5, "bar"},
     ])
 
-    assert {:ok, [], [%Translation{} = t]} = parsed
+    assert {:ok, [], [], [%Translation{} = t]} = parsed
     assert Enum.sort(t.flags) == ~w(flag other-flag other-other-flag)
     assert t.comments == ["# comment"]
   end
@@ -187,7 +187,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 11}, {:str, 11, "bar"},
     ])
 
-    {:ok, [], [%Translation{} = translation]} = parsed
+    {:ok, [], [], [%Translation{} = translation]} = parsed
     assert translation.po_source_line == 10
   end
 
@@ -198,7 +198,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 12}, {:plural_form, 12, 0}, {:str, 12, "bar"},
     ])
 
-    {:ok, [], [%PluralTranslation{} = translation]} = parsed
+    {:ok, [], [], [%PluralTranslation{} = translation]} = parsed
     assert translation.po_source_line == 10
   end
 
@@ -212,6 +212,7 @@ defmodule Gettext.PO.ParserTest do
 
     assert parsed == {
       :ok,
+      [],
       ["Language: en_US\n", "Last-Translator: Jane Doe <jane@doe.com>\n"],
       []
     }
@@ -241,7 +242,7 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "an empty list of tokens is parsed as an empty list of translations" do
-    assert Parser.parse([]) == {:ok, [], []}
+    assert Parser.parse([]) == {:ok, [], [], []}
   end
 
   test "multiple references on the same line are parsed correctly" do
@@ -251,10 +252,27 @@ defmodule Gettext.PO.ParserTest do
       {:msgid, 3}, {:str, 3, "foo"}, {:msgstr, 3}, {:str, 3, "bar"},
     ])
 
-    assert {:ok, [], [%Translation{} = t]} = parsed
+    assert {:ok, [], [], [%Translation{} = t]} = parsed
     assert t.references == [{"foo.ex", 1},
                             {"bar.ex", 2},
                             {"with spaces.ex", 3},
                             {"baz.ex", 3}]
+  end
+
+  test "top-of-the-file comments are extracted correctly" do
+    parsed = Parser.parse([
+      {:comment, 1, "# Top of the file"},
+      {:comment, 1, "## Top of the file with two hashes"},
+      {:msgid, 1}, {:str, 1, ""},
+      {:msgstr, 1},
+        {:str, 1, "Language: en_US\n"},
+    ])
+
+    assert {
+      :ok,
+      ["# Top of the file", "## Top of the file with two hashes"],
+      ["Language: en_US\n"],
+      []
+    } = parsed
   end
 end
