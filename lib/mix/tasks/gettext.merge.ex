@@ -179,7 +179,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Path.join("**/*.po")
     |> Path.wildcard()
     |> Enum.reject(&po_has_matching_pot?(&1, pot_dir))
-    |> Enum.map(&warn_for_missing_pot_file(&1, pot_dir))
+    |> Enum.each(&warn_for_missing_pot_file(&1, pot_dir))
   end
 
   defp find_matching_po(pot_file, po_dir) do
