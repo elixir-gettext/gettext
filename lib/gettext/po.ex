@@ -14,9 +14,13 @@ defmodule Gettext.PO do
   @type parse_error :: {:error, line, binary}
   @type translation :: Translation.t | PluralTranslation.t
 
-  defstruct headers: [], translations: [], file: nil
+  defstruct headers: [],
+            translations: [],
+            file: nil,
+            top_of_the_file_comments: []
 
   @type t :: %__MODULE__{
+    top_of_the_file_comments: [binary],
     headers: [binary],
     translations: [translation],
     file: Path.t,
@@ -62,8 +66,10 @@ defmodule Gettext.PO do
         case Parser.parse(tokens) do
           {:error, _line, _reason} = error ->
             error
-          {:ok, headers, translations} ->
-            {:ok, %PO{headers: headers, translations: translations}}
+          {:ok, top_comments, headers, translations} ->
+            {:ok, %PO{headers: headers,
+                      translations: translations,
+                      top_of_the_file_comments: top_comments}}
         end
     end
   end
@@ -186,31 +192,33 @@ defmodule Gettext.PO do
   @spec dump(t) :: iodata
   def dump(po)
 
-  def dump(%PO{headers: [], translations: translations}) do
-    dump_translations(translations)
+  def dump(%PO{headers: hs, translations: ts, top_of_the_file_comments: cs}) do
+    [dump_top_comments(cs),
+     dump_headers(hs),
+     (if hs != [] and ts != [], do: ?\n, else: []),
+     dump_translations(ts)]
   end
 
-  def dump(%PO{headers: headers, translations: []}) do
-    dump_headers(headers)
-  end
-
-  def dump(%PO{headers: headers, translations: translations}) do
-    [dump_headers(headers), ?\n, dump_translations(translations)]
+  def dump_top_comments(top_comments) when is_list(top_comments) do
+    Enum.map(top_comments, &[&1, ?\n])
   end
 
   def dump_headers([]) do
     []
   end
 
+  # We do this because we want headers to be shaped like this:
+  #
+  #   msgid ""
+  #   msgstr ""
+  #     "Header: foo\n"
   def dump_headers([first|_] = headers) when first != "" do
     dump_headers([""|headers])
   end
 
   def dump_headers(headers) do
-    [
-      ~s(msgid ""\n),
-      dump_kw_and_strings("msgstr", headers, 0),
-    ]
+    [~s(msgid ""\n),
+      dump_kw_and_strings("msgstr", headers, 0)]
   end
 
   defp dump_translations(translations) do
@@ -220,24 +228,19 @@ defmodule Gettext.PO do
   end
 
   defp dump_translation(%Translation{} = t) do
-    [
-      dump_comments(t.comments),
-      dump_flags(t.flags),
-      dump_references(t.references),
-      dump_kw_and_strings("msgid", t.msgid),
-      dump_kw_and_strings("msgstr", t.msgstr),
-    ]
+    [dump_comments(t.comments),
+     dump_flags(t.flags), dump_references(t.references),
+     dump_kw_and_strings("msgid", t.msgid),
+     dump_kw_and_strings("msgstr", t.msgstr)]
   end
 
   defp dump_translation(%PluralTranslation{} = t) do
-    [
-      dump_comments(t.comments),
-      dump_flags(t.flags),
-      dump_references(t.references),
-      dump_kw_and_strings("msgid", t.msgid),
-      dump_kw_and_strings("msgid_plural", t.msgid_plural),
-      dump_plural_msgstr(t.msgstr)
-    ]
+    [dump_comments(t.comments),
+     dump_flags(t.flags),
+     dump_references(t.references),
+     dump_kw_and_strings("msgid", t.msgid),
+     dump_kw_and_strings("msgid_plural", t.msgid_plural),
+     dump_plural_msgstr(t.msgstr)]
   end
 
   defp dump_comments(comments) do
@@ -284,7 +287,7 @@ defmodule Gettext.PO do
   end
 
   defp dump_kw_and_strings(keyword, [first|rest], indentation \\ 2) do
-    first = ~s(#{keyword} "#{escape(first)}"\n)
+    first = ~s[#{keyword} "#{escape(first)}"\n]
     rest  = Enum.map rest, &indent_line([?", escape(&1), ?", ?\n], indentation)
     [first, rest]
   end

@@ -68,7 +68,8 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     msgstr ""
     """
 
-    assert read_file("it/LC_MESSAGES/new.po") == ~S"""
+    new_po = read_file("it/LC_MESSAGES/new.po")
+    assert new_po =~ ~S"""
     msgid ""
     msgstr ""
     "Language: it\n"
@@ -76,6 +77,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     msgid "new"
     msgstr ""
     """
+    assert String.starts_with?(new_po, "## `msgid`s in this file come from POT")
   end
 
   test "passing just a dir merges with PO files in every locale" do
@@ -140,6 +142,24 @@ defmodule Mix.Tasks.Gettext.MergeTest do
 
     assert File.dir?(created_dir)
     assert output =~ "Created directory #{created_dir}"
+  end
+
+  test "informative comments at the top of the file" do
+    write_file "inf.pot", """
+    msgid "foo"
+    msgstr ""
+    """
+
+    capture_io fn ->
+      run [@priv_path, "--locale", "en"]
+      contents = read_file("en/LC_MESSAGES/inf.po")
+      assert contents =~ "## `msgid`s in this file"
+
+      # Running the task again without having change the PO file shouldn't
+      # remove the informative comment.
+      run [@priv_path, "--locale", "en"]
+      assert contents == read_file("en/LC_MESSAGES/inf.po")
+    end
   end
 
   defp write_file(path, contents) do

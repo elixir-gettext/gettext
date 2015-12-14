@@ -6,6 +6,7 @@ defmodule Gettext.MergerTest do
   alias Gettext.PO.Translation
 
   @opts fuzzy: true, fuzzy_threshold: 0.8
+  @pot_path "../../tmp/" |> Path.expand(__DIR__) |> Path.relative_to_cwd
 
   test "merge/2: headers from the old file are kept" do
     old_po = %PO{headers: [~S(Language: it\n)]}
@@ -80,5 +81,34 @@ defmodule Gettext.MergerTest do
     refute MapSet.member?(t.flags, "fuzzy")
     assert t.msgid == "hello world!"
     assert t.msgstr == ["foo"]
+  end
+
+  test "new_po_file/2" do
+    pot_path = Path.join(@pot_path, "new_po_file.pot")
+    new_po_path = Path.join(@pot_path, "it/LC_MESSAGES/new_po_file.po")
+
+    write_file pot_path, """
+    ## Stripme!
+    # A comment
+    msgid "foo"
+    msgstr "bar"
+    """
+
+    merged = Merger.new_po_file(new_po_path, pot_path) |> IO.iodata_to_binary()
+    assert String.ends_with?(merged, ~S"""
+    msgid ""
+    msgstr ""
+    "Language: it\n"
+
+    # A comment
+    msgid "foo"
+    msgstr "bar"
+    """)
+    assert String.starts_with?(merged, "## `msgid`s in this file come from POT")
+  end
+
+  defp write_file(path, contents) do
+    path |> Path.dirname |> File.mkdir_p!
+    File.write!(path, contents)
   end
 end

@@ -129,17 +129,17 @@ defmodule Gettext.Extractor do
     # list of {path, struct} for new %Gettext.PO{} structs that we have
     # extracted. If we turn pot_files into a list of {path, whatever} tuples,
     # that we can take advantage of Dict.merge/3 to find clashing paths.
-    pot_files
-    |> Enum.map(&{&1, :existing})
-    |> Enum.into(%{})
-    |> Map.merge(Enum.into(po_structs, %{}), &merge_existing_and_extracted/3)
-    |> Enum.map(&purge_unmerged_files/1)
-    |> Enum.reject(&match?({_, :unchanged}, &1))
-    |> Enum.map(fn({path, pot}) -> {path, PO.dump(pot)} end)
+    pot_files  = Enum.into(pot_files, %{}, &{&1, :existing})
+    po_structs = Enum.into(po_structs, %{})
+
+    Map.merge(pot_files, po_structs, &merge_existing_and_extracted/3)
+    |> Enum.map(&tag_files/1)
+    |> Enum.reject(&match?({_, {_, :unchanged}}, &1))
+    |> Enum.map(&dump_tagged_file/1)
   end
 
   defp merge_existing_and_extracted(path, :existing, extracted) do
-    merge_or_unchanged(path, extracted)
+    {:merged, merge_or_unchanged(path, extracted)}
   end
 
   # Returns :unchanged if merging `existing_path` with `new` changes nothing,
@@ -158,12 +158,44 @@ defmodule Gettext.Extractor do
     end
   end
 
-  # This function "purges" (merging with an empty %Gettext.PO{}) all the {path,
-  # :existing} tuples, leaving others unchanged.
-  defp purge_unmerged_files({path, :existing}),
-    do: {path, merge_or_unchanged(path, %PO{})}
-  defp purge_unmerged_files(already_merged),
-    do: already_merged
+  # This function "tags" a {path, _} tuple in order to distinguish POT files
+  # that have been merged (one existed at `path` and there's a new one to put at
+  # `path` as well), POT files that exist but have no new counterpart (`{path,
+  # :existing}`) and new files that do not exist yet.
+  # These are marked as:
+  #   * {path, {:merged, _}} - one existed and there's a new one
+  #   * {path, {:unmerged, _}} - one existed, no new one
+  #   * {path, {:new, _}} - none existed, there's a new one
+  # Note that existing files with no new corresponding file are "pruned", e.g.,
+  # merged with an empty %PO{} struct to remove obsolete translations (see
+  # prune_unmerged/1).
+  defp tag_files({_path, {:merged, _}} = entry),
+    do: entry
+  defp tag_files({path, :existing}),
+    do: {path, {:unmerged, prune_unmerged(path)}}
+  defp tag_files({path, new_po}),
+    do: {path, {:new, new_po}}
+
+  # This function dumps merged files and unmerged files without any changes, and
+  # dumps new POT files adding an informative comment to them.
+  defp dump_tagged_file({path, {:new, new_po}}),
+    do: {path, [new_pot_comment(), PO.dump(new_po)]}
+  defp dump_tagged_file({path, {tag, po}}) when tag in [:unmerged, :merged],
+    do: {path, PO.dump(po)}
+
+  defp prune_unmerged(path) do
+    merge_or_unchanged(path, %PO{})
+  end
+
+  defp new_pot_comment do
+    """
+    ## This file is a PO Template file. `msgid`s here are often extracted from
+    ## source code; add new translations manually only if they're dynamic
+    ## translations that can't be statically extracted. Run `mix
+    ## gettext.extract` to bring this file up to date. Leave `msgstr`s empty as
+    ## changing them here as no effect; edit them in PO (`.po`) files instead.
+    """
+  end
 
   # Merges a %PO{} struct representing an existing POT file with an
   # in-memory-only %PO{} struct representing the new POT file.
@@ -185,7 +217,9 @@ defmodule Gettext.Extractor do
     # with the translations that only appear in `new`.
     unique_new = Enum.reject(new.translations, &PO.Translations.find(existing.translations, &1))
 
-    %PO{translations: old_and_merged ++ unique_new, headers: existing.headers}
+    %PO{translations: old_and_merged ++ unique_new,
+        headers: existing.headers,
+        top_of_the_file_comments: existing.top_of_the_file_comments}
   end
 
   defp merge_translations(%Translation{} = old, %Translation{comments: []} = new) do

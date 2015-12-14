@@ -43,7 +43,9 @@ defmodule Gettext.ExtractorTest do
     """
 
     {_, contents} = List.keyfind(structs, paths.new, 0)
-    assert IO.iodata_to_binary(contents) == """
+    contents = IO.iodata_to_binary(contents)
+    assert String.starts_with?(contents, "## This file is a PO Template file.")
+    assert contents =~ """
     msgid "new"
     msgstr ""
     """
@@ -161,7 +163,16 @@ defmodule Gettext.ExtractorTest do
     ]
 
     dumped = Enum.map(Extractor.pot_files, fn {k, v} -> {k, IO.iodata_to_binary(v)} end)
-    assert dumped == expected
+
+    # We check that dumped strings end with the `expected` string because
+    # there's the informative comment at the start of each dumped string.
+    assert Enum.all?(dumped, fn {path, contents} ->
+      {^path, expected_contents} = List.keyfind(expected, path, 0)
+      String.ends_with?(contents, expected_contents)
+    end)
+    assert Enum.all?(dumped, fn {_, contents} ->
+      contents =~ "## This file is a PO Template file."
+    end)
     Extractor.teardown
     refute Extractor.extracting?
   end
