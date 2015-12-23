@@ -52,9 +52,10 @@ import MyApp.Gettext
 gettext "Here is one string to translate"
 
 # Plural translation
-ngettext "Here is the string to translate",
-         "Here are the strings to translate",
-         3
+ngettext "The apple is ripe",
+         "The apples are ripe",
+         %{thing: 'apple', count: 3}.count
+# Returns "The apples are ripe"
 
 # Domain-based translation
 dgettext "errors", "Here is an error message to translate"
