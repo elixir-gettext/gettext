@@ -476,7 +476,8 @@ defmodule Gettext do
     dgettext(backend, domain, msgid, Enum.into(bindings, %{}))
   end
 
-  def dgettext(backend, domain, msgid, bindings) do
+  def dgettext(backend, domain, msgid, bindings)
+      when is_atom(backend) and is_binary(domain) and is_binary(msgid) and is_map(bindings) do
     backend.lgettext(get_locale(backend), domain, msgid, bindings)
     |> handle_backend_result
   end
@@ -526,7 +527,9 @@ defmodule Gettext do
     dngettext(backend, domain, msgid, msgid_plural, n, Enum.into(bindings, %{}))
   end
 
-  def dngettext(backend, domain, msgid, msgid_plural, n, bindings) do
+  def dngettext(backend, domain, msgid, msgid_plural, n, bindings)
+      when is_atom(backend) and is_binary(domain) and is_binary(msgid) and
+           is_binary(msgid_plural) and is_integer(n) and is_map(bindings) do
     backend.lngettext(get_locale(backend), domain, msgid, msgid_plural, n, bindings)
     |> handle_backend_result
   end
