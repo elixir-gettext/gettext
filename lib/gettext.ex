@@ -568,6 +568,9 @@ defmodule Gettext do
       end
       #=> "Ciao mondo"
 
+      MyApp.Gettext.gettext("Hello world")
+      #=> "Bonjour monde"
+
   """
   @spec with_locale(backend, locale, (() -> term)) :: term
   def with_locale(backend, locale, fun) do
