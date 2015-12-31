@@ -31,7 +31,7 @@
     end
     ```
 
-Documentation for the main `Gettext` module and more is available on [hexdocs.pm][docs-gettext].
+[Documentation for `Gettext` is available on Hex][docs-gettext].
 
 ## Usage
 

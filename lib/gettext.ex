@@ -1,10 +1,8 @@
 defmodule Gettext do
   @moduledoc ~S"""
-  Main Gettext module.
-
   The `Gettext` module provides a
   [gettext](https://www.gnu.org/software/gettext/)-based API for working with
-  localized and internationalized applications.
+  internationalized applications.
 
   ## Using Gettext
 
