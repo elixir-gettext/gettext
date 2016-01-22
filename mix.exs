@@ -1,3 +1,26 @@
+defmodule Mix.Tasks.Compile.EnsureYeccCompiler do
+  def run(_args) do
+    yecc? = Code.ensure_loaded?(:yecc)
+    parsertools? = match?({:ok, _}, Application.ensure_all_started(:parsetools))
+
+    unless yecc? and parsertools? do
+      Mix.raise String.rstrip("""
+      Could not compile :gettext because the :yecc module could not be found.
+      This is likely caused by the lack of the :parsetools Erlang application.
+      This may happen if your package manager broke Erlang into multiple
+      packages and may be fixed by installing the missing package for Erlang.
+
+      For example, if your package manager is apt-get:
+
+          apt-get install erlang-parsetools
+
+      You can find more information here:
+      https://github.com/elixir-lang/gettext/issues/67.
+      """, ?\n)
+    end
+  end
+end
+
 defmodule Gettext.Mixfile do
   use Mix.Project
 
@@ -10,6 +33,7 @@ defmodule Gettext.Mixfile do
     [app: :gettext,
      version: @version,
      elixir: "~> 1.1-beta",
+     compilers: [:ensure_yecc_compiler] ++ Mix.compilers,
      build_embedded: Mix.env == :prod,
      deps: deps,
 
