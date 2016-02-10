@@ -1,0 +1,2 @@
+msgid "bar"
+msgstr "baz"

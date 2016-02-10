@@ -9,6 +9,8 @@ end
 defmodule GettextTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   alias GettextTest.Translator
   alias GettextTest.TranslatorWithCustomPriv
   require Translator
@@ -350,5 +352,18 @@ defmodule GettextTest do
   test "known_locales/1: returns all the locales for which a backend has PO files" do
     assert Gettext.known_locales(Translator) == ["it"]
     assert Gettext.known_locales(TranslatorWithCustomPriv) == ["it"]
+  end
+
+  test "" do
+    code = quote do
+      defmodule POsInWeirdPlaces do
+        use Gettext, otp_app: :test_application, priv: "po_files_in_weird_places"
+      end
+    end
+
+    output = capture_io(:stderr, fn -> Code.eval_quoted(code) end)
+    assert output =~ ~s[PO file ignored because not in "canonical" path (my_locale/LC_MESSAGES/my_domain.po)]
+    assert output =~ "foo.po"
+    assert output =~ "subdir/bar.po"
   end
 end
