@@ -172,8 +172,15 @@ defmodule Gettext.Compiler do
   """
   @spec compile_po_files(Path.t) :: Macro.t
   def compile_po_files(dir) do
-    # `true` means recursively. The last argument is the initial accumulator.
-    :filelib.fold_files(String.to_char_list(dir), '\.po$', true, &compile_po_file(&1, &2), [])
+    all_po_files  = dir |> Path.join("**/*.po") |> Path.wildcard
+    good_po_files = dir |> Path.join("*/LC_MESSAGES/*.po") |> Path.wildcard
+
+    # First, we warn for all files that are under `dir` but not in the
+    # "canonical" paths, which is `my_locale/LC_MESSAGES/my_domain.pot`. Then we
+    # take all the PO files in the canonical paths and compile them to function
+    # clauses.
+    warn_for_po_files_in_bad_paths(all_po_files -- good_po_files)
+    Enum.reduce(good_po_files, [], &compile_po_file/2)
   end
 
   # `acc` is a list of already compiled translation, i.e., of quoted function
@@ -185,6 +192,14 @@ defmodule Gettext.Compiler do
 
     Enum.reduce translations, acc, fn
       translation, acc -> [compile_translation(locale, domain, translation)|acc]
+    end
+  end
+
+  defp warn_for_po_files_in_bad_paths(files) do
+    Enum.each files, fn(path) ->
+      msg = "PO file ignored because not in \"canonical\" path" <>
+            " (my_locale/LC_MESSAGES/my_domain.po): #{Path.relative_to_cwd(path)}"
+      IO.puts :stderr, msg
     end
   end
 
