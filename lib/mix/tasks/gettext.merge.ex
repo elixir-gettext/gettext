@@ -167,7 +167,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Enum.map(fn pot_file ->
       Task.async fn ->
         pot_file
-        |> find_matching_po(po_dir)
+        |> find_matching_po(pot_dir, po_dir)
         |> merge_or_create(opts)
         |> write_file()
       end
@@ -182,8 +182,9 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Enum.each(&warn_for_missing_pot_file(&1, pot_dir))
   end
 
-  defp find_matching_po(pot_file, po_dir) do
-    domain = Path.basename(pot_file, ".pot")
+  defp find_matching_po(pot_file, pot_dir, po_dir) do
+    relative_pot_file = Regex.replace(~r(^#{pot_dir}), pot_file, "")
+    domain = Path.rootname(relative_pot_file, ".pot")
     {pot_file, Path.join(po_dir, "#{domain}.po")}
   end
 

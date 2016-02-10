@@ -130,6 +130,7 @@ defmodule Gettext.ExtractorTest do
         gettext "foo"
         dngettext "errors", "one error", "%{count} errors", 2
         gettext "foo"
+        dgettext "sub/foo", "foo"
         Gettext.ExtractorTest.MyOtherGettext.dgettext "greetings", "hi"
       end
     end
@@ -154,9 +155,16 @@ defmodule Gettext.ExtractorTest do
           msgstr[1] ""
           """},
 
-      {"translations/greetings.pot",
+      {"priv/gettext/sub/foo.pot",
           """
           #: foo.ex:17
+          msgid "foo"
+          msgstr ""
+          """},
+
+      {"translations/greetings.pot",
+          """
+          #: foo.ex:18
           msgid "hi"
           msgstr ""
           """}
