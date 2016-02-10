@@ -189,8 +189,15 @@ defmodule Gettext.Compiler do
   end
 
   defp locale_and_domain_from_path(path) do
-    [file, "LC_MESSAGES", locale|_rest] = path |> Path.split |> Enum.reverse
-    domain = Path.rootname(file, ".po")
+    {
+      file_path,
+      ["LC_MESSAGES", locale|_rest]
+    } = path |> Path.split |> Enum.reverse |> Enum.split_while(fn
+      "LC_MESSAGES" -> false
+      _ -> true
+    end)
+
+    domain = file_path |> Enum.reverse |> Path.join |> Path.rootname(".po")
     {locale, domain}
   end
 

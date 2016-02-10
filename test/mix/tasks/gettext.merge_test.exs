@@ -54,7 +54,13 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     msgstr ""
     """
 
+    write_file "sub/foo.pot", """
+    msgid "foo"
+    msgstr ""
+    """
+
     write_file "it/LC_MESSAGES/default.po", ""
+    write_file "it/LC_MESSAGES/sub/foo.po", ""
 
     output = capture_io fn ->
       run [@priv_path, "--locale", "it"]
@@ -62,9 +68,15 @@ defmodule Mix.Tasks.Gettext.MergeTest do
 
     assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/new.po"
     assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/default.po"
+    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/sub/foo.po"
 
     assert read_file("it/LC_MESSAGES/default.po") == """
     msgid "def"
+    msgstr ""
+    """
+
+    assert read_file("it/LC_MESSAGES/sub/foo.po") == """
+    msgid "foo"
     msgstr ""
     """
 

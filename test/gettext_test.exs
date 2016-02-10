@@ -280,6 +280,8 @@ defmodule GettextTest do
 
     assert Gettext.dgettext(Translator, "foo", "Foo") == "Foo"
 
+    assert Gettext.dgettext(Translator, "sub/foo", "Foo") == "Sub Foo"
+
     msg = "missing interpolation keys: name"
     assert_raise Gettext.Error, msg, fn ->
       Gettext.dgettext(Translator, "interpolations", "Hello %{name}", %{})

@@ -1,0 +1,2 @@
+msgid "Foo"
+msgstr "Sub Foo"
