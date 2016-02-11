@@ -111,14 +111,18 @@ defmodule Gettext.Compiler do
   @spec dynamic_clauses() :: Macro.t
   def dynamic_clauses do
     quote do
-      def lgettext(_, _, default, bindings) do
-        case Gettext.Interpolation.interpolate(default, bindings) do
+      def lgettext(_locale, domain, msgid, bindings) do
+        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+
+        case Gettext.Interpolation.interpolate(msgid, bindings) do
           {:ok, interpolated} -> {:default, interpolated}
           {:error, _} = error -> error
         end
       end
 
-      def lngettext(_, _, msgid, msgid_plural, n, bindings) do
+      def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
+        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+
         str      = if n == 1, do: msgid, else: msgid_plural
         bindings = Map.put(bindings, :count, n)
 
@@ -164,6 +168,18 @@ defmodule Gettext.Compiler do
         if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces, ""), else: raiser.()
       _ ->
         raiser.()
+    end
+  end
+
+  @doc """
+  Prints a warning on `:stderr` if `domain` contains slashes.
+
+  This function is called by `lgettext` and `lngettext`.
+  """
+  @spec warn_if_domain_contains_slashes(binary) :: :ok
+  def warn_if_domain_contains_slashes(domain) do
+    if String.contains?(domain, "/") do
+      IO.puts :stderr, "warning: slashes in domains are not supported: #{inspect domain}"
     end
   end
 
