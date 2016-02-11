@@ -8,6 +8,7 @@ defmodule Gettext.Compiler do
 
   @plural_forms Application.get_env(:gettext, :plural_forms, Gettext.Plural)
   @default_priv "priv/gettext"
+  @po_wildcard "*/LC_MESSAGES/*.po"
 
   @doc false
   defmacro __before_compile__(env) do
@@ -20,8 +21,8 @@ defmodule Gettext.Compiler do
 
     quote do
       @doc false
-      def __gettext__(:priv), do: unquote(priv)
-      def __gettext__(:otp_app), do: unquote(otp_app)
+      def __gettext__(:priv),          do: unquote(priv)
+      def __gettext__(:otp_app),       do: unquote(otp_app)
       def __gettext__(:known_locales), do: unquote(known_locales)
 
       # The manifest lives in the root of the priv
@@ -172,8 +173,7 @@ defmodule Gettext.Compiler do
   """
   @spec compile_po_files(Path.t) :: Macro.t
   def compile_po_files(dir) do
-    # `true` means recursively. The last argument is the initial accumulator.
-    :filelib.fold_files(String.to_char_list(dir), '\.po$', true, &compile_po_file(&1, &2), [])
+    Enum.reduce(po_files_in_dir(dir), [], &compile_po_file/2)
   end
 
   # `acc` is a list of already compiled translation, i.e., of quoted function
@@ -274,6 +274,14 @@ defmodule Gettext.Compiler do
       str, acc ->
         quote do: unquote(acc) <> unquote(str)
     end
+  end
+
+  # Returns all the PO files in `translations_dir` (under "canonical" paths,
+  # i.e., `locale/LC_MESSAGES/domain.po`).
+  defp po_files_in_dir(dir) do
+    dir
+    |> Path.join(@po_wildcard)
+    |> Path.wildcard()
   end
 
   # Returns all the locales in `translations_dir` (which are the locales known
