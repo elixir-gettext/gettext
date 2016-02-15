@@ -1,5 +1,5 @@
 defmodule Gettext.POTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   import ExUnit.CaptureIO
 

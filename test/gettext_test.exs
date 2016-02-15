@@ -7,7 +7,9 @@ defmodule GettextTest.TranslatorWithCustomPriv do
 end
 
 defmodule GettextTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
+
+  import ExUnit.CaptureIO
 
   alias GettextTest.Translator
   alias GettextTest.TranslatorWithCustomPriv
@@ -350,5 +352,12 @@ defmodule GettextTest do
   test "known_locales/1: returns all the locales for which a backend has PO files" do
     assert Gettext.known_locales(Translator) == ["it"]
     assert Gettext.known_locales(TranslatorWithCustomPriv) == ["it"]
+  end
+
+  test "a warning is issued in l(n)gettext when the domain contains slashes" do
+    io = capture_io :stderr, fn ->
+      assert Translator.dgettext("sub/dir/domain", "hello") == "hello"
+    end
+    assert io =~ ~s(warning: slashes in domains are not supported: "sub/dir/domain")
   end
 end

@@ -8,6 +8,7 @@ defmodule Gettext.Compiler do
 
   @plural_forms Application.get_env(:gettext, :plural_forms, Gettext.Plural)
   @default_priv "priv/gettext"
+  @po_wildcard "*/LC_MESSAGES/*.po"
 
   @doc false
   defmacro __before_compile__(env) do
@@ -20,8 +21,8 @@ defmodule Gettext.Compiler do
 
     quote do
       @doc false
-      def __gettext__(:priv), do: unquote(priv)
-      def __gettext__(:otp_app), do: unquote(otp_app)
+      def __gettext__(:priv),          do: unquote(priv)
+      def __gettext__(:otp_app),       do: unquote(otp_app)
       def __gettext__(:known_locales), do: unquote(known_locales)
 
       # The manifest lives in the root of the priv
@@ -110,14 +111,18 @@ defmodule Gettext.Compiler do
   @spec dynamic_clauses() :: Macro.t
   def dynamic_clauses do
     quote do
-      def lgettext(_, _, default, bindings) do
-        case Gettext.Interpolation.interpolate(default, bindings) do
+      def lgettext(_locale, domain, msgid, bindings) do
+        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+
+        case Gettext.Interpolation.interpolate(msgid, bindings) do
           {:ok, interpolated} -> {:default, interpolated}
           {:error, _} = error -> error
         end
       end
 
-      def lngettext(_, _, msgid, msgid_plural, n, bindings) do
+      def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
+        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+
         str      = if n == 1, do: msgid, else: msgid_plural
         bindings = Map.put(bindings, :count, n)
 
@@ -167,13 +172,24 @@ defmodule Gettext.Compiler do
   end
 
   @doc """
+  Prints a warning on `:stderr` if `domain` contains slashes.
+
+  This function is called by `lgettext` and `lngettext`.
+  """
+  @spec warn_if_domain_contains_slashes(binary) :: :ok
+  def warn_if_domain_contains_slashes(domain) do
+    if String.contains?(domain, "/") do
+      IO.puts :stderr, "warning: slashes in domains are not supported: #{inspect domain}"
+    end
+  end
+
+  @doc """
   Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
   and `lngettext/6` function clauses.
   """
   @spec compile_po_files(Path.t) :: Macro.t
   def compile_po_files(dir) do
-    # `true` means recursively. The last argument is the initial accumulator.
-    :filelib.fold_files(String.to_char_list(dir), '\.po$', true, &compile_po_file(&1, &2), [])
+    Enum.reduce(po_files_in_dir(dir), [], &compile_po_file/2)
   end
 
   # `acc` is a list of already compiled translation, i.e., of quoted function
@@ -274,6 +290,14 @@ defmodule Gettext.Compiler do
       str, acc ->
         quote do: unquote(acc) <> unquote(str)
     end
+  end
+
+  # Returns all the PO files in `translations_dir` (under "canonical" paths,
+  # i.e., `locale/LC_MESSAGES/domain.po`).
+  defp po_files_in_dir(dir) do
+    dir
+    |> Path.join(@po_wildcard)
+    |> Path.wildcard()
   end
 
   # Returns all the locales in `translations_dir` (which are the locales known
