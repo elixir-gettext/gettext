@@ -418,6 +418,22 @@ defmodule Gettext.POTest do
     """
   end
 
+  test "parsing and re-dumping: dangling comments are ignored and not dumped back" do
+    str = """
+    # comment
+    msgid "foo"
+    msgstr "bar"
+
+    # dangling comment
+    """
+
+    assert (str |> PO.parse_string!() |> PO.dump() |> IO.iodata_to_binary()) == """
+    # comment
+    msgid "foo"
+    msgstr "bar"
+    """
+  end
+
   # Individual testing of the `dump(parse(po)) == po` process for different PO
   # editors.
   for file <- Path.wildcard("test/fixtures/po_editors/*.po") do

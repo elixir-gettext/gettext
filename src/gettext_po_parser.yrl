@@ -6,25 +6,29 @@ Rootsymbol grammar.
 grammar ->
   translations : '$1'.
 
+% A series of translations. It can be just comments (which are discarded and can
+% be empty anyways) or comments followed by a translation followed by other
+% translations; in the latter case, comments are attached to the translation
+% that follows them.
 translations ->
-  '$empty' : [].
+  comments : [].
 translations ->
-  translation translations : ['$1'|'$2'].
+  comments translation translations : [add_comments_to_translation('$2', '$1')|'$3'].
 
 translation ->
-  comments msgid strings msgstr strings : {translation, #{
-    comments       => '$1',
-    msgid          => '$3',
-    msgstr         => '$5',
-    po_source_line => extract_line('$2')
+  msgid strings msgstr strings : {translation, #{
+    comments       => [],
+    msgid          => '$2',
+    msgstr         => '$4',
+    po_source_line => extract_line('$1')
   }}.
 translation ->
-  comments msgid strings msgid_plural strings pluralizations : {plural_translation, #{
-    comments       => '$1',
-    msgid          => '$3',
-    msgid_plural   => '$5',
-    msgstr         => plural_forms_map_from_list('$6'),
-    po_source_line => extract_line('$2')
+  msgid strings msgid_plural strings pluralizations : {plural_translation, #{
+    comments       => [],
+    msgid          => '$2',
+    msgid_plural   => '$4',
+    msgstr         => plural_forms_map_from_list('$5'),
+    po_source_line => extract_line('$1')
   }}.
 
 pluralizations ->
@@ -60,3 +64,6 @@ plural_forms_map_from_list(Pluralizations) ->
 
 extract_plural_form({{plural_form, _Line, PluralForm}, String}) ->
   {PluralForm, String}.
+
+add_comments_to_translation({TranslationType, Translation}, Comments) ->
+  {TranslationType, maps:put(comments, Comments, Translation)}.
