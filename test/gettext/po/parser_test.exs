@@ -143,6 +143,15 @@ defmodule Gettext.PO.ParserTest do
     assert {:error, 3, _} = parsed
   end
 
+  test "files with just comments are ok (the comments are discarded)" do
+    parsed = Parser.parse([
+      {:comment, 1, "# A comment"},
+      {:comment, 2, "# Another comment"},
+    ])
+
+    assert {:ok, [], [], []} = parsed
+  end
+
   test "reference are extracted into the :reference field of a translation" do
     parsed = Parser.parse([
       {:comment, 1, "#: foo.ex:1 "},

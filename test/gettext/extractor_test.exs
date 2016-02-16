@@ -139,14 +139,22 @@ defmodule Gettext.ExtractorTest do
 
     expected = [
       {"priv/gettext/default.pot",
-        """
+        ~S"""
+        msgid ""
+        msgstr ""
+        "Language: INSERT LANGUAGE HERE\n"
+
         #: foo.ex:14 foo.ex:16
         msgid "foo"
         msgstr ""
         """},
 
       {"priv/gettext/errors.pot",
-          """
+          ~S"""
+          msgid ""
+          msgstr ""
+          "Language: INSERT LANGUAGE HERE\n"
+
           #: foo.ex:15
           msgid "one error"
           msgid_plural "%{count} errors"
@@ -155,7 +163,11 @@ defmodule Gettext.ExtractorTest do
           """},
 
       {"translations/greetings.pot",
-          """
+          ~S"""
+          msgid ""
+          msgstr ""
+          "Language: INSERT LANGUAGE HERE\n"
+
           #: foo.ex:17
           msgid "hi"
           msgstr ""
@@ -173,6 +185,7 @@ defmodule Gettext.ExtractorTest do
     assert Enum.all?(dumped, fn {_, contents} ->
       contents =~ "## This file is a PO Template file."
     end)
+
     Extractor.teardown
     refute Extractor.extracting?
   end

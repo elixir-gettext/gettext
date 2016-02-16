@@ -144,12 +144,12 @@ defmodule Gettext.Extractor do
 
   # Returns :unchanged if merging `existing_path` with `new` changes nothing,
   # otherwise a %Gettext.PO{} struct with the changed contents.
-  defp merge_or_unchanged(existing_path, new) do
+  defp merge_or_unchanged(existing_path, new_struct) do
     existing_contents = File.read!(existing_path)
     merged =
       existing_contents
       |> PO.parse_string!()
-      |> merge_template(new)
+      |> merge_template(new_struct)
 
     if IO.iodata_to_binary(PO.dump(merged)) == existing_contents do
       :unchanged
@@ -176,10 +176,11 @@ defmodule Gettext.Extractor do
   defp tag_files({path, new_po}),
     do: {path, {:new, new_po}}
 
-  # This function dumps merged files and unmerged files without any changes, and
-  # dumps new POT files adding an informative comment to them.
+  # This function "dumps" merged files and unmerged files without any changes,
+  # and dumps new POT files adding an informative comment to them. This doesn't
+  # write anything to disk, it just returns `{path, contents}` tuples.
   defp dump_tagged_file({path, {:new, new_po}}),
-    do: {path, [new_pot_comment(), PO.dump(new_po)]}
+    do: {path, [new_pot_comment(), (new_po |> add_headers_to_new_po() |> PO.dump())]}
   defp dump_tagged_file({path, {tag, po}}) when tag in [:unmerged, :merged],
     do: {path, PO.dump(po)}
 
@@ -195,6 +196,10 @@ defmodule Gettext.Extractor do
     ## gettext.extract` to bring this file up to date. Leave `msgstr`s empty as
     ## changing them here as no effect; edit them in PO (`.po`) files instead.
     """
+  end
+
+  defp add_headers_to_new_po(%PO{headers: []} = po) do
+    %{po | headers: ["", "Language: INSERT LANGUAGE HERE\n"]}
   end
 
   # Merges a %PO{} struct representing an existing POT file with an
