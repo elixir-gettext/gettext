@@ -144,12 +144,12 @@ defmodule Gettext.Extractor do
 
   # Returns :unchanged if merging `existing_path` with `new` changes nothing,
   # otherwise a %Gettext.PO{} struct with the changed contents.
-  defp merge_or_unchanged(existing_path, new) do
+  defp merge_or_unchanged(existing_path, new_struct) do
     existing_contents = File.read!(existing_path)
     merged =
       existing_contents
       |> PO.parse_string!()
-      |> merge_template(new)
+      |> merge_template(new_struct)
 
     if IO.iodata_to_binary(PO.dump(merged)) == existing_contents do
       :unchanged

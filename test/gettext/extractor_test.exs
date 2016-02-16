@@ -173,6 +173,7 @@ defmodule Gettext.ExtractorTest do
     assert Enum.all?(dumped, fn {_, contents} ->
       contents =~ "## This file is a PO Template file."
     end)
+
     Extractor.teardown
     refute Extractor.extracting?
   end
