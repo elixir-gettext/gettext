@@ -9,10 +9,14 @@ defmodule Gettext.Merger do
   @min_jaro_distance 0.8
 
   @new_po_informative_comment """
-  ## `msgid`s in this file come from POT (.pot) files. Do not add, change, or
-  ## remove `msgid`s manually here as they're tied to the ones in the
-  ## corresponding POT file (with the same domain). Use `mix gettext.extract
-  ## --merge` or `mix gettext.merge` to merge POT files into PO files.
+  ## `msgid`s in this file come from POT (.pot) files.
+  ##
+  ## Do not add, change, or remove `msgid`s manually here as
+  ## they're tied to the ones in the corresponding POT file
+  ## (with the same domain).
+  ##
+  ## Use `mix gettext.extract --merge` or `mix gettext.merge`
+  ## to merge POT files into PO files.
   """
 
   @doc """
