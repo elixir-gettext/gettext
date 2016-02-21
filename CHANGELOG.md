@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.10.0
+
+* Emit warnings when the domain passed to one of the `*gettext` macros has
+  slashes in it (as we don't support domains in subdirectories).
+* Discard dangling comments when parsing/dumping PO(T) files (dangling comments
+  are comments that are not followed by a transaction they can be attached to).
+* Updated informative comments for newly generated PO/POT files.
+
 ## v0.9.0
 
 * Strip `##` comments from POT files when they're being merged into PO files;
