@@ -434,8 +434,8 @@ defmodule Gettext do
   @spec put_locale(backend, locale) :: nil
   def put_locale(backend, locale) when is_binary(locale),
     do: Process.put(backend, locale)
-  def put_locale(_, _),
-    do: raise(ArgumentError, "put_locale/2 only accepts binary locales")
+  def put_locale(_, locale),
+    do: raise(ArgumentError, "put_locale/2 only accepts binary locales, got: #{inspect locale}")
 
   @doc """
   Returns the translation of the given string in the given domain.

@@ -27,7 +27,8 @@ defmodule GettextTest do
   end
 
   test "put_locale/2: only accepts binaries" do
-    assert_raise ArgumentError, "put_locale/2 only accepts binary locales", fn ->
+    msg = "put_locale/2 only accepts binary locales, got: :en"
+    assert_raise ArgumentError, msg, fn ->
       Gettext.put_locale(Translator, :en)
     end
   end
