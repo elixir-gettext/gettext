@@ -2,6 +2,15 @@ defmodule Gettext.PluralTest do
   use ExUnit.Case, async: true
   alias Gettext.Plural
 
+  test "x_* locales are pluralized like x except for exceptions" do
+    assert Plural.nplurals("en") == Plural.nplurals("en_GB")
+
+    assert Plural.plural("pt", 0) == 1
+    assert Plural.plural("pt", 1) == 0
+    assert Plural.plural("pt_BR", 0) == 0
+    assert Plural.plural("pt_BR", 1) == 0
+  end
+
   test "works for Polish" do
     assert Plural.nplurals("pl") == 3
 
