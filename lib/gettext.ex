@@ -349,11 +349,13 @@ defmodule Gettext do
 
   ## Configuration
 
-  The following is a list of the options with which the `:gettext` application
-  can be configured:
+  You can configure `:gettext` like any other application:
 
       # config/config.exs
-      config :gettext, # config options
+      config :gettext,
+        ...
+
+  The following is a list of the configuration options that `:gettext` supports:
 
     * `:plural_forms` - a module which will act as a "pluralizer" module. For
       more information, look at the documentation for `Gettext.Plural`.
@@ -361,6 +363,27 @@ defmodule Gettext do
       the similarity of translations. Look at the documentation for the `mix
       gettext.merge` task (`Mix.Tasks.Gettext.Merge`) for more information on
       fuzzy translations.
+
+  ### Backend configuration
+
+  A Gettext backend such as `MyApp.Gettext` can be configured under the
+  `MyApp.Gettext` key of the application specified in the `:otp_app` option for
+  that backend. For example, the following backend:
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app
+      end
+
+  can be configured like this:
+
+      # config/config.exs
+      config :my_app, MyApp.Gettext,
+        default_locale: "fr"
+
+  The following is a list of the configuration options supported by each backend:
+
+    * `:default_locale` - a binary which specifies the default locale to use for
+      the given backend.
 
   """
 

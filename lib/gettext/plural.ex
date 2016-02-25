@@ -148,7 +148,6 @@ defmodule Gettext.Plural do
     "en",    # English
     "eo",    # Esperanto
     "es",    # Spanish
-    "es_AR", # Argentinean Spanish
     "et",    # Estonian
     "eu",    # Basque
     "ff",    # Fulah
@@ -222,7 +221,6 @@ defmodule Gettext.Plural do
     "mg",    # Malagasy
     "mi",    # Maori
     "oc",    # Occitan
-    "pt_BR", # Brazilian Portuguese
     "tg",    # Tajik
     "ti",    # Tigrinya
     "tr",    # Turkish
@@ -248,220 +246,230 @@ defmodule Gettext.Plural do
 
   def nplurals(locale)
 
+  # All the groupable forms.
+
   for l <- @one_form do
-    def nplurals(unquote(l)), do: 1
+    def nplurals(unquote(l) <> _), do: 1
   end
 
   for l <- @two_forms_1 ++ @two_forms_2 do
-    def nplurals(unquote(l)), do: 2
+    def nplurals(unquote(l) <> _), do: 2
   end
 
   for l <- @three_forms_slavic ++ @three_forms_slavic_alt do
-    def nplurals(unquote(l)), do: 3
+    def nplurals(unquote(l) <> _), do: 3
   end
 
-  # Custom number of plural forms.
+  # Then, all other ones.
 
   # Arabic
-  def nplurals("ar"), do: 6
+  def nplurals("ar" <> _), do: 6
 
   # Kashubian
-  def nplurals("csb"), do: 3
+  def nplurals("csb" <> _), do: 3
 
   # Welsh
-  def nplurals("cy"), do: 4
+  def nplurals("cy" <> _), do: 4
 
   # Irish
-  def nplurals("ga"), do: 5
+  def nplurals("ga" <> _), do: 5
 
   # Scottish Gaelic
-  def nplurals("gd"), do: 4
+  def nplurals("gd" <> _), do: 4
 
   # Icelandic
-  def nplurals("is"), do: 2
+  def nplurals("is" <> _), do: 2
 
   # Javanese
-  def nplurals("jv"), do: 2
+  def nplurals("jv" <> _), do: 2
 
   # Cornish
-  def nplurals("kw"), do: 4
+  def nplurals("kw" <> _), do: 4
 
   # Lithuanian
-  def nplurals("lt"), do: 3
+  def nplurals("lt" <> _), do: 3
 
   # Latvian
-  def nplurals("lv"), do: 3
+  def nplurals("lv" <> _), do: 3
 
   # Macedonian
-  def nplurals("mk"), do: 3
+  def nplurals("mk" <> _), do: 3
 
   # Mandinka
-  def nplurals("mnk"), do: 3
+  def nplurals("mnk" <> _), do: 3
 
   # Maltese
-  def nplurals("mt"), do: 4
+  def nplurals("mt" <> _), do: 4
 
   # Polish
-  def nplurals("pl"), do: 3
+  def nplurals("pl" <> _), do: 3
 
   # Romanian
-  def nplurals("ro"), do: 3
+  def nplurals("ro" <> _), do: 3
 
   # Slovenian
-  def nplurals("sl"), do: 4
+  def nplurals("sl" <> _), do: 4
 
   # Plural form of groupable languages.
 
   def plural(locale, count)
 
+  # All the `x_Y` languages that have different pluralization rules than
+  # `x`. These come first otherwise they would be matched by the `x <> _`
+  # clauses.
+
+  def plural("pt_BR", n) when n in [0, 1], do: 0
+  def plural("pt_BR", _n), do: 1
+
+  # Groupable forms.
+
   for l <- @one_form do
-    def plural(unquote(l), _n), do: 0
+    def plural(unquote(l) <> _, _n), do: 0
   end
 
   for l <- @two_forms_1 do
-    def plural(unquote(l), 1), do: 0
-    def plural(unquote(l), _n), do: 1
+    def plural(unquote(l) <> _, 1), do: 0
+    def plural(unquote(l) <> _, _n), do: 1
   end
 
   for l <- @two_forms_2 do
-    def plural(unquote(l), n) when n in [0, 1], do: 0
-    def plural(unquote(l), _n), do: 1
+    def plural(unquote(l) <> _, n) when n in [0, 1], do: 0
+    def plural(unquote(l) <> _, _n), do: 1
   end
 
   for l <- @three_forms_slavic do
-    def plural(unquote(l), n)
+    def plural(unquote(l) <> _, n)
       when ends_in(n, 1) and n != 11,
       do: 0
-    def plural(unquote(l), n)
+    def plural(unquote(l) <> _, n)
       when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
       do: 1
-    def plural(unquote(l), _n),
+    def plural(unquote(l) <> _, _n),
       do: 2
   end
 
   for l <- @three_forms_slavic_alt do
-    def plural(unquote(l), 1), do: 0
-    def plural(unquote(l), n) when n in 2..4, do: 1
-    def plural(unquote(l), _n), do: 2
+    def plural(unquote(l) <> _, 1), do: 0
+    def plural(unquote(l) <> _, n) when n in 2..4, do: 1
+    def plural(unquote(l) <> _, _n), do: 2
   end
 
   # Custom plural forms.
 
   # Arabic
   # n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5
-  def plural("ar", 0), do: 0
-  def plural("ar", 1), do: 1
-  def plural("ar", 2), do: 2
-  def plural("ar", n) when rem(n, 100) >= 3 and rem(n, 100) <= 10, do: 3
-  def plural("ar", n) when rem(n, 100) >= 11, do: 4
-  def plural("ar", _n), do: 5
+  def plural("ar" <> _, 0), do: 0
+  def plural("ar" <> _, 1), do: 1
+  def plural("ar" <> _, 2), do: 2
+  def plural("ar" <> _, n) when rem(n, 100) >= 3 and rem(n, 100) <= 10, do: 3
+  def plural("ar" <> _, n) when rem(n, 100) >= 11, do: 4
+  def plural("ar" <> _, _n), do: 5
 
   # Kashubian
   # (n==1) ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;
-  def plural("csb", 1),
+  def plural("csb" <> _, 1),
     do: 0
-  def plural("csb", n)
+  def plural("csb" <> _, n)
     when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
     do: 1
-  def plural("csb", _n),
+  def plural("csb" <> _, _n),
     do: 2
 
   # Welsh
   # (n==1) ? 0 : (n==2) ? 1 : (n != 8 && n != 11) ? 2 : 3
-  def plural("cy", 1), do: 0
-  def plural("cy", 2), do: 1
-  def plural("cy", n) when n != 8 and n != 11, do: 2
-  def plural("cy", _n), do: 3
+  def plural("cy" <> _, 1), do: 0
+  def plural("cy" <> _, 2), do: 1
+  def plural("cy" <> _, n) when n != 8 and n != 11, do: 2
+  def plural("cy" <> _, _n), do: 3
 
   # Irish
   # n==1 ? 0 : n==2 ? 1 : (n>2 && n<7) ? 2 :(n>6 && n<11) ? 3 : 4
-  def plural("ga", 1), do: 0
-  def plural("ga", 2), do: 1
-  def plural("ga", n) when n in 3..6, do: 2
-  def plural("ga", n) when n in 7..10, do: 3
-  def plural("ga", _n), do: 4
+  def plural("ga" <> _, 1), do: 0
+  def plural("ga" <> _, 2), do: 1
+  def plural("ga" <> _, n) when n in 3..6, do: 2
+  def plural("ga" <> _, n) when n in 7..10, do: 3
+  def plural("ga" <> _, _n), do: 4
 
   # Scottish Gaelic
   # (n==1 || n==11) ? 0 : (n==2 || n==12) ? 1 : (n > 2 && n < 20) ? 2 : 3
-  def plural("gd", n) when n == 1 or n == 11, do: 0
-  def plural("gd", n) when n == 2 or n == 12, do: 1
-  def plural("gd", n) when n > 2 and n < 20, do: 2
-  def plural("gd", _n), do: 3
+  def plural("gd" <> _, n) when n == 1 or n == 11, do: 0
+  def plural("gd" <> _, n) when n == 2 or n == 12, do: 1
+  def plural("gd" <> _, n) when n > 2 and n < 20, do: 2
+  def plural("gd" <> _, _n), do: 3
 
   # Icelandic
   # n%10!=1 || n%100==11
-  def plural("is", n) when ends_in(n, 10) and rem(n, 100) != 11, do: 0
-  def plural("is", _n), do: 1
+  def plural("is" <> _, n) when ends_in(n, 10) and rem(n, 100) != 11, do: 0
+  def plural("is" <> _, _n), do: 1
 
   # Javanese
   # n != 0
-  def plural("jv", 0), do: 0
-  def plural("jv", _), do: 1
+  def plural("jv" <> _, 0), do: 0
+  def plural("jv" <> _, _), do: 1
 
   # Cornish
   # (n==1) ? 0 : (n==2) ? 1 : (n == 3) ? 2 : 3
-  def plural("kw", 1), do: 0
-  def plural("kw", 2), do: 1
-  def plural("kw", 3), do: 2
-  def plural("kw", _), do: 3
+  def plural("kw" <> _, 1), do: 0
+  def plural("kw" <> _, 2), do: 1
+  def plural("kw" <> _, 3), do: 2
+  def plural("kw" <> _, _), do: 3
 
   # Lithuanian
   # n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2
-  def plural("lt", n)
+  def plural("lt" <> _, n)
     when ends_in(n, 1) and rem(n, 100) != 11,
     do: 0
-  def plural("lt", n)
+  def plural("lt" <> _, n)
     when rem(n, 10) >= 2 and (rem(n, 100) < 10 or rem(n, 100) >= 20),
     do: 1
-  def plural("lt", _),
+  def plural("lt" <> _, _),
     do: 2
 
   # Latvian
   # n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2
-  def plural("lv", n) when ends_in(n, 1) and rem(n, 100) != 11, do: 0
-  def plural("lv", n) when n != 0, do: 1
-  def plural("lv", _), do: 2
+  def plural("lv" <> _, n) when ends_in(n, 1) and rem(n, 100) != 11, do: 0
+  def plural("lv" <> _, n) when n != 0, do: 1
+  def plural("lv" <> _, _), do: 2
 
   # Macedonian
   # n==1 || n%10==1 ? 0 : 1; Can’t be correct needs a 2 somewhere
-  def plural("mk", n) when ends_in(n, 1), do: 0
-  def plural("mk", n) when ends_in(n, 2), do: 1
-  def plural("mk", _), do: 2
+  def plural("mk" <> _, n) when ends_in(n, 1), do: 0
+  def plural("mk" <> _, n) when ends_in(n, 2), do: 1
+  def plural("mk" <> _, _), do: 2
 
   # Mandinka
   # n==0 ? 0 : n==1 ? 1 : 2
-  def plural("mnk", 0), do: 0
-  def plural("mnk", 1), do: 1
-  def plural("mnk", _), do: 2
+  def plural("mnk" <> _, 0), do: 0
+  def plural("mnk" <> _, 1), do: 1
+  def plural("mnk" <> _, _), do: 2
 
   # Maltese
   # n==1 ? 0 : n==0 || ( n%100>1 && n%100<11) ? 1 : (n%100>10 && n%100<20 ) ? 2 : 3
-  def plural("mt", 1), do: 0
-  def plural("mt", n) when n == 0 or (rem(n, 100) > 1 and rem(n, 100) < 11), do: 1
-  def plural("mt", n) when rem(n, 100) > 10 and rem(n, 100) < 20, do: 2
-  def plural("mt", _), do: 3
+  def plural("mt" <> _, 1), do: 0
+  def plural("mt" <> _, n) when n == 0 or (rem(n, 100) > 1 and rem(n, 100) < 11), do: 1
+  def plural("mt" <> _, n) when rem(n, 100) > 10 and rem(n, 100) < 20, do: 2
+  def plural("mt" <> _, _), do: 3
 
   # Polish
   # n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2
-  def plural("pl", 1),
+  def plural("pl" <> _, 1),
     do: 0
-  def plural("pl", n)
+  def plural("pl" <> _, n)
     when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
     do: 1
-  def plural("pl", _),
+  def plural("pl" <> _, _),
     do: 2
 
   # Romanian
   # n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2
-  def plural("ro", 1), do: 0
-  def plural("ro", n) when n == 0 or (rem(n, 100) > 0 and rem(n, 100) < 20), do: 1
-  def plural("ro", _), do: 2
+  def plural("ro" <> _, 1), do: 0
+  def plural("ro" <> _, n) when n == 0 or (rem(n, 100) > 0 and rem(n, 100) < 20), do: 1
+  def plural("ro" <> _, _), do: 2
 
   # Slovenian
   # n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n%100==4 ? 3 : 0
-  def plural("sl", n) when rem(n, 100) == 1, do: 1
-  def plural("sl", n) when rem(n, 100) == 2, do: 2
-  def plural("sl", n) when rem(n, 100) == 3, do: 3
-  def plural("sl", _), do: 0
+  def plural("sl" <> _, n) when rem(n, 100) == 1, do: 1
+  def plural("sl" <> _, n) when rem(n, 100) == 2, do: 2
+  def plural("sl" <> _, n) when rem(n, 100) == 3, do: 3
+  def plural("sl" <> _, _), do: 0
 end
-
