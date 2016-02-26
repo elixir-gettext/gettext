@@ -170,7 +170,10 @@ defmodule Gettext.POTest do
   end
 
   test "parse_file!/1: missing file" do
-    msg = "could not parse nonexistent: no such file or directory"
+    # We're using a regex because we want optional double quotes around the file
+    # path: the error message (for File.read!/1) in Elixir v1.2 doesn't have
+    # them, but it does in v1.3.
+    msg = ~r/could not parse "?nonexistent"?: no such file or directory/
     assert_raise File.Error, msg, fn ->
       PO.parse_file!("nonexistent")
     end
