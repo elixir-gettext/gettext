@@ -102,7 +102,7 @@ defmodule Gettext.Plural do
     end
   end
 
-  @one_form Enum.uniq [
+  @one_form [
     "ay",  # Aymará
     "bo",  # Tibetan
     "cgg", # Chiga
@@ -129,7 +129,7 @@ defmodule Gettext.Plural do
     "zh",  # Chinese [2]
   ]
 
-  @two_forms_1 Enum.uniq [
+  @two_forms_1 [
     "af",    # Afrikaans
     "an",    # Aragonese
     "anp",   # Angika
@@ -206,7 +206,7 @@ defmodule Gettext.Plural do
     "yo",    # Yoruba
   ]
 
-  @two_forms_2 Enum.uniq [
+  @two_forms_2 [
     "ach",   # Acholi
     "ak",    # Akan
     "am",    # Amharic
@@ -227,7 +227,7 @@ defmodule Gettext.Plural do
     "wa",    # Walloon
   ]
 
-  @three_forms_slavic Enum.uniq [
+  @three_forms_slavic [
     "be", # Belarusian
     "bs", # Bosnian
     "hr", # Croatian
@@ -236,7 +236,7 @@ defmodule Gettext.Plural do
     "uk", # Ukrainian
   ]
 
-  @three_forms_slavic_alt Enum.uniq [
+  @three_forms_slavic_alt [
     "cs", # Czech
     "sk", # Slovak
   ]
