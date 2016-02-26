@@ -79,19 +79,18 @@ defmodule Gettext.Plural do
   """
 
   # Behaviour definition.
-  use Behaviour
 
   @doc """
   Returns the number of possible plural forms in the given `locale`.
   """
-  defcallback nplurals(locale :: String.t)
+  @callback nplurals(locale :: String.t)
     :: non_neg_integer
 
   @doc """
   Returns the plural form in the given `locale` for the given `count` of
   elements.
   """
-  defcallback plural(locale :: String.t, count :: non_neg_integer)
+  @callback plural(locale :: String.t, count :: non_neg_integer)
     :: (plural_form :: non_neg_integer)
 
   # Behaviour implementation.
