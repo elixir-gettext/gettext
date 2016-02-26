@@ -20,22 +20,23 @@ defmodule Gettext.Plural do
   are languages which have more than two.
 
   In GNU Gettext (and in Gettext for Elixir), plural forms are represented by
-  increasing 0-indexed integers. In English, `0` means singular and `1` means
-  plural.
+  increasing 0-indexed integers. For example, in English `0` means singular and
+  `1` means plural.
 
-  The goal of this module is to, given a locale, determine:
+  The goal of this module is to determine, given a locale:
 
     * how many plural forms exist in that locale (`nplurals/1`);
     * to what plural form a given number of elements belongs to in that locale
-    (`plural/2`).
+      (`plural/2`).
 
   ## Default implementation
 
   `Gettext.Plural` provides a default implementation of a plural module. Most
-  languages used on Earth should be covered by this default implementation. If a
-  language isn't in this implementation, a different plural module can be
-  provided when `Gettext` is used. For example, pluralization rules for the
-  Elvish language could be added as follows:
+  languages used on Earth should be covered by this default implementation. If
+  custom pluralization rules are needed (for example, to add additional
+  languages) a different plural module can be specified when creating a Gettext
+  backend. For example, pluralization rules for the Elvish language could be
+  added as follows:
 
       defmodule MyApp.Plural do
         @behaviour Gettext.Plural
@@ -45,6 +46,10 @@ defmodule Gettext.Plural do
         def plural("elv", 0), do: 0
         def plural("elv", 1), do: 1
         def plural("elv", _), do: 2
+
+        # Fallback to Gettext.Plural
+        def nplurals(locale), do: Gettext.Plural.nplurals(locale)
+        def plural(locale, n), do: Gettext.Plural.plural(locale, n)
       end
 
       defmodule MyApp.Gettext do
