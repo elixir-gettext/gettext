@@ -6,7 +6,6 @@ defmodule Gettext.Compiler do
   alias Gettext.PO.PluralTranslation
   alias Gettext.Interpolation
 
-  @plural_forms Application.get_env(:gettext, :plural_forms, Gettext.Plural)
   @default_priv "priv/gettext"
   @po_wildcard "*/LC_MESSAGES/*.po"
 
@@ -18,6 +17,7 @@ defmodule Gettext.Compiler do
     external_file    = Path.join(".compile", priv) |> String.replace("/", "_")
     translations_dir = Application.app_dir(otp_app, priv)
     known_locales    = known_locales(translations_dir)
+    plural_forms     = Keyword.get(opts, :plural_forms, Gettext.Plural)
 
     quote do
       @doc false
@@ -28,6 +28,9 @@ defmodule Gettext.Compiler do
       # The manifest lives in the root of the priv
       # directory that contains .po/.pot files.
       @external_resource unquote(Application.app_dir(otp_app, external_file))
+
+      # This will be used when pluralizing in lngettext/6.
+      @plural_forms unquote(plural_forms)
 
       if Gettext.Extractor.extracting? do
         Gettext.ExtractorAgent.add_backend(__MODULE__)
@@ -243,7 +246,9 @@ defmodule Gettext.Compiler do
 
       quote do
         def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n, bindings) do
-          plural_form    = unquote(@plural_forms).plural(unquote(locale), n)
+          # @plural_forms is defined in the current backend by
+          # __before_compile__/1.
+          plural_form    = @plural_forms.plural(unquote(locale), n)
           var!(bindings) = Map.put(bindings, :count, n)
 
           case plural_form, do: unquote(clauses)

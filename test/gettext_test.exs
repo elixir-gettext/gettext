@@ -6,6 +6,18 @@ defmodule GettextTest.TranslatorWithCustomPriv do
   use Gettext, otp_app: :test_application, priv: "translations"
 end
 
+defmodule GettextTest.TranslatorWithCustomPluralForms do
+  defmodule Plural do
+    @behaviour Gettext.Plural
+    def nplurals("elv"), do: 2
+    # Opposite of Italian (where 1 is singular, everything else is plural)
+    def plural("it", 1), do: 1
+    def plural("it", _), do: 0
+  end
+
+  use Gettext, otp_app: :test_application, plural_forms: Plural
+end
+
 defmodule GettextTest do
   use ExUnit.Case
 
@@ -13,6 +25,7 @@ defmodule GettextTest do
 
   alias GettextTest.Translator
   alias GettextTest.TranslatorWithCustomPriv
+  alias GettextTest.TranslatorWithCustomPluralForms
   require Translator
   require TranslatorWithCustomPriv
 
@@ -76,6 +89,14 @@ defmodule GettextTest do
 
     assert TranslatorWithCustomPriv.lgettext("it", "errors", "Invalid email address")
            == {:ok, "Indirizzo email non valido"}
+  end
+
+  test "using a custom Gettext.Plural module" do
+    alias TranslatorWithCustomPluralForms, as: T
+    assert T.lngettext("it", "default", "One new email", "%{count} new emails", 1) ==
+           {:ok, "1 nuove email"}
+    assert T.lngettext("it", "default", "One new email", "%{count} new emails", 2) ==
+           {:ok, "Una nuova email"}
   end
 
   test "translations can be pluralized" do

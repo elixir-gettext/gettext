@@ -346,6 +346,8 @@ defmodule Gettext do
       specified by the `:otp_app` option. It is recommended to always have
       this directory inside `"priv"`, otherwise some features like the
       "mix compile.gettext" won't work as expected.
+    * `:plural_forms` - a module which will act as a "pluralizer". For more
+      information, look at the documentation for `Gettext.Plural`.
 
   ## Configuration
 
@@ -357,8 +359,6 @@ defmodule Gettext do
 
   The following is a list of the configuration options that `:gettext` supports:
 
-    * `:plural_forms` - a module which will act as a "pluralizer" module. For
-      more information, look at the documentation for `Gettext.Plural`.
     * `:fuzzy_threshold` - the default threshold for the Jaro distance measuring
       the similarity of translations. Look at the documentation for the `mix
       gettext.merge` task (`Mix.Tasks.Gettext.Merge`) for more information on
