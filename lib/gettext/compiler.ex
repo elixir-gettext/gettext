@@ -20,6 +20,8 @@ defmodule Gettext.Compiler do
     plural_forms     = Keyword.get(opts, :plural_forms, Gettext.Plural)
 
     quote do
+      @behaviour Gettext.Backend
+
       @doc false
       def __gettext__(:priv),          do: unquote(priv)
       def __gettext__(:otp_app),       do: unquote(otp_app)
