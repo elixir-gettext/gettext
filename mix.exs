@@ -36,7 +36,7 @@ defmodule Gettext.Mixfile do
   end
 
   defp deps do
-    [{:earmark, "~> 0.1", only: :docs},
-     {:ex_doc, "~> 0.10", only: :docs}]
+    [{:earmark, ">= 0.0.0", only: :docs},
+     {:ex_doc, ">= 0.0.0", only: :docs}]
   end
 end
