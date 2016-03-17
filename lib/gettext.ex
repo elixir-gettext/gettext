@@ -115,7 +115,9 @@ defmodule Gettext do
 
   ### Using macros
 
-  When a module calls `use Gettext`, the following macros are automatically
+  Each module that calls `use Gettext` is usually referred to as a "Gettext
+  backend", as it implements the `Gettext.Backend` behaviour. When a module
+  calls `use Gettext`, the following macros are automatically
   defined inside it:
 
     * `gettext/2`
