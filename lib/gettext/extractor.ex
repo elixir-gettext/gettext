@@ -188,13 +188,6 @@ defmodule Gettext.Extractor do
     merge_or_unchanged(path, %PO{})
   end
 
-  defp contains_protected_translations?(path) do
-    File.read!(path)
-    |> PO.parse_string!()
-    |> (&(&1.translations)).()
-    |> Enum.any?(&PO.Translations.protected?(&1))
-  end
-
   defp new_pot_comment do
     """
     ## This file is a PO Template file.
