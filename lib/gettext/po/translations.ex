@@ -42,8 +42,8 @@ defmodule Gettext.PO.Translations do
   ## Example
 
       config :gettext,
-        exlude_refs_from_pruging: "^web\/static\/.*"
-      
+        exclude_refs_from_purging: ~r/^web\/static\/.*/
+
       t = %Gettext.PO.Translation{msgid: "Hello world!", references: [{"web/static/js/app.js", 42}]}
       Gettext.PO.Translations.protected?(t) == true
   """
