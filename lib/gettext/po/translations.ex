@@ -34,6 +34,28 @@ defmodule Gettext.PO.Translations do
     do: true
 
   @doc """
+  Tells whether a translation is protected from purging.
+
+  A translation that is protected from purging will never be removed by Gettext.
+  Which translations are proteced can be configured using Mix.
+
+  ## Example
+
+      iex> protected_pattern = ~r{^web/static/}
+      iex> t = %Gettext.PO.Translation{msgid: "Hello world!", references: [{"web/static/js/app.js", 42}]}
+      iex> Gettext.PO.Translations.protected?(t, protected_pattern)
+      true
+
+  """
+  @spec protected?(Gettext.PO.translation, Regex.t) :: boolean
+  def protected?(_t, nil),
+    do: false
+  def protected?(%{__struct__: s, references: []}, pattern) when is_translation(s),
+    do: false
+  def protected?(%{__struct__: s, references: refs}, pattern) when is_translation(s),
+    do: Enum.any?(refs, fn({path, _}) -> Regex.match?(pattern, path) end)
+
+  @doc """
   Tells whether two translations are the same translation according to their
   `msgid`.
 

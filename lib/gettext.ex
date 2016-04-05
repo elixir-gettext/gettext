@@ -366,6 +366,11 @@ defmodule Gettext do
       gettext.merge` task (`Mix.Tasks.Gettext.Merge`) for more information on
       fuzzy translations.
 
+    * `:excluded_refs_from_purging` - a regex that is matched against translation
+      references. Gettext will preserve all translations in all POT files that
+      have a matching reference. You can use this pattern to prevent Gettext from
+      removing translations that you have extracted using another tool.
+
   ### Backend configuration
 
   A Gettext backend such as `MyApp.Gettext` can be configured under the
