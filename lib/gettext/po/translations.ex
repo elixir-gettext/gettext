@@ -48,8 +48,10 @@ defmodule Gettext.PO.Translations do
 
   """
   @spec protected?(Gettext.PO.translation, Regex.t) :: boolean
-  def protected?(_t, nil), do: false
-  def protected?(%{__struct__: s, references: []}, pattern) when is_translation(s), do: false
+  def protected?(_t, nil),
+    do: false
+  def protected?(%{__struct__: s, references: []}, pattern) when is_translation(s),
+    do: false
   def protected?(%{__struct__: s, references: refs}, pattern) when is_translation(s),
     do: Enum.any?(refs, fn({path, _}) -> Regex.match?(pattern, path) end)
 
