@@ -64,7 +64,7 @@ defmodule Gettext.ExtractorTest do
 
   test "merge_template/2: whitelisted translations are kept" do
     # Exclude translations from static resources
-    Application.put_env(:gettext, :excluded_refs_from_purging, ~r/^web\/static\//)
+    Application.put_env(:gettext, :excluded_refs_from_purging, ~r{^web/static/})
     t1 = %Translation{msgid: ["foo"], msgstr: ["bar"], references: [{"foo.ex", 1}]}
     t2 = %Translation{msgid: ["baz"], msgstr: ["bong"], references: [{"web/static/js/app.js", 10}]}
     old = %PO{translations: [t1, t2]}

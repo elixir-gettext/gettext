@@ -42,7 +42,7 @@ defmodule Gettext.PO.Translations do
   ## Example
 
       config :gettext,
-        exclude_refs_from_purging: ~r/^web\/static\/.*/
+        exclude_refs_from_purging: ~r{^web/static/.*}
 
       t = %Gettext.PO.Translation{msgid: "Hello world!", references: [{"web/static/js/app.js", 42}]}
       Gettext.PO.Translations.protected?(t) == true
@@ -52,9 +52,7 @@ defmodule Gettext.PO.Translations do
 
   def protected?(%{__struct__: s, msgid: msgid, references: refs}) when is_translation(s) do
     pattern = Application.get_env(:gettext, :excluded_refs_from_purging, ~r/(?!x)x/)
-    refs
-    |> Enum.map(fn({path, _}) -> path end)
-    |> Enum.any?(&Regex.match?(pattern, &1))
+    Enum.any?(refs, fn({path, _}) -> Regex.match?(pattern, path) end)
   end
 
   @doc """
