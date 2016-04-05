@@ -41,19 +41,16 @@ defmodule Gettext.PO.Translations do
 
   ## Example
 
-      config :gettext,
-        exclude_refs_from_purging: ~r{^web/static/}
-
-      t = %Gettext.PO.Translation{msgid: "Hello world!", references: [{"web/static/js/app.js", 42}]}
-      Gettext.PO.Translations.protected?(t) == true
+      iex> protected_pattern = ~r{^web/static/}
+      iex> t = %Gettext.PO.Translation{msgid: "Hello world!", references: [{"web/static/js/app.js", 42}]}
+      iex> Gettext.PO.Translations.protected?(t, protected_pattern)
+      true
   """
-  @spec protected?(Gettext.PO.translation) :: boolean
-  def protected?(%{__struct__: s, msgid: msgid, references: []}) when is_translation(s), do: false
-
-  def protected?(%{__struct__: s, msgid: msgid, references: refs}) when is_translation(s) do
-    pattern = Application.get_env(:gettext, :excluded_refs_from_purging, ~r/(?!x)x/)
-    Enum.any?(refs, fn({path, _}) -> Regex.match?(pattern, path) end)
-  end
+  @spec protected?(Gettext.PO.translation, Regex.t) :: boolean
+  def protected?(_t, nil), do: false
+  def protected?(%{__struct__: s, references: []}, pattern) when is_translation(s), do: false
+  def protected?(%{__struct__: s, references: refs}, pattern) when is_translation(s),
+    do: Enum.any?(refs, fn({path, _}) -> Regex.match?(pattern, path) end)
 
   @doc """
   Tells whether two translations are the same translation according to their
