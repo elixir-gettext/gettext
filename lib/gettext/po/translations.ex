@@ -51,10 +51,9 @@ defmodule Gettext.PO.Translations do
   def protected?(%{__struct__: s, msgid: msgid, references: []}) when is_translation(s), do: false
 
   def protected?(%{__struct__: s, msgid: msgid, references: refs}) when is_translation(s) do
-    {:ok, pattern} = Application.get_env(:gettext, :excluded_refs_from_purging, "(?!x)x")
-    |> Regex.compile
+    pattern = Application.get_env(:gettext, :excluded_refs_from_purging, ~r/(?!x)x/)
     refs
-    |> Enum.map(fn({line, _}) -> line end)
+    |> Enum.map(fn({path, _}) -> path end)
     |> Enum.any?(&Regex.match?(pattern, &1))
   end
 
