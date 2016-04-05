@@ -45,6 +45,7 @@ defmodule Gettext.PO.Translations do
       iex> t = %Gettext.PO.Translation{msgid: "Hello world!", references: [{"web/static/js/app.js", 42}]}
       iex> Gettext.PO.Translations.protected?(t, protected_pattern)
       true
+
   """
   @spec protected?(Gettext.PO.translation, Regex.t) :: boolean
   def protected?(_t, nil), do: false
