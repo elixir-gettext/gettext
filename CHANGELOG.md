@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.11.0
+
+* Polish so many docs!
+* Make an error in `Gettext.put_locale/2` clearer
+* Pluralize `x_Y` locales as `x`, but fail with
+  `Gettext.Plural.UnknownLocaleError` for any other unknown locale
+* Add a `Gettext.Backend` behaviour (automatically implemented if a module
+  calls `use Gettext`)
+* Allow whitelisting of references via the `:exclude_refs_from_purging` option
+  in the `:gettext` application config
+
 ## v0.10.0
 
 * Emit warnings when the domain passed to one of the `*gettext` macros has
