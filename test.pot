@@ -1,0 +1,6 @@
+#: foo.ex:1
+msgid "foo"
+
+#: bar.ex:1
+msgid "bar"
+msgstr ""

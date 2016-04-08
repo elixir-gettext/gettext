@@ -145,16 +145,26 @@ defmodule Gettext.Extractor do
   # Returns :unchanged if merging `existing_path` with `new` changes nothing,
   # otherwise a %Gettext.PO{} struct with the changed contents.
   defp merge_or_unchanged(existing_path, new_struct) do
-    existing_contents = File.read!(existing_path)
-    merged =
-      existing_contents
-      |> PO.parse_string!()
-      |> merge_template(new_struct)
+    {existing_contents, existing_po} = read_contents_and_parse(existing_path)
+    merged = merge_template(existing_po, new_struct)
 
     if IO.iodata_to_binary(PO.dump(merged)) == existing_contents do
       :unchanged
     else
       merged
+    end
+  end
+
+  defp read_contents_and_parse(path) do
+    contents = File.read!(path)
+
+    case PO.parse_string(contents) do
+      {:ok, po} ->
+        {contents, po}
+      {:error, line, reason} ->
+        # We manually raise instead of calling `PO.parse_string!/1` on
+        # `contents` as we want the file to appear in the error message.
+        raise PO.SyntaxError, line: line, file: path, reason: reason
     end
   end
 
