@@ -118,7 +118,7 @@ defmodule Gettext.PO.ParserTest do
       {:msgstr, 1}, {:str, 1, "bar"},
     ])
 
-    assert parsed == {:error, 1, "syntax error before: <<\"bar\">>"}
+    assert parsed == {:error, 1, "syntax error before: \"bar\""}
   end
 
   test "'msgid_plural' must come after 'msgid'" do
@@ -283,5 +283,15 @@ defmodule Gettext.PO.ParserTest do
       ["Language: en_US\n"],
       []
     } = parsed
+  end
+
+  test "tokens are printed as Elixir terms, not Erlang terms" do
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, ""},
+      {:comment, 1, "# comment"},
+    ])
+
+    assert {:error, _line, msg} = parsed
+    assert msg == "syntax error before: \"# comment\""
   end
 end
