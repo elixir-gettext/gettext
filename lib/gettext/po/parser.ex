@@ -36,7 +36,7 @@ defmodule Gettext.PO.Parser do
     do: struct(PluralTranslation, translation) |> extract_references() |> extract_flags()
 
   defp parse_error({:error, {line, _module, reason}}) do
-    {:error, line, IO.chardata_to_string(reason)}
+    {:error, line, parse_error_reason(reason)}
   end
 
   defp extract_references(%{__struct__: _, comments: comments} = translation) do
@@ -125,4 +125,25 @@ defmodule Gettext.PO.Parser do
     msg = "found duplicate on line #{old_line} for msgid: '#{id}' and msgid_plural: '#{idp}'"
     {:error, t.po_source_line, msg}
   end
+
+  # We need to explicitly parse the error reason that yecc spits out because a
+  # `{type, line, token}` token is printed as the Erlang term in the error (by
+  # yecc). So, for example, if a token has a binary value then yecc will return
+  # something like:
+  #
+  #     syntax error before: <<"my token">>
+  #
+  # which is not what we want, as we want the term to be printed as an Elixir
+  # term. While this is ugly, it's necessary (as yecc is not very extensible)
+  # and is what Elixir itself does
+  # (https://github.com/elixir-lang/elixir/blob/b80651/lib/elixir/src/elixir_errors.erl#L51-L103).
+  defp parse_error_reason([error, token]) do
+    parse_error_reason(error, to_string(token))
+    |> IO.chardata_to_string()
+  end
+
+  defp parse_error_reason('syntax error before: ' = prefix, "<<" <> rest),
+    do: [prefix, binary_part(rest, 0, byte_size(rest) - 2)]
+  defp parse_error_reason(error, token),
+    do: [error, token]
 end
