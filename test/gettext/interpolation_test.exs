@@ -42,6 +42,11 @@ defmodule Gettext.InterpolationTest do
            == {:ok, "Hi Sandra"}
   end
 
+  test "interpolate/2: repeated bindings" do
+    assert Interpolation.interpolate("Hello %{name}. Goodbye %{name}", %{name: "Alex"})
+           == {:ok, "Hello Alex. Goodbye Alex"}
+  end
+
   test "keys/1" do
     assert Interpolation.keys("Hello %{name}")
            == [:name]
@@ -49,5 +54,7 @@ defmodule Gettext.InterpolationTest do
            == [:time, :state]
     assert Interpolation.keys("Hi there %{your name}")
            == [:"your name"]
+    assert Interpolation.keys("Hello %{name} in %{state} goodbye %{name}")
+           == [:name, :state]
   end
 end
