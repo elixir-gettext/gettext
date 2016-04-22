@@ -70,13 +70,16 @@ defmodule Gettext.Interpolation do
       iex> Gettext.Interpolation.keys(["Hello ", :name, "!"])
       [:name]
 
+      iex> Gettext.Interpolation.keys(["Hello ", :name, "! Goodbye", :name])
+      [:name]
+
   """
   @spec keys(binary | [atom]) :: [atom]
 
   def keys(str) when is_binary(str),
-    do: str |> to_interpolatable |> Enum.filter(&is_atom/1)
+    do: str |> to_interpolatable |> keys
   def keys(segments) when is_list(segments),
-    do: Enum.filter(segments, &is_atom/1)
+    do: Enum.filter(segments, &is_atom/1) |> Enum.uniq
 
   @doc """
   Dynimically interpolates `str` with the given `bindings`.
