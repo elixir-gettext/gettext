@@ -261,10 +261,11 @@ defmodule Gettext do
       #=> "3 errori"
 
   You can specify a "pluralizer" module via the `:plural_forms` option in the
-  configuration for the `:gettext` application.
+  configuration for each Gettext backend.
 
-      # config/config.exs
-      config :gettext, plural_forms: MyApp.Plural
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app, plural_forms: MyApp.PluralForms
+      end
 
   To learn more about pluralization rules, plural forms and what they mean to
   Gettext check the documentation for `Gettext.Plural`.
