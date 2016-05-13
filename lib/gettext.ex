@@ -140,7 +140,7 @@ defmodule Gettext do
   Using macros is preferred as gettext is able to automatically sync the
   translations in your code with PO files. This, however, imposes a constraint:
   arguments passed to any of these macros have to be strings **at compile
-  time**. This means that they have to be string literals or somthing that
+  time**. This means that they have to be string literals or something that
   expands to a string literal at compile time (e.g., a module attribute like
   `@my_string "foo"`).
 
