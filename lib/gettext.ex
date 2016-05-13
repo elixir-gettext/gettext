@@ -156,8 +156,8 @@ defmodule Gettext do
       #=> "Ciao mondo"
 
   The `gettext`/`dgettext`/`ngettext`/`dngettext` macros raise an
-  `ArgumentError` exception if they receive a `msgid` or a `msgid_plural` that
-  doesn't expand to a string at compile time:
+  `ArgumentError` exception if they receive a `domain`, `msgid`, or
+  `msgid_plural` that doesn't expand to a string at compile time:
 
       msgid = "Hello world"
       MyApp.Gettext.gettext msgid
