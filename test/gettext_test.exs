@@ -232,7 +232,7 @@ defmodule GettextTest do
     assert Translator.gettext(~s(Hello world)) == "Ciao mondo"
   end
 
-  test "dgettext/3 and dngettext/2: non-binary msgid at compile-time" do
+  test "dgettext/3 and dngettext/2: non-binary things at compile-time" do
     code = quote do
       require Translator
       msgid = "Invalid email address"
@@ -250,6 +250,14 @@ defmodule GettextTest do
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     assert ArgumentError.message(error) =~ "*gettext macros expect translation keys"
     assert ArgumentError.message(error) =~ "Gettext.gettext(GettextTest.Translator, string)"
+
+    code = quote do
+      require Translator
+      domain = "dynamic_domain"
+      Translator.dgettext(domain, "hello")
+    end
+    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
+    assert ArgumentError.message(error) =~ "*gettext macros expect translation keys"
   end
 
   test "dngettext/5" do
