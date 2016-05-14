@@ -47,9 +47,12 @@ defmodule Gettext.Fuzzy do
 
   `new` is the newest translation and `existing` is the existing translation
   that we use to populate the msgstr of the newest translation.
+
+  Note that if `new` is a regular translation, then the result will be a regular
+  translation; if `new` is a plural translation, then the result will be a
+  plural translation.
   """
-  @spec merge(PO.Translation.t, PO.translation) :: PO.Translation.t
-  @spec merge(PO.PluralTranslation.t, PO.translation) :: PO.PluralTranslation.t
+  @spec merge(PO.translation, PO.translation) :: PO.translation
   def merge(new, existing) do
     new |> do_merge_fuzzy(existing) |> PO.Translations.mark_as_fuzzy
   end

@@ -27,7 +27,7 @@ defmodule Gettext.PO.Tokenizer do
 
   @whitespace [?\n, ?\t, ?\r, ?\s]
   @whitespace_no_nl [?\t, ?\r, ?\s]
-  @escapable_chars [?", ?n, ?t, ?\\]
+  @escapable_chars [?", ?n, ?t, ?r, ?\\]
 
   @doc """
   Converts a string into a list of tokens.
