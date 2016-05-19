@@ -7,6 +7,14 @@ defmodule Mix.Tasks.Compile.Gettext do
   Force Gettext modules to recompile once .po files change.
   """
 
+  # This compiler finds .po files in the "priv" directory of the current
+  # project, then builds a bunch of manifest files based on these .po files (one
+  # manifest for each "prefix", which corresponds to a Gettext backend) and
+  # touches these manifests in case they're stale.
+  # What makes the Gettext backend recompile when .po files change though is
+  # that each backend specifies the corresponding manifest file as an
+  # @external_resource.
+
   def run(_, priv_dir \\ "priv") do
     _ = Mix.Project.get!
     app_dir = Mix.Project.app_path()
@@ -27,7 +35,7 @@ defmodule Mix.Tasks.Compile.Gettext do
 
     if index = Enum.find_index(parts, & &1 == "LC_MESSAGES") do
       filename =
-        [".compile"|Enum.take(parts, index - 1)]
+        [".compile" | Enum.take(parts, index - 1)]
         |> Path.join()
         |> String.replace("/", "_")
       Path.join(app_dir, filename)
