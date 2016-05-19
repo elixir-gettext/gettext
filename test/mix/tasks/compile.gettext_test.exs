@@ -2,11 +2,18 @@ defmodule Mix.Tasks.Compile.GettextTest do
   use ExUnit.Case, async: true
 
   @po_path "../../../tmp/gettext" |> Path.expand(__DIR__) |> Path.relative_to_cwd
-  @manifest_path Application.app_dir(:gettext)
+
+  defmodule MyProject do
+    def project do
+      [app: :my_project,
+       gettext: [compiler_po_wildcard: "**/*.po"]]
+    end
+  end
 
   setup do
+    Mix.Project.push(MyProject)
     File.rm_rf!(@po_path)
-    File.rm_rf!(Path.join(@manifest_path, ".compile_tmp_gettext_foo"))
+    File.rm_rf!(Path.join(Mix.Project.app_path(), ".compile_tmp_gettext_foo"))
     :ok
   end
 
@@ -57,7 +64,7 @@ defmodule Mix.Tasks.Compile.GettextTest do
   end
 
   defp read_manifest(path) do
-    case File.read(Path.join(@manifest_path, path)) do
+    case File.read(Path.join(Mix.Project.app_path, path)) do
       {:ok, pos}  -> String.split(pos, "\n", trim: true)
       {:error, _} -> []
     end
