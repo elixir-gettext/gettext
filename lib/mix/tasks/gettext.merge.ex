@@ -149,8 +149,8 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Enum.each(&merge_dirs(&1, pot_dir, opts))
   end
 
-  defp locale_dir(dir, locale) do
-    Path.join([dir, locale, "LC_MESSAGES"])
+  def locale_dir(pot_dir, locale) do
+    Path.join([pot_dir, locale, "LC_MESSAGES"])
   end
 
   defp ls_locale_dirs(dir) do
