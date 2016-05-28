@@ -60,7 +60,8 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   If only one argument is given, then that argument must be a directory
   containing gettext translations (with `.pot` files at the root level alongside
-  locale directories).
+  locale directories - this is usually a "backend" directory used by a Gettext
+  backend).
 
       mix gettext.merge priv/gettext
 
@@ -106,6 +107,8 @@ defmodule Mix.Tasks.Gettext.Merge do
         Mix.raise "Too many arguments for the gettext.merge task. " <>
                   "Use `mix help gettext.merge` to see the usage of this task"
     end
+
+    Mix.Task.reenable("gettext.merge")
   end
 
   defp run_with_two_args(arg1, arg2, opts) do
@@ -162,7 +165,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp merge_dirs(po_dir, pot_dir, opts) do
     pot_dir
-    |> Path.join("**/*.pot")
+    |> Path.join("*.pot")
     |> Path.wildcard()
     |> Enum.map(fn pot_file ->
       Task.async fn ->
@@ -176,7 +179,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
     # Now warn for every PO file that has no matching POT file.
     po_dir
-    |> Path.join("**/*.po")
+    |> Path.join("*.po")
     |> Path.wildcard()
     |> Enum.reject(&po_has_matching_pot?(&1, pot_dir))
     |> Enum.each(&warn_for_missing_pot_file(&1, pot_dir))
