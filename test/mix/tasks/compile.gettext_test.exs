@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Compile.GettextTest do
 
   setup do
     File.rm_rf!(@po_path)
-    File.rm_rf!(@manifest_path)
+    File.rm_rf!(Path.join(@manifest_path, ".compile_tmp_gettext_foo"))
     :ok
   end
 
