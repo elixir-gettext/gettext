@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   defp extract do
     Gettext.Extractor.setup
-    force_compile
+    force_compile()
     Gettext.Extractor.pot_files
   after
     Gettext.Extractor.teardown

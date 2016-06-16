@@ -38,9 +38,9 @@ defmodule Gettext.Compiler do
         Gettext.ExtractorAgent.add_backend(__MODULE__)
       end
 
-      unquote(macros)
+      unquote(macros())
       unquote(compile_po_files(translations_dir))
-      unquote(dynamic_clauses)
+      unquote(dynamic_clauses())
     end
   end
 

@@ -11,10 +11,10 @@ defmodule Gettext.Mixfile do
      version: @version,
      elixir: "~> 1.1-beta",
      build_embedded: Mix.env == :prod,
-     deps: deps,
+     deps: deps(),
 
      # Hex
-     package: hex_package,
+     package: hex_package(),
      description: @description,
 
      # Docs
