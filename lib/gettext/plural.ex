@@ -264,6 +264,7 @@ defmodule Gettext.Plural do
     "oc",    # Occitan
     "tg",    # Tajik
     "ti",    # Tigrinya
+    "tl",    # Tagalog
     "tr",    # Turkish
     "uz",    # Uzbek
     "wa",    # Walloon
