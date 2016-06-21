@@ -45,4 +45,9 @@ defmodule Gettext.PluralTest do
     message = ~r/unknown locale "en-us"/
     assert_raise UnknownLocaleError, message, fn -> Plural.nplurals("en-us") end
   end
+
+  test "correct plural form for X11 in slavic" do
+    assert Plural.plural("ru", 111) == 2
+    assert Plural.plural("ru", 211) == 2
+  end
 end
