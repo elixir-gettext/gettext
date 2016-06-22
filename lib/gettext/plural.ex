@@ -384,7 +384,7 @@ defmodule Gettext.Plural do
 
   for l <- @three_forms_slavic do
     def plural(unquote(l), n)
-      when ends_in(n, 1) and n != 11,
+      when ends_in(n, 1) and rem(n, 100) != 11,
       do: 0
     def plural(unquote(l), n)
       when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
