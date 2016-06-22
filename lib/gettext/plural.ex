@@ -444,7 +444,7 @@ defmodule Gettext.Plural do
 
   # Icelandic
   # n%10!=1 || n%100==11
-  def plural("is", n) when ends_in(n, 10) and rem(n, 100) != 11, do: 0
+  def plural("is", n) when ends_in(n, 1) and rem(n, 100) != 11, do: 0
   def plural("is", _n), do: 1
 
   # Javanese
