@@ -1,6 +1,17 @@
 defmodule Gettext.Extractor do
   @moduledoc false
 
+  # This module is responsible for extracting translations (it's called from the
+  # *gettext macros) and dumping those translations to POT files, merging with
+  # existing POT files if necessary.
+  #
+  # ## Ordering
+  #
+  # Ordering is mostly taken care of in merge_template/2, where we go over the
+  # translations in an existing POT file and merge them if necessary (thus
+  # keeping the order from the original file), then adding the translations form
+  # the new in-memory POT (sorted by name).
+
   alias Gettext.ExtractorAgent
   alias Gettext.PO
   alias Gettext.PO.Translation
@@ -128,42 +139,51 @@ defmodule Gettext.Extractor do
     # pot_files is a list of paths to existing .pot files while po_structs is a
     # list of {path, struct} for new %Gettext.PO{} structs that we have
     # extracted. If we turn pot_files into a list of {path, whatever} tuples,
-    # that we can take advantage of Dict.merge/3 to find clashing paths.
+    # then we can take advantage of Dict.merge/3 to find files that we have to
+    # update, delete, or add.
     pot_files  = Enum.into(pot_files, %{}, &{&1, :existing})
     po_structs = Enum.into(po_structs, %{})
 
+    # After Map.merge/3, we have something like:
+    #   %{path => {:merged, :unchanged | %PO{}}, path => %PO{}, path => :existing}
+    # and after mapping tag_files/1 over that we have something like:
+    #   %{path => {:merged, :unchanged | %PO{}}, path => {:unmerged, :unchanged | %PO{}}, path => {:new, %PO{}}}
     Map.merge(pot_files, po_structs, &merge_existing_and_extracted/3)
     |> Enum.map(&tag_files/1)
     |> Enum.reject(&match?({_, {_, :unchanged}}, &1))
     |> Enum.map(&dump_tagged_file/1)
   end
 
+  # This function is called by merge_pot_files/2 as the function passed to
+  # Map.merge/3 (so when we have both an :existing file and a new extracted
+  # in-memory PO struct both located at "path").
   defp merge_existing_and_extracted(path, :existing, extracted) do
     {:merged, merge_or_unchanged(path, extracted)}
   end
 
-  # Returns :unchanged if merging `existing_path` with `new` changes nothing,
+  # Returns :unchanged if merging `existing_path` with `new_po` changes nothing,
   # otherwise a %Gettext.PO{} struct with the changed contents.
-  defp merge_or_unchanged(existing_path, new_struct) do
+  defp merge_or_unchanged(existing_path, new_po) do
     {existing_contents, existing_po} = read_contents_and_parse(existing_path)
-    merged = merge_template(existing_po, new_struct)
+    merged_po = merge_template(existing_po, new_po)
 
-    if IO.iodata_to_binary(PO.dump(merged)) == existing_contents do
+    if IO.iodata_to_binary(PO.dump(merged_po)) == existing_contents do
       :unchanged
     else
-      merged
+      merged_po
     end
   end
 
   defp read_contents_and_parse(path) do
     contents = File.read!(path)
 
+    # We use `parse_string/1` and raise manually instead of using
+    # `parse_string!/1` on `contents` as we want the file/line to appear in the
+    # error message.
     case PO.parse_string(contents) do
       {:ok, po} ->
         {contents, po}
       {:error, line, reason} ->
-        # We manually raise instead of calling `PO.parse_string!/1` on
-        # `contents` as we want the file to appear in the error message.
         raise PO.SyntaxError, line: line, file: path, reason: reason
     end
   end
@@ -178,7 +198,8 @@ defmodule Gettext.Extractor do
   #   * {path, {:new, _}} - none existed, there's a new one
   # Note that existing files with no new corresponding file are "pruned", e.g.,
   # merged with an empty %PO{} struct to remove obsolete translations (see
-  # prune_unmerged/1).
+  # prune_unmerged/1), because the user could still have PO translation that
+  # they manually inserted in that file.
   defp tag_files({_path, {:merged, _}} = entry),
     do: entry
   defp tag_files({path, :existing}),
