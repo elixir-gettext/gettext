@@ -47,6 +47,12 @@ defmodule Gettext.InterpolationTest do
            == {:ok, "Hello Alex. Goodbye Alex"}
   end
 
+  test "interpolate/2: nested maps" do
+    assert Interpolation.interpolate("The %{fox.speed} %{fox.color} fox jumps over the %{dog.attitude} dog.",
+                                     %{fox: %{speed: "quick", color: "brown"}, dog: %{attitude: "lazy"}})
+           == {:ok, "The quick brown fox jumps over the lazy dog."}
+  end
+
   test "keys/1" do
     assert Interpolation.keys("Hello %{name}")
            == [:name]

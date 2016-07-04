@@ -102,14 +102,36 @@ defmodule Gettext.Interpolation do
     segments = to_interpolatable(str)
     keys     = keys(segments)
 
-    if keys -- Map.keys(bindings) != [] do
+    if keys -- map_recursive_keys(bindings) != [] do
       {:error, missing_interpolation_keys(bindings, keys)}
     else
       interpolated = Enum.map_join segments, "", fn
-        key when is_atom(key) -> Map.fetch!(bindings, key)
+        key when is_atom(key) -> map_recursive_fetch!(bindings, key)
         other                 -> other
       end
       {:ok, interpolated}
     end
   end
+
+  defp map_recursive_fetch!(map, key) do
+    key
+    |> Atom.to_string()
+    |> String.split(".")
+    |> Enum.reduce(map, fn(k, m) -> Map.fetch!(m, String.to_atom(k)) end)
+  end
+
+  defp map_recursive_keys(map, prefix \\ nil) do
+    map
+    |> Map.keys()
+    |> Enum.map(fn key ->
+      case Map.fetch!(map, key) do
+        %{} = value -> map_recursive_keys(value, :"#{dot_join([prefix, key])}")
+        _ -> :"#{dot_join([prefix, key])}"
+      end
+    end)
+    |> Enum.to_list()
+    |> List.flatten()
+  end
+
+  defp dot_join(list), do: list |> Enum.filter(&(&1)) |> Enum.join(".")
 end
