@@ -8,7 +8,7 @@
   `Gettext.Plural.UnknownLocaleError` for any other unknown locale
 * Add a `Gettext.Backend` behaviour (automatically implemented if a module
   calls `use Gettext`)
-* Allow whitelisting of references via the `:exclude_refs_from_purging` option
+* Allow whitelisting of references via the `:excluded_refs_from_purging` option
   in the `:gettext` application config
 
 ## v0.10.0
