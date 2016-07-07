@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12.0-dev
+
+* Move the configuration for the `:gettext` application to compile-time config
+  in `project/0` in `mix.exs` (under the `:gettext` key, with configuration
+  options `:excluded_refs_from_purging` and `:fuzzy_threshold`)
+
 ## v0.11.0
 
 * Polish so many docs!

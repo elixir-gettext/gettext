@@ -79,8 +79,8 @@ defmodule Mix.Tasks.Gettext.Merge do
       files.
     * `--fuzzy-threshold` - a float between `0` and `1` which represents the
       miminum Jaro distance needed for two translations to be considered a fuzzy
-      match. Overrides the global `:fuzzy_threshold` option in the config for
-      the `:gettext` application.
+      match. Overrides the global `:fuzzy_threshold` option (see the docs for
+      `Gettext` for more information on this option).
 
   """
 
@@ -90,13 +90,14 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   def run(args) do
     _ = Mix.Project.get!
+    gettext_config = Mix.Project.config()[:gettext] || []
 
     parse_switches = [locale: :string, fuzzy: :boolean, fuzzy_threshold: :float]
     case OptionParser.parse(args, switches: parse_switches) do
       {opts, [arg1, arg2], _} ->
-        run_with_two_args(arg1, arg2, opts)
+        run_with_two_args(arg1, arg2, opts, gettext_config)
       {opts, [arg], _} ->
-        run_with_one_arg(arg, opts)
+        run_with_one_arg(arg, opts, gettext_config)
       {_, [], _} ->
         Mix.raise "gettext.merge requires at least one argument to work. " <>
                   "Use `mix help gettext.merge` to see the usage of this task"
@@ -111,8 +112,8 @@ defmodule Mix.Tasks.Gettext.Merge do
     Mix.Task.reenable("gettext.merge")
   end
 
-  defp run_with_two_args(arg1, arg2, opts) do
-    merging_opts = validate_merging_opts!(opts)
+  defp run_with_two_args(arg1, arg2, opts, gettext_config) do
+    merging_opts = validate_merging_opts!(opts, gettext_config)
 
     if Path.extname(arg1) == ".po" and Path.extname(arg2) in [".po", ".pot"] do
       ensure_file_exists!(arg1)
@@ -125,9 +126,9 @@ defmodule Mix.Tasks.Gettext.Merge do
     end
   end
 
-  defp run_with_one_arg(arg, opts) do
+  defp run_with_one_arg(arg, opts, gettext_config) do
     ensure_dir_exists!(arg)
-    merging_opts = validate_merging_opts!(opts)
+    merging_opts = validate_merging_opts!(opts, gettext_config)
 
     if locale = opts[:locale] do
       merge_locale_dir(arg, locale, merging_opts)
@@ -228,8 +229,8 @@ defmodule Mix.Tasks.Gettext.Merge do
     end
   end
 
-  defp validate_merging_opts!(opts) do
-    default_threshold = Application.get_env(:gettext, :fuzzy_threshold, @default_fuzzy_threshold)
+  defp validate_merging_opts!(opts, gettext_config) do
+    default_threshold = gettext_config[:fuzzy_threshold] || @default_fuzzy_threshold
     defaults = [fuzzy: true, fuzzy_threshold: default_threshold]
     opts = Keyword.merge(defaults, Keyword.take(opts, [:fuzzy, :fuzzy_threshold]))
 

@@ -67,11 +67,11 @@ defmodule Gettext.Extractor do
   new POT files are returned for extracted translations that belong to a POT
   file that doesn't exist yet.
   """
-  @spec pot_files() :: [{path :: String.t, contents :: iodata}]
-  def pot_files do
+  @spec pot_files(Keyword.t) :: [{path :: String.t, contents :: iodata}]
+  def pot_files(gettext_config) do
     existing_pot_files = pot_files_for_backends(ExtractorAgent.get_backends)
     po_structs = create_po_structs_from_extracted_translations(ExtractorAgent.get_translations)
-    merge_pot_files(existing_pot_files, po_structs)
+    merge_pot_files(existing_pot_files, po_structs, gettext_config)
   end
 
   # Returns all the .pot files for each of the given `backends`.
@@ -135,7 +135,7 @@ defmodule Gettext.Extractor do
 
   # Made public for testing.
   @doc false
-  def merge_pot_files(pot_files, po_structs) do
+  def merge_pot_files(pot_files, po_structs, gettext_config) do
     # pot_files is a list of paths to existing .pot files while po_structs is a
     # list of {path, struct} for new %Gettext.PO{} structs that we have
     # extracted. If we turn pot_files into a list of {path, whatever} tuples,
@@ -148,8 +148,8 @@ defmodule Gettext.Extractor do
     #   %{path => {:merged, :unchanged | %PO{}}, path => %PO{}, path => :existing}
     # and after mapping tag_files/1 over that we have something like:
     #   %{path => {:merged, :unchanged | %PO{}}, path => {:unmerged, :unchanged | %PO{}}, path => {:new, %PO{}}}
-    Map.merge(pot_files, po_structs, &merge_existing_and_extracted/3)
-    |> Enum.map(&tag_files/1)
+    Map.merge(pot_files, po_structs, &merge_existing_and_extracted(&1, &2, &3, gettext_config))
+    |> Enum.map(&tag_files(&1, gettext_config))
     |> Enum.reject(&match?({_, {_, :unchanged}}, &1))
     |> Enum.map(&dump_tagged_file/1)
   end
@@ -157,15 +157,15 @@ defmodule Gettext.Extractor do
   # This function is called by merge_pot_files/2 as the function passed to
   # Map.merge/3 (so when we have both an :existing file and a new extracted
   # in-memory PO struct both located at "path").
-  defp merge_existing_and_extracted(path, :existing, extracted) do
-    {:merged, merge_or_unchanged(path, extracted)}
+  defp merge_existing_and_extracted(path, :existing, extracted, gettext_config) do
+    {:merged, merge_or_unchanged(path, extracted, gettext_config)}
   end
 
   # Returns :unchanged if merging `existing_path` with `new_po` changes nothing,
   # otherwise a %Gettext.PO{} struct with the changed contents.
-  defp merge_or_unchanged(existing_path, new_po) do
+  defp merge_or_unchanged(existing_path, new_po, gettext_config) do
     {existing_contents, existing_po} = read_contents_and_parse(existing_path)
-    merged_po = merge_template(existing_po, new_po)
+    merged_po = merge_template(existing_po, new_po, gettext_config)
 
     if IO.iodata_to_binary(PO.dump(merged_po)) == existing_contents do
       :unchanged
@@ -200,11 +200,11 @@ defmodule Gettext.Extractor do
   # merged with an empty %PO{} struct to remove obsolete translations (see
   # prune_unmerged/1), because the user could still have PO translation that
   # they manually inserted in that file.
-  defp tag_files({_path, {:merged, _}} = entry),
+  defp tag_files({_path, {:merged, _}} = entry, _gettext_config),
     do: entry
-  defp tag_files({path, :existing}),
-    do: {path, {:unmerged, prune_unmerged(path)}}
-  defp tag_files({path, new_po}),
+  defp tag_files({path, :existing}, gettext_config),
+    do: {path, {:unmerged, prune_unmerged(path, gettext_config)}}
+  defp tag_files({path, new_po}, _gettext_config),
     do: {path, {:new, new_po}}
 
   # This function "dumps" merged files and unmerged files without any changes,
@@ -215,8 +215,8 @@ defmodule Gettext.Extractor do
   defp dump_tagged_file({path, {tag, po}}) when tag in [:unmerged, :merged],
     do: {path, PO.dump(po)}
 
-  defp prune_unmerged(path) do
-    merge_or_unchanged(path, %PO{})
+  defp prune_unmerged(path, gettext_config) do
+    merge_or_unchanged(path, %PO{}, gettext_config)
   end
 
   defp new_pot_comment do
@@ -241,8 +241,8 @@ defmodule Gettext.Extractor do
   # in-memory-only %PO{} struct representing the new POT file.
   # Made public for testing.
   @doc false
-  def merge_template(existing, new) do
-    protected_pattern = Application.get_env(:gettext, :excluded_refs_from_purging)
+  def merge_template(existing, new, gettext_config) do
+    protected_pattern = gettext_config[:excluded_refs_from_purging]
     old_and_merged = Enum.flat_map existing.translations, fn(t) ->
       cond do
         same = PO.Translations.find(new.translations, t) ->
