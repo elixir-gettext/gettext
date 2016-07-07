@@ -354,13 +354,16 @@ defmodule Gettext do
 
   ## Configuration
 
-  You can configure `:gettext` like any other application:
+  You can configure Gettext Mix tasks under the `:gettext` key in the
+  configuration returned by `project/0` in `mix.exs`:
 
-      # config/config.exs
-      config :gettext,
-        ...
+      def project() do
+        [app: :my_app,
+         # ...
+         gettext: [...]]
+      end
 
-  The following is a list of the configuration options that `:gettext` supports:
+  The following is a list of the supported configuration options:
 
     * `:fuzzy_threshold` - the default threshold for the Jaro distance measuring
       the similarity of translations. Look at the documentation for the `mix

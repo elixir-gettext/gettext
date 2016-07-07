@@ -27,7 +27,9 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   """
   def run(args) do
-    pot_files = extract()
+    _ = Mix.Project.get!
+    gettext_config = Mix.Project.config()[:gettext] || []
+    pot_files = extract(gettext_config)
 
     case args do
       [] ->
@@ -53,10 +55,10 @@ defmodule Mix.Tasks.Gettext.Extract do
     end |> Enum.map(&Task.await/1)
   end
 
-  defp extract do
+  defp extract(gettext_config) do
     Gettext.Extractor.setup
     force_compile()
-    Gettext.Extractor.pot_files
+    Gettext.Extractor.pot_files(gettext_config)
   after
     Gettext.Extractor.teardown
   end
