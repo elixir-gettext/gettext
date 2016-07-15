@@ -5,7 +5,3 @@ otp_release:
 elixir: 1.1.1
 sudo:
   false
-notifications:
-  recipients:
-    - jose.valim@plataformatec.com.br
-    - andrea@leopardi.me
