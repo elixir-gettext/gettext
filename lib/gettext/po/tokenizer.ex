@@ -75,7 +75,7 @@ defmodule Gettext.PO.Tokenizer do
   # Comments.
   defp tokenize_line(<<?#, _ :: binary>> = rest, line, acc) do
     {contents, rest} = to_eol_or_eof(rest, "")
-    acc = [{:comment, line, contents}|acc]
+    acc = [{:comment, line, contents} | acc]
     tokenize_line(rest, line, acc)
   end
 
@@ -83,7 +83,7 @@ defmodule Gettext.PO.Tokenizer do
   for kw <- @keywords do
     defp tokenize_line(unquote(kw) <> <<char, rest :: binary>>, line, acc)
         when char in @whitespace do
-      acc = [{unquote(String.to_atom(kw)), line}|acc]
+      acc = [{unquote(String.to_atom(kw)), line} | acc]
       tokenize_line(rest, line, acc)
     end
 
@@ -98,7 +98,7 @@ defmodule Gettext.PO.Tokenizer do
       {:ok, plural_form, rest} ->
         # The order of the :plural_form and :msgstr tokens is inverted since
         # the `acc` array of tokens will be reversed at the end.
-        acc = [{:plural_form, line, plural_form}, {:msgstr, line}|acc]
+        acc = [{:plural_form, line, plural_form}, {:msgstr, line} | acc]
         tokenize_line(rest, line, acc)
       {:error, reason} ->
         {:error, line, reason}
@@ -107,7 +107,7 @@ defmodule Gettext.PO.Tokenizer do
 
   defp tokenize_line("msgstr" <> <<char, rest :: binary>>, line, acc)
       when char in @whitespace do
-    acc = [{:msgstr, line}|acc]
+    acc = [{:msgstr, line} | acc]
     tokenize_line(rest, line, acc)
   end
 
@@ -120,7 +120,7 @@ defmodule Gettext.PO.Tokenizer do
     case tokenize_string(rest, "") do
       {:ok, string, rest} ->
         token = {:str, line, string}
-        tokenize_line(rest, line, [token|acc])
+        tokenize_line(rest, line, [token | acc])
       {:error, reason} ->
         {:error, line, reason}
     end
@@ -142,7 +142,7 @@ defmodule Gettext.PO.Tokenizer do
   # (with the codepoint of the char).
   defp tokenize_line(binary, line, _acc) when is_binary(binary) do
     # To get the first Unicode char, we convert to char list first.
-    [char|_] = String.to_char_list(binary)
+    [char | _] = String.to_char_list(binary)
     msg = :io_lib.format('unexpected token: "~ts" (codepoint U+~4.16.0B)', [[char], char])
     {:error, line, :unicode.characters_to_binary(msg)}
   end

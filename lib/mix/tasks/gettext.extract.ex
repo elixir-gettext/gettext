@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Gettext.Extract do
     pot_files
     |> Enum.map(fn {path, _} -> Path.dirname(path) end)
     |> Enum.uniq
-    |> Enum.map(&Task.async(fn -> Mix.Tasks.Gettext.Merge.run([&1|argv]) end))
+    |> Enum.map(&Task.async(fn -> Mix.Tasks.Gettext.Merge.run([&1 | argv]) end))
     |> Enum.map(&Task.await/1)
   end
 end

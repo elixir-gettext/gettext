@@ -35,7 +35,7 @@ defmodule Gettext.ExtractorAgent do
 
   def add_backend(backend) do
     Agent.cast @name, fn(state) ->
-      update_in state.backends, &[backend|&1]
+      update_in state.backends, &[backend | &1]
     end
   end
 

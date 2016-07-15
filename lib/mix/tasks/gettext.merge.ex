@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       {_, [], _} ->
         Mix.raise "gettext.merge requires at least one argument to work. " <>
                   "Use `mix help gettext.merge` to see the usage of this task"
-      {_, _, [_|_] = errors} ->
+      {_, _, [_ | _] = errors} ->
         for {key, _} <- errors, do: Mix.shell.error "#{key} is invalid"
         Mix.raise "`mix gettext.merge` aborted"
       {_, _, _} ->

@@ -82,7 +82,7 @@ defmodule Gettext.PO.Parser do
   # headers. Headers will be in the msgstr of this "fake" translation, one on
   # each line. For now, we'll just separate those lines in order to get a list
   # of headers.
-  defp extract_top_comments_and_headers([%Translation{msgid: id, msgstr: headers, comments: comments}|rest])
+  defp extract_top_comments_and_headers([%Translation{msgid: id, msgstr: headers, comments: comments} | rest])
       when id == "" or id == [""] do
     {comments, headers, rest}
   end

@@ -212,8 +212,8 @@ defmodule Gettext.PO do
   #   msgid ""
   #   msgstr ""
   #     "Header: foo\n"
-  def dump_headers([first|_] = headers) when first != "" do
-    dump_headers([""|headers])
+  def dump_headers([first | _] = headers) when first != "" do
+    dump_headers(["" | headers])
   end
 
   def dump_headers(headers) do
@@ -286,7 +286,7 @@ defmodule Gettext.PO do
     end
   end
 
-  defp dump_kw_and_strings(keyword, [first|rest], indentation \\ 2) do
+  defp dump_kw_and_strings(keyword, [first | rest], indentation \\ 2) do
     first = ~s[#{keyword} "#{escape(first)}"\n]
     rest  = Enum.map rest, &indent_line([?", escape(&1), ?", ?\n], indentation)
     [first, rest]
