@@ -375,6 +375,12 @@ defmodule Gettext do
       have a matching reference. You can use this pattern to prevent Gettext from
       removing translations that you have extracted using another tool.
 
+    * `:compiler_po_wildcard` - a binary that specifies the wildcard that the
+      `:gettext` compiler will use to find changed PO files in order to recompile
+      their respective Gettext backends. This wildcard has to be relative to the
+      `"priv"` directory of your application. Defaults to
+      `"gettext/*/LC_MESSAGES/*.po"`.
+
   ### Backend configuration
 
   A Gettext backend such as `MyApp.Gettext` can be configured under the

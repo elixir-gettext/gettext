@@ -15,13 +15,18 @@ defmodule Mix.Tasks.Compile.Gettext do
   # that each backend specifies the corresponding manifest file as an
   # @external_resource.
 
+  @default_wildcard "gettext/*/LC_MESSAGES/*.po"
+
   def run(_, priv_dir \\ "priv") do
     _ = Mix.Project.get!
     app_dir = Mix.Project.app_path()
+    gettext_config = Mix.Project.config()[:gettext] || []
+
+    wildcard = gettext_config[:compiler_po_wildcard] || @default_wildcard
 
     changed =
       priv_dir
-      |> Path.join("**/*.po")
+      |> Path.join(wildcard)
       |> Path.wildcard()
       |> Enum.group_by(&priv_prefix(&1, app_dir))
       |> Map.delete(:not_in_canonical_dir)
