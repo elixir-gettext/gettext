@@ -11,13 +11,27 @@ defmodule Gettext.Compiler do
 
   @doc false
   defmacro __before_compile__(env) do
-    opts             = Module.get_attribute(env.module, :gettext_opts)
-    otp_app          = Keyword.fetch!(opts, :otp_app)
-    priv             = Keyword.get(opts, :priv, @default_priv)
-    external_file    = Path.join(".compile", priv) |> String.replace("/", "_")
+    # Opts given to "use Gettext" have higher precedence than options set
+    # throught Mix.Config; :otp_app, however, is only supported in "use
+    # Gettext" (because we need it to get the Mix config).
+
+    compile_time_opts = Module.get_attribute(env.module, :gettext_opts)
+
+    {otp_app, compile_time_opts} =
+      case Keyword.pop(compile_time_opts, :otp_app) do
+        {nil, opts} -> Keyword.fetch!(opts, :otp_app) # (using fetch!/2 to raise)
+        {app, opts} -> {app, opts}
+      end
+
+    mix_config_opts = Application.get_env(otp_app, env.module, [])
+    opts = Keyword.merge(mix_config_opts, compile_time_opts)
+
+    priv = Keyword.get(opts, :priv, @default_priv)
+    plural_forms = Keyword.get(opts, :plural_forms, Gettext.Plural)
+
     translations_dir = Application.app_dir(otp_app, priv)
-    known_locales    = known_locales(translations_dir)
-    plural_forms     = Keyword.get(opts, :plural_forms, Gettext.Plural)
+    external_file = Path.join(".compile", priv) |> String.replace("/", "_")
+    known_locales = known_locales(translations_dir)
 
     quote do
       @behaviour Gettext.Backend
