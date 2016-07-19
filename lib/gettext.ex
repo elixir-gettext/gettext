@@ -102,7 +102,12 @@ defmodule Gettext do
   that Gettext module. For example, in the `config/config.exs` file of the
   `my_app` application:
 
-      config :my_app, MyApp.Gettext, default_locale: "fr"
+      config :my_app, MyApp.Gettext,
+        default_locale: "fr"
+
+  This option is read dynamically every time the locale has not been explicitly
+  set, so to change the default locale of a backend for all processes at runtime
+  it's enough to use `Application.put_env/3`.
 
   ## Gettext API
 
@@ -332,27 +337,47 @@ defmodule Gettext do
         [compilers: [:gettext] ++ Mix.compilers]
       end
 
-  ## Options
+  ## Configuration
 
-  The following is a comprehensive list of options that can be passed to `use
-  Gettext`.
+  ### Backend configuration
+
+  A **Gettext backend** supports some options to be configured. These options
+  can be configured in two ways: either by passing them to `use Gettext` (hence
+  at compile time):
 
       defmodule MyApp.Gettext do
-        use Gettext, # options
+        use Gettext, options
       end
 
-    * `:otp_app` (required) - an atom representing an OTP application.
-      Translations will be searched in directories inside this application's
-      directory (`priv/gettext` by default, see the `:priv` option).
+  or by using Mix configuration, configuring the key corresponding to the
+  backend in the configuration for your application:
+
+      # For example, in config/config.exs
+      config :my_app, MyApp.Gettext, options
+
+  Note that the `:otp_app` option (an atom representing an OTP application) has
+  to always be present and has to be passed to `use Gettext` because it's used
+  to determine the application to read the configuration of (`:my_app` in the
+  example above); for this reason, `:otp_app` can't be configured via the Mix
+  configuration. This option is also used to determine the application's
+  directory where to search translations in.
+
+  The following is a comprehensive list of supported options:
+
     * `:priv` - a string representing a directory where translations will be
       searched. The directory is relative to the directory of the application
       specified by the `:otp_app` option. It is recommended to always have
       this directory inside `"priv"`, otherwise some features like the
-      "mix compile.gettext" won't work as expected.
+      "mix compile.gettext" won't work as expected. By default it's
+      `"priv/gettext"`.
+
     * `:plural_forms` - a module which will act as a "pluralizer". For more
       information, look at the documentation for `Gettext.Plural`.
 
-  ## Configuration
+    * `:default_locale` - a string which specifies the default locale to use for
+      the given backend.
+
+  ### Mix tasks configuration
 
   You can configure Gettext Mix tasks under the `:gettext` key in the
   configuration returned by `project/0` in `mix.exs`:
@@ -380,27 +405,6 @@ defmodule Gettext do
       their respective Gettext backends. This wildcard has to be relative to the
       `"priv"` directory of your application. Defaults to
       `"gettext/*/LC_MESSAGES/*.po"`.
-
-  ### Backend configuration
-
-  A Gettext backend such as `MyApp.Gettext` can be configured under the
-  `MyApp.Gettext` key of the application specified in the `:otp_app` option for
-  that backend. For example, the following backend:
-
-      defmodule MyApp.Gettext do
-        use Gettext, otp_app: :my_app
-      end
-
-  can be configured like this:
-
-      # config/config.exs
-      config :my_app, MyApp.Gettext,
-        default_locale: "fr"
-
-  The following is a list of the configuration options supported by each backend:
-
-    * `:default_locale` - a binary which specifies the default locale to use for
-      the given backend.
 
   """
 
