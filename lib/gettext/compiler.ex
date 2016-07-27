@@ -237,7 +237,7 @@ defmodule Gettext.Compiler do
     if msgstr != "" do
       quote do
         def lgettext(unquote(locale), unquote(domain), unquote(msgid), var!(bindings)) do
-          unquote(compile_interpolation(msgstr))
+          unquote(compile_interpolation(msgstr, locale))
         end
       end
     end
@@ -254,7 +254,7 @@ defmodule Gettext.Compiler do
     # `%Translation{}` clause.
     unless Enum.any?(msgstr, &match?({_, ""}, &1)) do
       clauses = Enum.map msgstr, fn({form, str}) ->
-        {:->, [], [[form], compile_interpolation(str)]}
+        {:->, [], [[form], compile_interpolation(str, locale)]}
       end
 
       quote do
@@ -274,18 +274,26 @@ defmodule Gettext.Compiler do
   # string based on some bindings or returns an error in case those bindings are
   # missing. Note that the `bindings` variable is assumed to be in the scope by
   # the quoted code that is returned.
-  defp compile_interpolation(str) do
-    keys          = Interpolation.keys(str)
-    match         = compile_interpolation_match(keys)
-    interpolation = compile_interpolatable_string(str)
+  defp compile_interpolation(str, locale) do
+    keys           = Interpolation.keys(str)
+    match          = compile_interpolation_match(keys)
+    interpolation  = compile_interpolatable_string(str)
+    interpolatable = Interpolation.to_interpolatable(str)
 
     quote do
       case var!(bindings) do
         unquote(match) ->
           {:ok, unquote(interpolation)}
+        %{} ->
+          translation = unquote(interpolatable)
+          |> Enum.map(fn
+            segment when is_binary(segment) -> segment
+            segment when is_atom(segment) -> Map.get_lazy(var!(bindings), segment, fn -> handle_missing_binding(segment, unquote(str), unquote(locale)) end)
+          end)
+          |> Enum.reduce("", fn segment, acc -> acc <> segment end)
+          {:ok, translation}
         _ ->
-          keys = unquote(keys)
-          {:error, Gettext.Interpolation.missing_interpolation_keys(var!(bindings), keys)}
+          raise(Gettext.Error, "Bindings must be a map")
       end
     end
   end

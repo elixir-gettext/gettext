@@ -166,10 +166,10 @@ defmodule GettextTest do
            == {:ok, "Un amico"}
   end
 
-  test "lgettext/4: error when keys are missing in an interpolation" do
+  test "lgettext/4: default handle_missing_binding preserves key" do
     msgid = "My name is %{name} and I'm %{age}"
     assert Translator.lgettext("it", "interpolations", msgid, %{name: "José"})
-           == {:error, "missing interpolation keys: age"}
+           == {:ok, "Mi chiamo José e ho %{age} anni"}
   end
 
   test "lgettext/4: interpolation works when a translation is missing" do
@@ -186,15 +186,15 @@ defmodule GettextTest do
            == {:error, "missing interpolation keys: name"}
   end
 
-  test "lngettext/6: error when keys are missing in an interpolation" do
+  test "lngettext/6: default handle_missing_binding preserves key" do
     msgid =  "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
 
-    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, %{})
-           == {:error, "missing interpolation keys: name"}
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1)
+           == {:ok, "Hai un messaggio, %{name}"}
 
-    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 6, %{})
-           == {:error, "missing interpolation keys: name"}
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 6)
+           == {:ok, "Hai 6 messaggi, %{name}"}
   end
 
   test "lngettext/6: interpolation works when a translation is missing" do
@@ -215,10 +215,8 @@ defmodule GettextTest do
     assert Translator.dgettext("interpolations", "Hello %{name}", keys)
            == "Ciao Jim"
 
-    msg = "missing interpolation keys: name"
-    assert_raise Gettext.Error, msg, fn ->
-      Translator.dgettext("interpolations", "Hello %{name}")
-    end
+    assert Translator.dgettext("interpolations", "Hello %{name}")
+           == "Ciao %{name}"
   end
 
   # Macros.
@@ -312,10 +310,7 @@ defmodule GettextTest do
 
     assert Gettext.dgettext(Translator, "foo", "Foo") == "Foo"
 
-    msg = "missing interpolation keys: name"
-    assert_raise Gettext.Error, msg, fn ->
-      Gettext.dgettext(Translator, "interpolations", "Hello %{name}", %{})
-    end
+    assert Gettext.dgettext(Translator, "interpolations", "Hello %{name}", %{}) == "Ciao %{name}"
   end
 
   test "gettext/3" do

@@ -444,6 +444,19 @@ defmodule Gettext do
     quote do
       @gettext_opts unquote(opts)
       @before_compile Gettext.Compiler
+
+      @doc """
+      Default handling for missing bindings.
+
+      If a translated `msgid` does contain a binding that is missing, this method will be called.
+      By default it only logs the error but it can be overwritten.
+      The return value is used instead of the missing binding.
+      """
+      @spec handle_missing_binding(atom, binary, binary) :: binary
+      def handle_missing_binding(binding, original_string, locale) do
+        "%{#{binding}}"
+      end
+      defoverridable handle_missing_binding: 3
     end
   end
 
