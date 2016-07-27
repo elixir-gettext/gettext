@@ -129,25 +129,27 @@ defmodule Gettext.Compiler do
   @spec dynamic_clauses() :: Macro.t
   def dynamic_clauses do
     quote do
-      def lgettext(_locale, domain, msgid, bindings) do
+      def lgettext(locale, domain, msgid, bindings) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
 
-        case Gettext.Interpolation.interpolate(msgid, bindings) do
-          {:ok, interpolated} -> {:default, interpolated}
-          {:error, _} = error -> error
-        end
+        {:default, interpolate(msgid, bindings, locale)}
       end
 
-      def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
+      def lngettext(locale, domain, msgid, msgid_plural, n, bindings) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
 
         str      = if n == 1, do: msgid, else: msgid_plural
         bindings = Map.put(bindings, :count, n)
 
-        case Gettext.Interpolation.interpolate(str, bindings) do
-          {:ok, interpolated} -> {:default, interpolated}
-          {:error, _} = error -> error
-        end
+        {:default, interpolate(str, bindings, locale)}
+      end
+
+      defp interpolate(str, bindings, locale) do
+        Gettext.Interpolation.to_interpolatable(str)
+        |> Enum.map_join("", fn
+          segment when is_atom(segment) -> Map.get_lazy(bindings, segment, fn -> handle_missing_binding(segment, str, locale) end)
+          segment                       -> segment
+        end)
       end
     end
   end
@@ -285,12 +287,10 @@ defmodule Gettext.Compiler do
         unquote(match) ->
           {:ok, unquote(interpolation)}
         %{} ->
-          translation = unquote(interpolatable)
-          |> Enum.map(fn
-            segment when is_binary(segment) -> segment
+          translation = Enum.map_join(unquote(interpolatable) , "", fn
             segment when is_atom(segment) -> Map.get_lazy(var!(bindings), segment, fn -> handle_missing_binding(segment, unquote(str), unquote(locale)) end)
+            segment -> segment
           end)
-          |> Enum.reduce("", fn segment, acc -> acc <> segment end)
           {:ok, translation}
         _ ->
           raise(Gettext.Error, "Bindings must be a map")

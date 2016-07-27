@@ -183,7 +183,7 @@ defmodule GettextTest do
 
     msgid = "Hello %{name}"
     assert Translator.lgettext("pl", "foo", msgid, %{})
-           == {:error, "missing interpolation keys: name"}
+           == {:default, "Hello %{name}"}
   end
 
   test "lngettext/6: default handle_missing_binding preserves key" do
