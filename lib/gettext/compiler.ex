@@ -280,7 +280,7 @@ defmodule Gettext.Compiler do
     compile_interpolation(str, locale, Interpolation.keys(str))
   end
 
-  defp compile_interpolation(str, _locale, []=_keys) do
+  defp compile_interpolation(str, _locale, [] = _keys) do
     quote do
       _ = var!(bindings)
       {:ok, unquote(str)}
@@ -297,7 +297,7 @@ defmodule Gettext.Compiler do
         unquote(match) ->
           {:ok, unquote(interpolation)}
         %{} ->
-          translation = Enum.map_join(unquote(interpolatable) , "", fn
+          translation = Enum.map_join(unquote(interpolatable), "", fn
             segment when is_atom(segment) -> Map.get_lazy(var!(bindings), segment, fn -> handle_missing_binding(segment, unquote(str), unquote(locale)) end)
             segment -> segment
           end)
