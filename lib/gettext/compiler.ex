@@ -277,7 +277,17 @@ defmodule Gettext.Compiler do
   # missing. Note that the `bindings` variable is assumed to be in the scope by
   # the quoted code that is returned.
   defp compile_interpolation(str, locale) do
-    keys           = Interpolation.keys(str)
+    compile_interpolation(str, locale, Interpolation.keys(str))
+  end
+
+  defp compile_interpolation(str, _locale, []=_keys) do
+    quote do
+      _ = var!(bindings)
+      {:ok, unquote(str)}
+    end
+  end
+
+  defp compile_interpolation(str, locale, keys) do
     match          = compile_interpolation_match(keys)
     interpolation  = compile_interpolatable_string(str)
     interpolatable = Interpolation.to_interpolatable(str)
