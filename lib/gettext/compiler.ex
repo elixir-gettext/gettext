@@ -147,8 +147,10 @@ defmodule Gettext.Compiler do
       defp interpolate(str, bindings, locale) do
         Gettext.Interpolation.to_interpolatable(str)
         |> Enum.map_join("", fn
-          segment when is_atom(segment) -> Map.get_lazy(bindings, segment, fn -> handle_missing_binding(segment, str, locale) end)
-          segment                       -> segment
+          segment when is_atom(segment) ->
+            Map.get_lazy(bindings, segment, fn -> handle_missing_binding(segment, str, locale) end)
+          segment ->
+            segment
         end)
       end
     end
