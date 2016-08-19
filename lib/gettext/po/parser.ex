@@ -93,12 +93,12 @@ defmodule Gettext.PO.Parser do
 
   defp check_for_duplicates(translations) do
     try do
-      Enum.reduce translations, HashDict.new, fn(t, acc) ->
+      Enum.reduce translations, %{}, fn(t, acc) ->
         id = translation_id(t)
-        if old_line = Dict.get(acc, id) do
+        if old_line = acc[id] do
           throw({t, old_line})
         else
-          Dict.put_new(acc, id, t.po_source_line)
+          Map.put_new(acc, id, t.po_source_line)
         end
       end
 

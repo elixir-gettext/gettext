@@ -168,7 +168,7 @@ defmodule GettextTest do
 
   test "lgettext/4: error when keys are missing in an interpolation" do
     msgid = "My name is %{name} and I'm %{age}"
-    assert Translator.lgettext("it", "interpolations", msgid, name: "José")
+    assert Translator.lgettext("it", "interpolations", msgid, %{name: "José"})
            == {:error, "missing interpolation keys: age"}
   end
 

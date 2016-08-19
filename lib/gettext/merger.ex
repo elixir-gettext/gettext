@@ -74,14 +74,14 @@ defmodule Gettext.Merger do
   defp merge_translations(old, new, opts) do
     # First, we convert the list of old translations into a dict for
     # constant-time lookup.
-    old = for t <- old, into: HashDict.new, do: {PO.Translations.key(t), t}
+    old = for t <- old, into: %{}, do: {PO.Translations.key(t), t}
 
     # Then, we do a first pass through the list of new translation and we mark
     # all exact matches as {key, translation, exact_match}, taking the exact matches
     # out of `old` at the same time.
     {new, old} = Enum.map_reduce new, old, fn(t, old) ->
       key = PO.Translations.key(t)
-      {same, old} = HashDict.pop(old, key)
+      {same, old} = Map.pop(old, key)
       {{key, t, same}, old}
     end
 
@@ -116,7 +116,7 @@ defmodule Gettext.Merger do
       {target, old_translations}
     else
       {k, t, _} = Enum.max_by(candidates, fn {_, _, {:match, distance}} -> distance end)
-      {Fuzzy.merge(target, t), HashDict.delete(old_translations, k)}
+      {Fuzzy.merge(target, t), Map.delete(old_translations, k)}
     end
   end
 

@@ -46,7 +46,7 @@ defmodule Gettext.Interpolation do
   """
   @spec missing_interpolation_keys(%{}, [atom]) :: binary
   def missing_interpolation_keys(bindings, required) do
-    present = Dict.keys(bindings)
+    present = Map.keys(bindings)
     missing = required -- present
     "missing interpolation keys: " <> Enum.map_join(missing, ", ", &to_string/1)
   end
