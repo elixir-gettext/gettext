@@ -122,6 +122,14 @@ defmodule Gettext.Compiler do
     quote do
       def lgettext(locale, domain, msgid, bindings \\ %{})
       def lngettext(locale, domain, msgid, msgid_plural, n, bindings \\ %{})
+
+      def lgettext(locale, domain, msgid, bindings) when is_list(bindings) do
+        lgettext(locale, domain, msgid, Enum.into(bindings, %{}))
+      end
+
+      def lngettext(locale, domain, msgid, msgid_plural, n, bindings) when is_list(bindings) do
+        lngettext(locale, domain, msgid, msgid_plural, n, Enum.into(bindings, %{}))
+      end
     end
   end
 
