@@ -88,7 +88,7 @@ defmodule Gettext.PO do
       ** (Gettext.PO.SyntaxError) 1: no space after 'msgid'
 
   """
-  @spec parse_string!(binary) :: t
+  @spec parse_string!(binary) :: t | no_return
   def parse_string!(str) do
     case parse_string(str) do
       {:ok, parsed} ->
@@ -146,7 +146,7 @@ defmodule Gettext.PO do
       #=> ** (File.Error) could not parse file nonexistent.po: no such file or directory
 
   """
-  @spec parse_file!(Path.t) :: t
+  @spec parse_file!(Path.t) :: t | no_return
   def parse_file!(path) do
     case parse_file(path) do
       {:ok, parsed} ->
