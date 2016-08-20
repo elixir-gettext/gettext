@@ -301,6 +301,21 @@ defmodule Gettext do
   translation is considered to have an empty `msgstr` if at least one
   translation in the `msgstr` is empty.
 
+  ## Contexts
+
+  The GNU Gettext implementation supports
+  [*contexts*](https://www.gnu.org/software/gettext/manual/html_node/Contexts.html),
+  which are a way to "contextualize" translations. For example, in English, the
+  word "file" could be used both as a noun or as a verb. Contexts can be used to
+  solve similar problems: one could have a "imperative_verbs" context and a
+  "nouns" context as to avoid ambiguity. However, contexts increase the
+  complexity of Gettext and would increase the complexity of the implementation
+  of Gettext for Elixir, and for this reason we decided to not support them. The
+  problem they try to solve can still be solved just using domains: for example,
+  one could have the `default-imperative_verbs` domain and the `default-nouns`
+  domain and use the `d(n)gettext` family of macros/functions, and the final
+  result would be similar
+
   ## Compile-time features
 
   As mentioned above, using the gettext macros (as opposed to functions) allows
