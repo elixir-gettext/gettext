@@ -528,7 +528,13 @@ defmodule Gettext do
   """
   @spec dgettext(module, binary, binary, bindings) :: binary
   def dgettext(backend, domain, msgid, bindings \\ %{})
-      when is_atom(backend) and is_binary(domain) and is_binary(msgid) do
+
+  def dgettext(backend, domain, msgid, bindings) when is_list(bindings) do
+    dgettext(backend, domain, msgid, :maps.from_list(bindings))
+  end
+
+  def dgettext(backend, domain, msgid, bindings)
+      when is_atom(backend) and is_binary(domain) and is_binary(msgid) and is_map(bindings) do
     backend.lgettext(get_locale(backend), domain, msgid, bindings)
     |> handle_backend_result
   end
@@ -573,8 +579,15 @@ defmodule Gettext do
   """
   @spec dngettext(module, binary, binary, binary, non_neg_integer, bindings) :: binary
   def dngettext(backend, domain, msgid, msgid_plural, n, bindings \\ %{})
+
+  def dngettext(backend, domain, msgid, msgid_plural, n, bindings) when is_list(bindings) do
+    dngettext(backend, domain, msgid, msgid_plural, n, :maps.from_list(bindings))
+  end
+
+  def dngettext(backend, domain, msgid, msgid_plural, n, bindings)
       when is_atom(backend) and is_binary(domain) and is_binary(msgid) and
-           is_binary(msgid_plural) and is_integer(n) do
+           is_binary(msgid_plural) and is_integer(n) and n >= 0 and
+           is_map(bindings) do
     backend.lngettext(get_locale(backend), domain, msgid, msgid_plural, n, bindings)
     |> handle_backend_result
   end

@@ -120,19 +120,11 @@ defmodule Gettext.Compiler do
   @spec signatures() :: Macro.t
   def signatures do
     quote do
-      @spec lgettext(binary, binary, binary, term) :: {:default, binary} | {:error, term}
-      def lgettext(locale, domain, msgid, bindings \\ %{})
+      @spec lgettext(binary, binary, binary, %{}) :: {:default, binary} | {:error, term}
+      def lgettext(locale, domain, msgid, bindings)
 
-      @spec lngettext(binary, binary, binary, binary, non_neg_integer, term) :: {:default, binary} | {:error, term}
-      def lngettext(locale, domain, msgid, msgid_plural, n, bindings \\ %{})
-
-      def lgettext(locale, domain, msgid, bindings) when is_list(bindings) do
-        lgettext(locale, domain, msgid, Enum.into(bindings, %{}))
-      end
-
-      def lngettext(locale, domain, msgid, msgid_plural, n, bindings) when is_list(bindings) do
-        lngettext(locale, domain, msgid, msgid_plural, n, Enum.into(bindings, %{}))
-      end
+      @spec lngettext(binary, binary, binary, binary, non_neg_integer, %{}) :: {:default, binary} | {:error, term}
+      def lngettext(locale, domain, msgid, msgid_plural, n, bindings)
     end
   end
 
