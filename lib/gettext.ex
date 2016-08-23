@@ -444,7 +444,6 @@ defmodule Gettext do
     quote do
       @gettext_opts unquote(opts)
       @before_compile Gettext.Compiler
-      unquote(Gettext.Compiler.signatures)
     end
   end
 

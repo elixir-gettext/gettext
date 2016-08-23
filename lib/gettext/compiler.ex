@@ -53,6 +53,7 @@ defmodule Gettext.Compiler do
       end
 
       unquote(macros())
+      unquote(signatures())
       unquote(compile_po_files(translations_dir))
       unquote(dynamic_clauses())
     end
@@ -114,11 +115,7 @@ defmodule Gettext.Compiler do
     end
   end
 
-  @doc """
-  Returns the function signatures of `lgettext/4` and `lngettext/6`.
-  """
-  @spec signatures() :: Macro.t
-  def signatures do
+  defp signatures do
     quote do
       def lgettext(locale, domain, msgid, bindings)
       def lngettext(locale, domain, msgid, msgid_plural, n, bindings)
