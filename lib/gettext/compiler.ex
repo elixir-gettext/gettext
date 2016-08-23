@@ -215,19 +215,15 @@ defmodule Gettext.Compiler do
   """
   @spec compile_po_files(Path.t) :: Macro.t
   def compile_po_files(dir) do
-    Enum.reduce(po_files_in_dir(dir), [], &compile_po_file/2)
+    Enum.flat_map(po_files_in_dir(dir), &compile_po_file/1)
   end
 
-  # `acc` is a list of already compiled translation, i.e., of quoted function
-  # definitions. Here, we prepend a quoted function definition to that list for
-  # each translation in the given PO file.
-  defp compile_po_file(path, acc) do
+  # Compiles a .po file into a list of lgettext/4 (for translations) and
+  # lngettext/6 (for plural translations) clauses.
+  defp compile_po_file(path) do
     {locale, domain} = locale_and_domain_from_path(path)
     %PO{translations: translations} = PO.parse_file!(path)
-
-    Enum.reduce translations, acc, fn
-      translation, acc -> [compile_translation(locale, domain, translation)|acc]
-    end
+    Enum.map(translations, &compile_translation(locale, domain, &1))
   end
 
   defp locale_and_domain_from_path(path) do
