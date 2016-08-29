@@ -196,12 +196,12 @@ defmodule GettextTest do
     msgid_plural = "You have %{count} messages, %{name}"
 
     assert capture_log(fn ->
-      assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1)
+      assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, %{})
       == {:ok, "Hai un messaggio, %{name}"}
     end) =~ ~s[The key "name" for the translation "Hai un messaggio, %{name}" (locale it) is missing from the bindings.]
 
     assert capture_log(fn ->
-    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 6)
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 6, %{})
       == {:ok, "Hai 6 messaggi, %{name}"}
       end) =~ ~s[The key "name" for the translation "Hai %{count} messaggi, %{name}" (locale it) is missing from the bindings.]
   end
