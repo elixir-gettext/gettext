@@ -442,6 +442,8 @@ defmodule Gettext do
   @doc false
   defmacro __using__(opts) do
     quote do
+      require Logger
+
       @gettext_opts unquote(opts)
       @before_compile Gettext.Compiler
 
@@ -454,6 +456,7 @@ defmodule Gettext do
       """
       @spec handle_missing_binding(atom, binary, binary) :: binary
       def handle_missing_binding(binding, original_string, locale) do
+        Logger.warn("The key \"#{binding}\" for the translation \"#{original_string}\" (locale #{locale}) is missing from the bindings.")
         "%{#{binding}}"
       end
       defoverridable handle_missing_binding: 3
