@@ -450,9 +450,24 @@ defmodule Gettext do
       @doc """
       Default handling for missing bindings.
 
-      If a translated `msgid` does contain a binding that is missing, this method will be called.
-      By default it only logs the error but it can be overwritten.
-      The return value is used instead of the missing binding.
+      This function is called for every missing binding found in a translation.
+      It takes the `binding` (as an atom), the original translation, and the current locale.
+      The return value of this function is used as replacement for the missing binding.
+      For example, if something like this is called:
+
+          MyApp.Gettext.gettext("Hello %{name}, welcome to %{country}", name: "Jane", country: "Italy")
+
+      and our `it/LC_MESSAGES/default.po` looks like this:
+
+          msgid "Hello %{name}, welcome to %{country}"
+          msgstr "Ciao %{name}, benvenuto in %{cowntry}" # (typo)
+
+      then Gettext will call:
+
+          MyApp.Gettext.handle_missing_binding(:cowntry, "Ciao %{name}, benvenuto in %{cowntry}", "it")
+
+      The default implementation for this function warns about the missing binding and returns `%{binding}` (`%{cowntry}` in the example).
+      This function can be overridden.
       """
       @spec handle_missing_binding(atom, binary, binary) :: binary
       def handle_missing_binding(binding, original_string, locale) do
