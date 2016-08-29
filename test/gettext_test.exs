@@ -169,10 +169,10 @@ defmodule GettextTest do
 
   test "lgettext/4: default handle_missing_binding preserves key" do
     msgid = "My name is %{name} and I'm %{age}"
-    assert capture_log(fn ->
-      assert Translator.lgettext("it", "interpolations", msgid, %{name: "José"})
-      == {:ok, "Mi chiamo José e ho %{age} anni"}
-    end) =~ ~s[The key "age" for the translation "Mi chiamo %{name} e ho %{age} anni" (locale it) is missing from the bindings.]
+    log = capture_log(fn ->
+      assert Translator.lgettext("it", "interpolations", msgid, %{name: "José"}) == {:ok, "Mi chiamo José e ho %{age} anni"}
+    end)
+    assert log =~ ~s[The key "age" for the translation "Mi chiamo %{name} e ho %{age} anni" (locale it) is missing from the bindings.]
   end
 
   test "lgettext/4: interpolation works when a translation is missing" do
@@ -184,26 +184,26 @@ defmodule GettextTest do
     assert Translator.lgettext("pl", "foo", msgid, %{})
            == {:default, "Hello world!"}
 
-    assert capture_log(fn ->
+    log = capture_log(fn ->
       msgid = "Hello %{name}"
-      assert Translator.lgettext("pl", "foo", msgid, %{})
-      == {:default, "Hello %{name}"}
-    end) =~ ~s[The key "name" for the translation "Hello %{name}" (locale pl) is missing from the bindings.]
+      assert Translator.lgettext("pl", "foo", msgid, %{}) == {:default, "Hello %{name}"}
+    end)
+    assert log =~ ~s[The key "name" for the translation "Hello %{name}" (locale pl) is missing from the bindings.]
   end
 
   test "lngettext/6: default handle_missing_binding preserves key" do
     msgid =  "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
 
-    assert capture_log(fn ->
-      assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, %{})
-      == {:ok, "Hai un messaggio, %{name}"}
-    end) =~ ~s[The key "name" for the translation "Hai un messaggio, %{name}" (locale it) is missing from the bindings.]
+    log = capture_log(fn ->
+      assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, %{}) == {:ok, "Hai un messaggio, %{name}"}
+    end)
+    assert log =~ ~s[The key "name" for the translation "Hai un messaggio, %{name}" (locale it) is missing from the bindings.]
 
-    assert capture_log(fn ->
-    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 6, %{})
-      == {:ok, "Hai 6 messaggi, %{name}"}
-      end) =~ ~s[The key "name" for the translation "Hai %{count} messaggi, %{name}" (locale it) is missing from the bindings.]
+    log = capture_log(fn ->
+      assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 6, %{}) == {:ok, "Hai 6 messaggi, %{name}"}
+    end)
+    assert log =~ ~s[The key "name" for the translation "Hai %{count} messaggi, %{name}" (locale it) is missing from the bindings.]
   end
 
   test "lngettext/6: interpolation works when a translation is missing" do
@@ -224,10 +224,10 @@ defmodule GettextTest do
     assert Translator.dgettext("interpolations", "Hello %{name}", keys)
            == "Ciao Jim"
 
-    assert capture_log(fn ->
-      assert Translator.dgettext("interpolations", "Hello %{name}")
-      == "Ciao %{name}"
-    end) =~ ~s[The key "name" for the translation "Ciao %{name}" (locale it) is missing from the bindings.]
+    log = capture_log(fn ->
+      assert Translator.dgettext("interpolations", "Hello %{name}") == "Ciao %{name}"
+    end)
+    assert log =~ ~s[The key "name" for the translation "Ciao %{name}" (locale it) is missing from the bindings.]
   end
 
   # Macros.
@@ -321,9 +321,10 @@ defmodule GettextTest do
 
     assert Gettext.dgettext(Translator, "foo", "Foo") == "Foo"
 
-    assert capture_log(fn ->
+    log = capture_log(fn ->
       assert Gettext.dgettext(Translator, "interpolations", "Hello %{name}", %{}) == "Ciao %{name}"
-    end) =~ ~s[The key "name" for the translation "Ciao %{name}" (locale it) is missing from the bindings.]
+    end)
+    assert log =~ ~s[The key "name" for the translation "Ciao %{name}" (locale it) is missing from the bindings.]
   end
 
   test "gettext/3" do

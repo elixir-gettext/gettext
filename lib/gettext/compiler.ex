@@ -304,8 +304,6 @@ defmodule Gettext.Compiler do
             segment -> segment
           end)
           {:ok, translation}
-        _ ->
-          raise(Gettext.Error, "Bindings must be a map")
       end
     end
   end
