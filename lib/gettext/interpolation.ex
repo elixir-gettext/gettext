@@ -41,9 +41,14 @@ defmodule Gettext.Interpolation do
   The callback will be called with the missing binding, the original string and the locale.
   See also the default implementation in `Gettext`.
 
-  ## Example
+  ## Examples
 
-      iex> Gettext.Interpolation.interpolate(["Hello ", :name, ", you have ", :count, " unread messages"], %{ :name => "José", :count => 3 }, "Hello %{name}, you have %{count} unread messages", "en_GB", &__MODULE__.handle_missing_binding/3)
+      iex> interpolatable = ["Hello ", :name, ", you have ", :count, " unread messages"]
+      iex> msgid = "Hello %{name}, you have %{count} unread messages"
+      iex> bindings = %{ :name => "José", :count => 3 }
+      iex> locale = "en_GB"
+      iex> handler = fn(binding, _str, _locale) -> Atom.to_string(binding) end
+      iex> Gettext.Interpolation.interpolate(interpolatable, bindings, msgid, locale, handler)
       "Hello José, you have 3 unread messages"
 
   """
