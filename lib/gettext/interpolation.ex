@@ -33,6 +33,28 @@ defmodule Gettext.Interpolation do
   end
 
   @doc """
+  Interpolate an interpolatable with the given bindings.
+
+  This function takes an interpolatable list returned from `to_interpolatable/1` and bindings
+  and returns the interpolated string. If it encounters an atom that should be interpolated
+  but is missing from the bindings, it will call the provided `handle_missing_binding` function.
+  The callback will be called with the missing binding, the original string and the locale.
+  See also the default implementation in `Gettext`.
+
+  ## Example
+
+      iex> Gettext.Interpolation.interpolate(["Hello ", :name, ", you have ", :count, " unread messages"], %{ :name => "José", :count => 3 }, "Hello %{name}, you have %{count} unread messages", "en_GB", &__MODULE__.handle_missing_binding/3)
+      "Hello José, you have 3 unread messages"
+
+  """
+  def interpolate(interpolatable, bindings, str, locale, handle_missing_binding) do
+    Enum.map_join(interpolatable, "", fn
+      segment when is_atom(segment) -> Map.get_lazy(bindings, segment, fn -> handle_missing_binding.(segment, str, locale) end)
+      segment                       -> segment
+    end)
+  end
+
+  @doc """
   Returns all the interpolation keys contained in the given string or list of
   segments.
 

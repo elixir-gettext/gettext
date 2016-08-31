@@ -146,12 +146,7 @@ defmodule Gettext.Compiler do
 
       defp interpolate(str, bindings, locale) do
         Gettext.Interpolation.to_interpolatable(str)
-        |> Enum.map_join("", fn
-          segment when is_atom(segment) ->
-            Map.get_lazy(bindings, segment, fn -> handle_missing_binding(segment, str, locale) end)
-          segment ->
-            segment
-        end)
+        |> Gettext.Interpolation.interpolate(bindings, str, locale, &__MODULE__.handle_missing_binding/3)
       end
     end
   end
@@ -299,10 +294,7 @@ defmodule Gettext.Compiler do
         unquote(match) ->
           {:ok, unquote(interpolation)}
         %{} ->
-          translation = Enum.map_join(unquote(interpolatable), "", fn
-            segment when is_atom(segment) -> Map.get_lazy(var!(bindings), segment, fn -> handle_missing_binding(segment, unquote(str), unquote(locale)) end)
-            segment -> segment
-          end)
+          translation = Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings), unquote(str), unquote(locale), &__MODULE__.handle_missing_binding/3)
           {:ok, translation}
       end
     end
