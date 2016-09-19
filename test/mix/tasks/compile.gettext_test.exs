@@ -14,6 +14,11 @@ defmodule Mix.Tasks.Compile.GettextTest do
     Mix.Project.push(MyProject)
     File.rm_rf!(@po_path)
     File.rm_rf!(Path.join(Mix.Project.app_path(), ".compile_tmp_gettext_foo"))
+    
+    on_exit fn ->
+      Mix.Project.pop()
+    end
+    
     :ok
   end
 
