@@ -129,25 +129,24 @@ defmodule Gettext.Compiler do
   @spec dynamic_clauses() :: Macro.t
   def dynamic_clauses do
     quote do
-      def lgettext(_locale, domain, msgid, bindings) do
+      def lgettext(locale, domain, msgid, bindings) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
 
-        case Gettext.Interpolation.interpolate(msgid, bindings) do
-          {:ok, interpolated} -> {:default, interpolated}
-          {:error, _} = error -> error
-        end
+        {:default, interpolate(msgid, bindings, locale)}
       end
 
-      def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
+      def lngettext(locale, domain, msgid, msgid_plural, n, bindings) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
 
         str      = if n == 1, do: msgid, else: msgid_plural
         bindings = Map.put(bindings, :count, n)
 
-        case Gettext.Interpolation.interpolate(str, bindings) do
-          {:ok, interpolated} -> {:default, interpolated}
-          {:error, _} = error -> error
-        end
+        {:default, interpolate(str, bindings, locale)}
+      end
+
+      defp interpolate(str, bindings, locale) do
+        Gettext.Interpolation.to_interpolatable(str)
+        |> Gettext.Interpolation.interpolate(bindings, str, locale, &__MODULE__.handle_missing_binding/3)
       end
     end
   end
@@ -237,7 +236,7 @@ defmodule Gettext.Compiler do
     if msgstr != "" do
       quote do
         def lgettext(unquote(locale), unquote(domain), unquote(msgid), var!(bindings)) do
-          unquote(compile_interpolation(msgstr))
+          unquote(compile_interpolation(msgstr, locale))
         end
       end
     end
@@ -254,7 +253,7 @@ defmodule Gettext.Compiler do
     # `%Translation{}` clause.
     unless Enum.any?(msgstr, &match?({_, ""}, &1)) do
       clauses = Enum.map msgstr, fn({form, str}) ->
-        {:->, [], [[form], compile_interpolation(str)]}
+        {:->, [], [[form], compile_interpolation(str, locale)]}
       end
 
       quote do
@@ -274,18 +273,29 @@ defmodule Gettext.Compiler do
   # string based on some bindings or returns an error in case those bindings are
   # missing. Note that the `bindings` variable is assumed to be in the scope by
   # the quoted code that is returned.
-  defp compile_interpolation(str) do
-    keys          = Interpolation.keys(str)
-    match         = compile_interpolation_match(keys)
-    interpolation = compile_interpolatable_string(str)
+  defp compile_interpolation(str, locale) do
+    compile_interpolation(str, locale, Interpolation.keys(str))
+  end
+
+  defp compile_interpolation(str, _locale, [] = _keys) do
+    quote do
+      _ = var!(bindings)
+      {:ok, unquote(str)}
+    end
+  end
+
+  defp compile_interpolation(str, locale, keys) do
+    match          = compile_interpolation_match(keys)
+    interpolation  = compile_interpolatable_string(str)
+    interpolatable = Interpolation.to_interpolatable(str)
 
     quote do
       case var!(bindings) do
         unquote(match) ->
           {:ok, unquote(interpolation)}
-        _ ->
-          keys = unquote(keys)
-          {:error, Gettext.Interpolation.missing_interpolation_keys(var!(bindings), keys)}
+        %{} ->
+          translation = Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings), unquote(str), unquote(locale), &__MODULE__.handle_missing_binding/3)
+          {:ok, translation}
       end
     end
   end
