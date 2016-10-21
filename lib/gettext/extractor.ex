@@ -26,8 +26,11 @@ defmodule Gettext.Extractor do
   """
   @spec setup() :: :ok
   def setup do
-    {:ok, _} = ExtractorAgent.start_link
-    :ok
+    # TODO: Maybe start it permanently and drop teardown?
+    case ExtractorAgent.start_link do
+      {:ok, _} -> :ok
+      {:error, {:already_started, _}} -> :ok
+    end
   end
 
   @doc """
@@ -66,12 +69,19 @@ defmodule Gettext.Extractor do
   translation ends up in that file) or merged with the extracted translations;
   new POT files are returned for extracted translations that belong to a POT
   file that doesn't exist yet.
+
+  This is a stateful operation. Once pot_files are generated, their information
+  is permanently removed from the extractor.
   """
-  @spec pot_files(Keyword.t) :: [{path :: String.t, contents :: iodata}]
-  def pot_files(gettext_config) do
-    existing_pot_files = pot_files_for_backends(ExtractorAgent.get_backends)
-    po_structs = create_po_structs_from_extracted_translations(ExtractorAgent.get_translations)
-    merge_pot_files(existing_pot_files, po_structs, gettext_config)
+  @spec pot_files(app :: atom, config :: Keyword.t) :: [{path :: String.t, contents :: iodata}]
+  def pot_files(app, gettext_config) do
+    backends = ExtractorAgent.pop_backends(app)
+    existing_pot_files = pot_files_for_backends(backends)
+
+    backends
+    |> ExtractorAgent.pop_translations()
+    |> create_po_structs_from_extracted_translations()
+    |> merge_pot_files(existing_pot_files, gettext_config)
   end
 
   # Returns all the .pot files for each of the given `backends`.
@@ -135,7 +145,7 @@ defmodule Gettext.Extractor do
 
   # Made public for testing.
   @doc false
-  def merge_pot_files(pot_files, po_structs, gettext_config) do
+  def merge_pot_files(po_structs, pot_files, gettext_config) do
     # pot_files is a list of paths to existing .pot files while po_structs is a
     # list of {path, struct} for new %Gettext.PO{} structs that we have
     # extracted. If we turn pot_files into a list of {path, whatever} tuples,
