@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.12.1
+
+* Ensure the gettext application is started before running mix tasks
+
 ## v0.12.0
 
 * Drop support for Elixir 1.1 and require ~> 1.2
