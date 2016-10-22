@@ -435,10 +435,11 @@ defmodule Gettext do
     @moduledoc """
     An error message raised for missing bindings errors.
     """
-    defexception [:backend, :domain, :locale, :msgid, :bindings]
+    @enforce_keys [:backend, :domain, :locale, :msgid, :missing]
+    defexception [:backend, :domain, :locale, :msgid, :missing]
 
-    def message(%{backend: backend, domain: domain, locale: locale, msgid: msgid, bindings: bindings}) do
-      "missing Gettext bindings: #{inspect bindings} (backend #{inspect backend}, " <>
+    def message(%{backend: backend, domain: domain, locale: locale, msgid: msgid, missing: missing}) do
+      "missing Gettext bindings: #{inspect missing} (backend #{inspect backend}, " <>
         "locale #{inspect locale}, domain #{inspect domain}, msgid #{inspect msgid})"
     end
   end
@@ -698,9 +699,9 @@ defmodule Gettext do
     do: string
   defp handle_backend_result({:default, string}, _backend, _locale, _domain, _msgid),
     do: string
-  defp handle_backend_result({:missing_bindings, incomplete, bindings}, backend, locale, domain, msgid) do
+  defp handle_backend_result({:missing_bindings, incomplete, missing}, backend, locale, domain, msgid) do
     exception = %MissingBindingsError{backend: backend, locale: locale, domain: domain,
-                                      msgid: msgid, bindings: bindings}
+                                      msgid: msgid, missing: missing}
     backend.handle_missing_bindings(exception, incomplete)
   end
   defp handle_backend_result({:error, reason}, _backend, _locale, _domain, _msgid) do
