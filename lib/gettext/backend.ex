@@ -10,9 +10,10 @@ defmodule Gettext.Backend do
   @doc """
   Default handling for missing bindings.
 
-  This function is called when there are missing bindings in a translation.
-  It takes the `Gettext.MissingBindingsError` struct and the incomplete translation.
-  The current backend, locale, domain and msgid can be found in the error struct.
+  This function is called when there are missing bindings in a translation. It
+  takes a `Gettext.MissingBindingsError` struct and the translation with the
+  wrong bindings left as is with the `%{}` syntax.
+
   For example, if something like this is called:
 
       MyApp.Gettext.gettext("Hello %{name}, welcome to %{country}", name: "Jane", country: "Italy")
@@ -24,17 +25,32 @@ defmodule Gettext.Backend do
 
   then Gettext will call:
 
-      MyApp.Gettext.handle_missing_bindings(%Gettext.MissingBindingsError{...},
-                                            "Ciao Jane, benvenuto in %{cowntry}")
+      MyApp.Gettext.handle_missing_bindings(exception, "Ciao Jane, benvenuto in %{cowntry}")
+
+  where `exception` is a struct that looks like this:
+
+      %Gettext.MissingBindingsError{
+        backend: MyApp.Gettext,
+        domain: "default",
+        locale: "it",
+        msgid: "Hello %{name}, welcome to %{country}",
+        bindings: [:country],
+      }
+
+  The return value of the `c:handle_missing_bindings/2` callback is used as the
+  translated string that the translation macros and functions return.
 
   The default implementation for this function uses `Logger.error/1` to warn
-  about the missing binding and returns the incomplete message.
+  about the missing binding and returns the translated message with the
+  incomplete bindings.
 
-  This function can be overridden to raise, for example:
+  This function can be overridden. For example, to raise when there are missing
+  bindings:
 
       def handle_missing_bindings(exception, _incomplete) do
         raise exception
       end
+
   """
   @callback handle_missing_bindings(Gettext.MissingBindingsError.t, binary) ::
     binary | no_return
