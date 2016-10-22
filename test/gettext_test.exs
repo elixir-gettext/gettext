@@ -21,7 +21,6 @@ end
 defmodule GettextTest do
   use ExUnit.Case
 
-  import ExUnit.CaptureIO
   import ExUnit.CaptureLog
 
   alias GettextTest.Translator
@@ -386,9 +385,9 @@ defmodule GettextTest do
   end
 
   test "a warning is issued in l(n)gettext when the domain contains slashes" do
-    io = capture_io :stderr, fn ->
+    log = capture_log fn ->
       assert Translator.dgettext("sub/dir/domain", "hello") == "hello"
     end
-    assert io =~ ~s(warning: slashes in domains are not supported: "sub/dir/domain")
+    assert log =~ ~s(slashes in domains are not supported: "sub/dir/domain")
   end
 end
