@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.12.0-dev
+## v0.12.0
 
 * Drop support for Elixir 1.1 and require ~> 1.2
 * Add `:compiler_po_wildcard` to explicitly choose the po files that are tracked by the compiler
