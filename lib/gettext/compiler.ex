@@ -6,6 +6,8 @@ defmodule Gettext.Compiler do
   alias Gettext.PO.PluralTranslation
   alias Gettext.Interpolation
 
+  require Logger
+
   @default_priv "priv/gettext"
   @po_wildcard "*/LC_MESSAGES/*.po"
 
@@ -186,15 +188,21 @@ defmodule Gettext.Compiler do
   end
 
   @doc """
-  Prints a warning on `:stderr` if `domain` contains slashes.
+  Logs a warning via `Logger.error/1` if `domain` contains slashes.
 
-  This function is called by `lgettext` and `lngettext`.
+  This function is called by `lgettext` and `lngettext`. It could make sense to
+  make this function raise an error since slashes in domains are not supported,
+  but we decided not to do so and to only emit a warning since the expected
+  behaviour for Gettext functions/macros when the domain or translation is not
+  known is to return the original string (msgid) and raising here would break
+  that contract.
   """
   @spec warn_if_domain_contains_slashes(binary) :: :ok
   def warn_if_domain_contains_slashes(domain) do
     if String.contains?(domain, "/") do
-      IO.puts :stderr, "warning: slashes in domains are not supported: #{inspect domain}"
+      Logger.error(["slashes in domains are not supported: ", inspect(domain)])
     end
+    :ok
   end
 
   @doc """
