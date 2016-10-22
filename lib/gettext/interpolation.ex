@@ -43,20 +43,36 @@ defmodule Gettext.Interpolation do
 
   ## Examples
 
-      iex> interpolatable = ["Hello ", :name, ", you have ", :count, " unread messages"]
       iex> msgid = "Hello %{name}, you have %{count} unread messages"
-      iex> bindings = %{ :name => "José", :count => 3 }
-      iex> locale = "en_GB"
-      iex> handler = fn(binding, _str, _locale) -> Atom.to_string(binding) end
-      iex> Gettext.Interpolation.interpolate(interpolatable, bindings, msgid, locale, handler)
-      "Hello José, you have 3 unread messages"
+      iex> interpolatable = Gettext.Interpolation.to_interpolatable(msgid)
+      iex> good_bindings = %{name: "José", count: 3}
+      iex> Gettext.Interpolation.interpolate(interpolatable, :ok, good_bindings)
+      {:ok, "Hello José, you have 3 unread messages"}
+      iex> bad_bindings = %{name: "José"}
+      iex> Gettext.Interpolation.interpolate(interpolatable, :ok, bad_bindings)
+      {:missing_bindings, "Hello José, you have %{count} unread messages", [:count]}
 
   """
-  def interpolate(interpolatable, bindings, str, locale, handle_missing_binding) do
-    Enum.map_join(interpolatable, "", fn
-      segment when is_atom(segment) -> Map.get_lazy(bindings, segment, fn -> handle_missing_binding.(segment, str, locale) end)
-      segment                       -> segment
-    end)
+  def interpolate(interpolatable, key, bindings) do
+    interpolate(interpolatable, key, bindings, [], [])
+  end
+
+  defp interpolate([string | segments], key, bindings, strings, missing) when is_binary(string) do
+    interpolate(segments, key, bindings, [string | strings], missing)
+  end
+  defp interpolate([atom | segments], key, bindings, strings, missing) when is_atom(atom) do
+    case bindings do
+      %{^atom => value} ->
+        interpolate(segments, key, bindings, [to_string(value) | strings], missing)
+      %{} ->
+        interpolate(segments, key, bindings, ["%{" <> Atom.to_string(atom) <> "}" | strings], [atom | missing])
+    end
+  end
+  defp interpolate([], key, _bindings, strings, []) do
+    {key, IO.iodata_to_binary(Enum.reverse(strings))}
+  end
+  defp interpolate([], _key, _bindings, strings, missing) do
+    {:missing_bindings, IO.iodata_to_binary(Enum.reverse(strings)), missing}
   end
 
   @doc """

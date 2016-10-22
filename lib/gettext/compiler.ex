@@ -131,22 +131,17 @@ defmodule Gettext.Compiler do
     quote do
       def lgettext(locale, domain, msgid, bindings) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
-
-        {:default, interpolate(msgid, bindings, locale)}
+        msgid
+        |> Gettext.Interpolation.to_interpolatable()
+        |> Gettext.Interpolation.interpolate(:default, bindings)
       end
 
-      def lngettext(locale, domain, msgid, msgid_plural, n, bindings) do
+      def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
-
-        str      = if n == 1, do: msgid, else: msgid_plural
         bindings = Map.put(bindings, :count, n)
-
-        {:default, interpolate(str, bindings, locale)}
-      end
-
-      defp interpolate(str, bindings, locale) do
-        Gettext.Interpolation.to_interpolatable(str)
-        |> Gettext.Interpolation.interpolate(bindings, str, locale, &__MODULE__.handle_missing_binding/3)
+        (if n == 1, do: msgid, else: msgid_plural)
+        |> Gettext.Interpolation.to_interpolatable()
+        |> Gettext.Interpolation.interpolate(:default, bindings)
       end
     end
   end
@@ -294,8 +289,7 @@ defmodule Gettext.Compiler do
         unquote(match) ->
           {:ok, unquote(interpolation)}
         %{} ->
-          translation = Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings), unquote(str), unquote(locale), &__MODULE__.handle_missing_binding/3)
-          {:ok, translation}
+          Gettext.Interpolation.interpolate(unquote(interpolatable), :ok, var!(bindings))
       end
     end
   end
