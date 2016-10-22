@@ -24,7 +24,7 @@ defmodule Gettext.Mixfile do
   end
 
   def application do
-    [applications: [],
+    [applications: [:logger],
      env: [default_locale: "en"],
      mod: {Gettext.Application, []}]
   end

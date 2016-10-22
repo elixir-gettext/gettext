@@ -429,9 +429,17 @@ defmodule Gettext do
     (e.g., missing interpolation keys).
     """
     defexception [:message]
+  end
 
-    def exception(message) do
-      %__MODULE__{message: message}
+  defmodule MissingBindingsError do
+    @moduledoc """
+    An error message raised for missing bindings errors.
+    """
+    defexception [:backend, :domain, :locale, :msgid, :bindings]
+
+    def message(%{backend: backend, domain: domain, locale: locale, msgid: msgid, bindings: bindings}) do
+      "missing Gettext bindings: #{inspect bindings} (backend #{inspect backend}, " <>
+        "locale #{inspect locale}, domain #{inspect domain}, msgid #{inspect msgid})"
     end
   end
 
@@ -442,8 +450,16 @@ defmodule Gettext do
   @doc false
   defmacro __using__(opts) do
     quote do
+      require Logger
+
       @gettext_opts unquote(opts)
       @before_compile Gettext.Compiler
+
+      def handle_missing_bindings(exception, incomplete) do
+        Logger.error(Exception.message(exception))
+        incomplete
+      end
+      defoverridable handle_missing_bindings: 2
     end
   end
 
@@ -534,8 +550,9 @@ defmodule Gettext do
 
   def dgettext(backend, domain, msgid, bindings)
       when is_atom(backend) and is_binary(domain) and is_binary(msgid) and is_map(bindings) do
-    backend.lgettext(get_locale(backend), domain, msgid, bindings)
-    |> handle_backend_result
+    locale = get_locale(backend)
+    backend.lgettext(locale, domain, msgid, bindings)
+    |> handle_backend_result(backend, locale, domain, msgid)
   end
 
   @doc """
@@ -587,8 +604,9 @@ defmodule Gettext do
       when is_atom(backend) and is_binary(domain) and is_binary(msgid) and
            is_binary(msgid_plural) and is_integer(n) and n >= 0 and
            is_map(bindings) do
-    backend.lngettext(get_locale(backend), domain, msgid, msgid_plural, n, bindings)
-    |> handle_backend_result
+    locale = get_locale(backend)
+    backend.lngettext(locale, domain, msgid, msgid_plural, n, bindings)
+    |> handle_backend_result(backend, locale, domain, msgid)
   end
 
   @doc """
@@ -676,8 +694,16 @@ defmodule Gettext do
     backend.__gettext__(:known_locales)
   end
 
-  defp handle_backend_result({atom, string}) when atom in [:ok, :default],
+  defp handle_backend_result({:ok, string}, _backend, _locale, _domain, _msgid),
     do: string
-  defp handle_backend_result({:error, error}),
-    do: raise(Error, error)
+  defp handle_backend_result({:default, string}, _backend, _locale, _domain, _msgid),
+    do: string
+  defp handle_backend_result({:missing_bindings, incomplete, bindings}, backend, locale, domain, msgid) do
+    exception = %MissingBindingsError{backend: backend, locale: locale, domain: domain,
+                                      msgid: msgid, bindings: bindings}
+    backend.handle_missing_bindings(exception, incomplete)
+  end
+  defp handle_backend_result({:error, reason}, _backend, _locale, _domain, _msgid) do
+    raise Error, reason
+  end
 end

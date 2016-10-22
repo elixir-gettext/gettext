@@ -33,22 +33,46 @@ defmodule Gettext.Interpolation do
   end
 
   @doc """
-  Tells which `required` keys are missing in `bindings`.
+  Interpolate an interpolatable with the given bindings.
 
-  Returns an error message which tells which keys in `required` don't appear in
-  `bindings`.
+  This function takes an interpolatable list returned from `to_interpolatable/1` and bindings
+  and returns the interpolated string. If it encounters an atom that should be interpolated
+  but is missing from the bindings, it will call the provided `handle_missing_binding` function.
+  The callback will be called with the missing binding, the original string and the locale.
+  See also the default implementation in `Gettext`.
 
   ## Examples
 
-      iex> Gettext.Interpolation.missing_interpolation_keys %{foo: 1}, [:foo, :bar, :baz]
-      "missing interpolation keys: bar, baz"
+      iex> msgid = "Hello %{name}, you have %{count} unread messages"
+      iex> interpolatable = Gettext.Interpolation.to_interpolatable(msgid)
+      iex> good_bindings = %{name: "José", count: 3}
+      iex> Gettext.Interpolation.interpolate(interpolatable, :ok, good_bindings)
+      {:ok, "Hello José, you have 3 unread messages"}
+      iex> bad_bindings = %{name: "José"}
+      iex> Gettext.Interpolation.interpolate(interpolatable, :ok, bad_bindings)
+      {:missing_bindings, "Hello José, you have %{count} unread messages", [:count]}
 
   """
-  @spec missing_interpolation_keys(%{}, [atom]) :: binary
-  def missing_interpolation_keys(bindings, required) do
-    present = Map.keys(bindings)
-    missing = required -- present
-    "missing interpolation keys: " <> Enum.map_join(missing, ", ", &to_string/1)
+  def interpolate(interpolatable, key, bindings) do
+    interpolate(interpolatable, key, bindings, [], [])
+  end
+
+  defp interpolate([string | segments], key, bindings, strings, missing) when is_binary(string) do
+    interpolate(segments, key, bindings, [string | strings], missing)
+  end
+  defp interpolate([atom | segments], key, bindings, strings, missing) when is_atom(atom) do
+    case bindings do
+      %{^atom => value} ->
+        interpolate(segments, key, bindings, [to_string(value) | strings], missing)
+      %{} ->
+        interpolate(segments, key, bindings, ["%{" <> Atom.to_string(atom) <> "}" | strings], [atom | missing])
+    end
+  end
+  defp interpolate([], key, _bindings, strings, []) do
+    {key, IO.iodata_to_binary(Enum.reverse(strings))}
+  end
+  defp interpolate([], _key, _bindings, strings, missing) do
+    {:missing_bindings, IO.iodata_to_binary(Enum.reverse(strings)), missing}
   end
 
   @doc """
@@ -80,36 +104,4 @@ defmodule Gettext.Interpolation do
     do: str |> to_interpolatable |> keys
   def keys(segments) when is_list(segments),
     do: Enum.filter(segments, &is_atom/1) |> Enum.uniq
-
-  @doc """
-  Dynimically interpolates `str` with the given `bindings`.
-
-  This function replaces all interpolations (like `%{this}`) inside `str` with
-  the keys contained in `bindings`. It returns `{:ok, str}` if all the
-  interpolation keys in `str` are present in `bindings`, `{:error, msg}`
-  otherwise.
-
-  ## Examples
-
-      iex> Gettext.Interpolation.interpolate "Hello %{name}", %{name: "José"}
-      {:ok, "Hello José"}
-      iex> Gettext.Interpolation.interpolate "%{count} errors", %{name: "Jane"}
-      {:error, "missing interpolation keys: count"}
-
-  """
-  @spec interpolate(binary, %{}) :: {:ok, binary} | {:error, binary}
-  def interpolate(str, bindings) do
-    segments = to_interpolatable(str)
-    keys     = keys(segments)
-
-    if keys -- Map.keys(bindings) != [] do
-      {:error, missing_interpolation_keys(bindings, keys)}
-    else
-      interpolated = Enum.map_join segments, "", fn
-        key when is_atom(key) -> Map.fetch!(bindings, key)
-        other                 -> other
-      end
-      {:ok, interpolated}
-    end
-  end
 end
