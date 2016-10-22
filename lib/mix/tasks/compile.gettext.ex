@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Compile.Gettext do
   @default_wildcard "gettext/*/LC_MESSAGES/*.po"
 
   def run(_, priv_dir \\ "priv") do
+    Application.ensure_all_started(:gettext)
     _ = Mix.Project.get!
     app_dir = Mix.Project.app_path()
     gettext_config = Mix.Project.config()[:gettext] || []

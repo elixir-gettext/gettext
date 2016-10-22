@@ -27,6 +27,7 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   """
   def run(args) do
+    Application.ensure_all_started(:gettext)
     _ = Mix.Project.get!
     config = Mix.Project.config()
     pot_files = extract(config[:app], config[:gettext] || [])
