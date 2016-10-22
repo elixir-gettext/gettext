@@ -2,10 +2,20 @@
 
 ## v0.12.0-dev
 
+* Drop support for Elixir 1.1 and require ~> 1.2
+* Add `:compiler_po_wildcard` to explicitly choose the po files that are tracked by the compiler
+* Allow the developer to configure what happens when there are missing bindings in the translation. The default has been changed to log and return the incomplete string instead of raising
 * Move the configuration for the `:gettext` application to compile-time config
   in `project/0` in `mix.exs` (under the `:gettext` key, with configuration
-  options `:excluded_refs_from_purging` and `:fuzzy_threshold`)
-* Drop support for Elixir 1.1 and require ~> 1.2
+  options `:excluded_refs_from_purging`, `:compiler_po_wildcard` and `:fuzzy_threshold`)
+* Show the file name in syntax errors when running `mix gettext.extract` and `mix gettext.merge`
+* Don't print tokens as Erlang terms in syntax error when running `mix gettext.extract` and `mix gettext.merge`
+* Allow duplicate interpolation keys
+* Raise when the domain is not a binary at compile-time
+* Fix many dialyzer warnings
+* No longer traverse directories given to `gettext.merge` recursively (from now on `gettext.merge` expect specific locale directories)
+* Reenable the "compile" task in `mix gettext.extract`
+* Ensure translations are tracked to the proper child app when using umbrella apps
 
 ## v0.11.0
 
