@@ -231,7 +231,7 @@ defmodule Gettext.Compiler do
     if msgstr != "" do
       quote do
         def lgettext(unquote(locale), unquote(domain), unquote(msgid), var!(bindings)) do
-          unquote(compile_interpolation(msgstr, locale))
+          unquote(compile_interpolation(msgstr))
         end
       end
     end
@@ -248,7 +248,7 @@ defmodule Gettext.Compiler do
     # `%Translation{}` clause.
     unless Enum.any?(msgstr, &match?({_, ""}, &1)) do
       clauses = Enum.map msgstr, fn({form, str}) ->
-        {:->, [], [[form], compile_interpolation(str, locale)]}
+        {:->, [], [[form], compile_interpolation(str)]}
       end
 
       quote do
@@ -268,18 +268,18 @@ defmodule Gettext.Compiler do
   # string based on some bindings or returns an error in case those bindings are
   # missing. Note that the `bindings` variable is assumed to be in the scope by
   # the quoted code that is returned.
-  defp compile_interpolation(str, locale) do
-    compile_interpolation(str, locale, Interpolation.keys(str))
+  defp compile_interpolation(str) do
+    compile_interpolation(str, Interpolation.keys(str))
   end
 
-  defp compile_interpolation(str, _locale, [] = _keys) do
+  defp compile_interpolation(str, [] = _keys) do
     quote do
       _ = var!(bindings)
       {:ok, unquote(str)}
     end
   end
 
-  defp compile_interpolation(str, locale, keys) do
+  defp compile_interpolation(str, keys) do
     match          = compile_interpolation_match(keys)
     interpolation  = compile_interpolatable_string(str)
     interpolatable = Interpolation.to_interpolatable(str)
