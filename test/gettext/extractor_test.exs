@@ -28,7 +28,7 @@ defmodule Gettext.ExtractorTest do
     msgstr ""
     """
 
-    structs = Extractor.merge_pot_files([paths.tomerge, paths.ignored], extracted_po_structs, [])
+    structs = Extractor.merge_pot_files(extracted_po_structs, [paths.tomerge, paths.ignored], [])
 
     # Unchanged files are not returned
     assert List.keyfind(structs, paths.ignored, 0) == nil
@@ -62,7 +62,7 @@ defmodule Gettext.ExtractorTest do
 
     message = "syntax_error.pot:3: syntax error before: msgid"
     assert_raise Gettext.PO.SyntaxError, message, fn ->
-      Extractor.merge_pot_files([path], [{path, %PO{}}], [])
+      Extractor.merge_pot_files([{path, %PO{}}], [path], [])
     end
   end
 
@@ -135,7 +135,7 @@ defmodule Gettext.ExtractorTest do
 
   test "extraction process" do
     refute Extractor.extracting?
-    Extractor.setup
+    Extractor.enable
     assert Extractor.extracting?
 
     code = """
@@ -199,7 +199,11 @@ defmodule Gettext.ExtractorTest do
           """}
     ]
 
-    dumped = Enum.map(Extractor.pot_files([]), fn {k, v} -> {k, IO.iodata_to_binary(v)} end)
+    # No backends for the unknown app
+    assert [] = Extractor.pot_files(:unknown, [])
+
+    pot_files = Extractor.pot_files(:test_application, [])
+    dumped = Enum.map(pot_files, fn {k, v} -> {k, IO.iodata_to_binary(v)} end)
 
     # We check that dumped strings end with the `expected` string because
     # there's the informative comment at the start of each dumped string.
@@ -210,8 +214,8 @@ defmodule Gettext.ExtractorTest do
     assert Enum.all?(dumped, fn {_, contents} ->
       contents =~ "## This file is a PO Template file."
     end)
-
-    Extractor.teardown
+  after
+    Extractor.disable
     refute Extractor.extracting?
   end
 

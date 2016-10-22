@@ -10,14 +10,23 @@ defmodule Gettext.ExtractorAgent do
   @initial_state %{
     translations: %{},
     backends: [],
+    extracting?: false
   }
 
   def start_link do
     Agent.start_link(fn -> @initial_state end, name: @name)
   end
 
-  def alive? do
-    !!Process.whereis(@name)
+  def enable do
+    Agent.update(@name, &put_in(&1.extracting?, true))
+  end
+
+  def disable do
+    Agent.update(@name, &put_in(&1.extracting?, false))
+  end
+
+  def extracting? do
+    Agent.get(@name, & &1.extracting?)
   end
 
   def add_translation(backend, domain, translation) do
@@ -43,12 +52,18 @@ defmodule Gettext.ExtractorAgent do
     Agent.stop @name
   end
 
-  def get_translations do
-    Agent.get @name, &(&1.translations)
+  def pop_translations(backends) do
+    Agent.get_and_update @name, fn state ->
+      get_and_update_in state.translations, &Map.split(&1, backends)
+    end
   end
 
-  def get_backends do
-    Agent.get @name, &(&1.backends)
+  def pop_backends(app) do
+    Agent.get_and_update @name, fn state ->
+      get_and_update_in state.backends, fn backends ->
+        Enum.partition(backends, & &1.__gettext__(:otp_app) == app)
+      end
+    end
   end
 
   defp merge_translations(t1, t2) do
