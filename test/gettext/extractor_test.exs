@@ -135,7 +135,7 @@ defmodule Gettext.ExtractorTest do
 
   test "extraction process" do
     refute Extractor.extracting?
-    Extractor.setup
+    Extractor.enable
     assert Extractor.extracting?
 
     code = """
@@ -214,8 +214,8 @@ defmodule Gettext.ExtractorTest do
     assert Enum.all?(dumped, fn {_, contents} ->
       contents =~ "## This file is a PO Template file."
     end)
-
-    Extractor.teardown
+  after
+    Extractor.disable
     refute Extractor.extracting?
   end
 

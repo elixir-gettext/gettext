@@ -56,9 +56,11 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp extract(app, gettext_config) do
-    Gettext.Extractor.setup
+    Gettext.Extractor.enable
     force_compile()
     Gettext.Extractor.pot_files(app, gettext_config)
+  after
+    Gettext.Extractor.disable
   end
 
   defp force_compile do

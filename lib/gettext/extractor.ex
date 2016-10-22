@@ -19,28 +19,19 @@ defmodule Gettext.Extractor do
   alias Gettext.Error
 
   @doc """
-  Performs some generic setup needed to extract translations from source.
-
-  For example, starts the agent that stores the translations while they're
-  extracted and other similar tasks.
+  Enables translation extraction.
   """
-  @spec setup() :: :ok
-  def setup do
-    # TODO: Maybe start it permanently and drop teardown?
-    case ExtractorAgent.start_link do
-      {:ok, _} -> :ok
-      {:error, {:already_started, _}} -> :ok
-    end
+  @spec enable() :: :ok
+  def enable do
+    ExtractorAgent.enable
   end
 
   @doc """
-  Performs teardown after the sources have been extracted.
-
-  For now, it only stops the agent that stores the translations.
+  Disables extraction.
   """
-  @spec teardown() :: :ok
-  def teardown do
-    :ok = ExtractorAgent.stop
+  @spec disable() :: :ok
+  def disable do
+    ExtractorAgent.disable
   end
 
   @doc """
@@ -48,7 +39,7 @@ defmodule Gettext.Extractor do
   """
   @spec extracting?() :: boolean
   def extracting? do
-    ExtractorAgent.alive?
+    ExtractorAgent.extracting?
   end
 
   @doc """

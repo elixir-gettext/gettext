@@ -25,7 +25,8 @@ defmodule Gettext.Mixfile do
 
   def application do
     [applications: [],
-     env: [default_locale: "en"]]
+     env: [default_locale: "en"],
+     mod: {Gettext.Application, []}]
   end
 
   def hex_package do

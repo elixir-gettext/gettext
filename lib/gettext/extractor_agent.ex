@@ -10,14 +10,23 @@ defmodule Gettext.ExtractorAgent do
   @initial_state %{
     translations: %{},
     backends: [],
+    extracting?: false
   }
 
   def start_link do
     Agent.start_link(fn -> @initial_state end, name: @name)
   end
 
-  def alive? do
-    !!Process.whereis(@name)
+  def enable do
+    Agent.update(@name, &put_in(&1.extracting?, true))
+  end
+
+  def disable do
+    Agent.update(@name, &put_in(&1.extracting?, false))
+  end
+
+  def extracting? do
+    Agent.get(@name, & &1.extracting?)
   end
 
   def add_translation(backend, domain, translation) do
