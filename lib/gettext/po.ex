@@ -23,7 +23,7 @@ defmodule Gettext.PO do
     top_of_the_file_comments: [binary],
     headers: [binary],
     translations: [translation],
-    file: Path.t,
+    file: nil | Path.t,
   }
 
   @wrapping_column 80
