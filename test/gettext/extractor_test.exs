@@ -133,6 +133,31 @@ defmodule Gettext.ExtractorTest do
     end
   end
 
+  test "merge_template/2: order is kept as much as possible" do
+    # Old translations are kept in the order we find them (except the ones we
+    # remove), and all the new ones are appended after them.
+    foo_translation = %Translation{msgid: ["foo"], references: [{"foo.ex", 1}]}
+
+    msgid = "Live stream available from %{provider}"
+
+    po1 = %PO{translations: [
+      %Translation{msgid: [msgid], references: [{"reminder.ex", 160}]},
+      foo_translation,
+    ]}
+
+    po2 = %PO{translations: [
+      %Translation{msgid: ["new translation"]},
+      foo_translation,
+      %Translation{msgid: [msgid], references: [{"live_streaming.ex", 40}]},
+    ]}
+
+    %PO{translations: [t1, ^foo_translation, t2]} = Extractor.merge_template(po1, po2, [])
+
+    assert t1.msgid == [msgid]
+    assert t1.references == [{"live_streaming.ex", 40}]
+    assert t2.msgid == ["new translation"]
+  end
+
   test "extraction process" do
     refute Extractor.extracting?
     Extractor.enable
