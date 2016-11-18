@@ -651,7 +651,7 @@ defmodule Gettext do
       #=> "Bonjour monde"
 
   """
-  @spec with_locale(backend, locale, (() -> result)) :: result when result: term
+  @spec with_locale(backend, locale, (() -> result)) :: result when result: var
   def with_locale(backend, locale, fun) do
     previous_locale = Gettext.get_locale(backend)
     Gettext.put_locale(backend, locale)
