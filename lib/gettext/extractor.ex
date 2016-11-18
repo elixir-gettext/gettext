@@ -244,6 +244,9 @@ defmodule Gettext.Extractor do
   @doc false
   def merge_template(existing, new, gettext_config) do
     protected_pattern = gettext_config[:excluded_refs_from_purging]
+
+    # We go over the existing translations in order so as to keep the existing
+    # order as much as possible.
     old_and_merged = Enum.flat_map existing.translations, fn(t) ->
       cond do
         same = PO.Translations.find(new.translations, t) ->
@@ -272,8 +275,11 @@ defmodule Gettext.Extractor do
     %Translation{
       msgid: old.msgid,
       msgstr: old.msgstr,
-      # The new in-memory translation has no comments.
+      # The new in-memory translation has no comments since it was extracted
+      # from the source code.
       comments: old.comments,
+      # We don't care about the references of the old translation since the new
+      # in-memory translation has all the actual and current references.
       references: new.references,
     }
   end
@@ -281,11 +287,11 @@ defmodule Gettext.Extractor do
   defp merge_translations(%PluralTranslation{} = old, %PluralTranslation{comments: []} = new) do
     ensure_empty_msgstr!(old)
     ensure_empty_msgstr!(new)
+    # The logic here is the same as for %Translation{}s.
     %PluralTranslation{
       msgid: old.msgid,
       msgid_plural: old.msgid_plural,
       msgstr: old.msgstr,
-      # The new in-memory translation has no comments.
       comments: old.comments,
       references: new.references,
     }
