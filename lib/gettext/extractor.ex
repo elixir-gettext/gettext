@@ -235,7 +235,7 @@ defmodule Gettext.Extractor do
   end
 
   defp add_headers_to_new_po(%PO{headers: []} = po) do
-    %{po | headers: ["", "Language: INSERT LANGUAGE HERE\n"]}
+    %{po | headers: [""]}
   end
 
   # Merges a %PO{} struct representing an existing POT file with an

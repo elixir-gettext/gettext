@@ -192,7 +192,6 @@ defmodule Gettext.ExtractorTest do
         ~S"""
         msgid ""
         msgstr ""
-        "Language: INSERT LANGUAGE HERE\n"
 
         #: foo.ex:14 foo.ex:16
         msgid "foo"
@@ -203,7 +202,6 @@ defmodule Gettext.ExtractorTest do
           ~S"""
           msgid ""
           msgstr ""
-          "Language: INSERT LANGUAGE HERE\n"
 
           #: foo.ex:15
           msgid "one error"
@@ -216,7 +214,6 @@ defmodule Gettext.ExtractorTest do
           ~S"""
           msgid ""
           msgstr ""
-          "Language: INSERT LANGUAGE HERE\n"
 
           #: foo.ex:17
           msgid "hi"
