@@ -236,6 +236,15 @@ defmodule Gettext.PO.ParserTest do
 
     msg = "found duplicate on line 1 for msgid: 'foo'"
     assert parsed == {:error, 2, msg}
+
+    # Works if the msgid is split differently as well
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, "foo"}, {:str, 1, ""}, {:msgstr, 1}, {:str, 1, "bar"},
+      {:msgid, 2}, {:str, 2, ""}, {:str, 2, "foo"}, {:msgstr, 2}, {:str, 2, "baz"},
+    ])
+
+    msg = "found duplicate on line 1 for msgid: 'foo'"
+    assert parsed == {:error, 2, msg}
   end
 
   test "duplicated plural translations cause a parse error" do
