@@ -251,12 +251,12 @@ defmodule Gettext.PO.ParserTest do
     parsed = Parser.parse([
       {:msgid, 1}, {:str, 1, "foo"}, {:msgid_plural, 1}, {:str, 1, "foos"},
         {:msgstr, 1}, {:plural_form, 1, 0}, {:str, 1, "bar"},
-      {:msgid, 1}, {:str, 1, "foo"}, {:msgid_plural, 1}, {:str, 1, "foos"},
-        {:msgstr, 1}, {:plural_form, 1, 0}, {:str, 1, "baz"},
+      {:msgid, 2}, {:str, 2, "foo"}, {:msgid_plural, 2}, {:str, 2, "foos"},
+        {:msgstr, 2}, {:plural_form, 2, 0}, {:str, 2, "baz"},
     ])
 
     msg = "found duplicate on line 1 for msgid: 'foo' and msgid_plural: 'foos'"
-    assert parsed == {:error, 1, msg}
+    assert parsed == {:error, 2, msg}
   end
 
   test "an empty list of tokens is parsed as an empty list of translations" do
