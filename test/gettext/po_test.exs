@@ -330,7 +330,7 @@ defmodule Gettext.POTest do
 
   test "dump/1: multiple strings" do
     po = %PO{headers: [], translations: [
-      %Translation{msgid: ["foo", "bar"], msgstr: ["bar", "baz\n", "bang"]},
+      %Translation{msgid: ["", "foo\n", "morefoo\n"], msgstr: ["bar", "baz\n", "bang"]},
       %PluralTranslation{msgid: ["a", "b"], msgid_plural: ["as", "bs"], msgstr: %{
         0 => ["c", "d"],
         1 => ["e", "f"]
@@ -338,20 +338,21 @@ defmodule Gettext.POTest do
     ]}
 
     assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
-    msgid "foo"
-      "bar"
+    msgid ""
+    "foo\n"
+    "morefoo\n"
     msgstr "bar"
-      "baz\n"
-      "bang"
+    "baz\n"
+    "bang"
 
     msgid "a"
-      "b"
+    "b"
     msgid_plural "as"
-      "bs"
+    "bs"
     msgstr[0] "c"
-      "d"
+    "d"
     msgstr[1] "e"
-      "f"
+    "f"
     """
   end
 

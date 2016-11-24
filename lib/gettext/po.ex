@@ -218,7 +218,7 @@ defmodule Gettext.PO do
 
   def dump_headers(headers) do
     [~s(msgid ""\n),
-      dump_kw_and_strings("msgstr", headers, 0)]
+      dump_kw_and_strings("msgstr", headers)]
   end
 
   defp dump_translations(translations) do
@@ -286,14 +286,10 @@ defmodule Gettext.PO do
     end
   end
 
-  defp dump_kw_and_strings(keyword, [first | rest], indentation \\ 2) do
+  defp dump_kw_and_strings(keyword, [first | rest]) do
     first = ~s[#{keyword} "#{escape(first)}"\n]
-    rest  = Enum.map rest, &indent_line([?", escape(&1), ?", ?\n], indentation)
-    [first, rest]
-  end
-
-  defp indent_line(str, indentation, with \\ " ") do
-    [String.duplicate(with, indentation), str]
+    rest = Enum.map(rest, &[?", escape(&1), ?", ?\n])
+    [first | rest]
   end
 
   defp escape(str) do
