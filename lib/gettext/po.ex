@@ -272,12 +272,15 @@ defmodule Gettext.PO do
   end
 
   defp dump_flags(flags) do
-    flags =
-      flags
-      |> Enum.sort
-      |> Enum.map(&[?\s, &1])
-
-    if flags == [], do: [], else: [?#, ?,, flags, ?\n]
+    if MapSet.size(flags) == 0 do
+      ""
+    else
+      flags =
+        flags
+        |> Enum.sort
+        |> Enum.map(&[?\s, &1])
+      ["#,", flags, ?\n]
+    end
   end
 
   defp dump_plural_msgstr(msgstr) do
