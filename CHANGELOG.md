@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.12.2
+
+* Fix a bug where we failed miserably with a "no process" error when extracting
+  translations without having the `:gettext` compiler run
+
 ## v0.12.1
 
 * Ensure the gettext application is started before running mix tasks
