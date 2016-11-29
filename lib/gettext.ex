@@ -457,7 +457,7 @@ defmodule Gettext do
       @before_compile Gettext.Compiler
 
       def handle_missing_bindings(exception, incomplete) do
-        Logger.error(Exception.message(exception))
+        _ = Logger.error(Exception.message(exception))
         incomplete
       end
       defoverridable handle_missing_bindings: 2
