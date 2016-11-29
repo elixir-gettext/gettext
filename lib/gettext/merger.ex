@@ -6,8 +6,6 @@ defmodule Gettext.Merger do
   alias Gettext.PO.PluralTranslation
   alias Gettext.Fuzzy
 
-  @min_jaro_distance 0.8
-
   @new_po_informative_comment """
   ## `msgid`s in this file come from POT (.pot) files.
   ##
