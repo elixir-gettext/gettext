@@ -39,7 +39,10 @@ defmodule Gettext.Extractor do
   """
   @spec extracting?() :: boolean
   def extracting? do
-    ExtractorAgent.extracting?
+    # Because the extractor agent may not be enabled during compilation
+    # time (as it requires the optional gettext compiler), we need to
+    # check if the agent is up and running before querying it.
+    Process.whereis(ExtractorAgent) && ExtractorAgent.extracting?
   end
 
   @doc """
