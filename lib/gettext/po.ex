@@ -199,11 +199,11 @@ defmodule Gettext.PO do
      dump_translations(ts)]
   end
 
-  def dump_top_comments(top_comments) when is_list(top_comments) do
+  defp dump_top_comments(top_comments) when is_list(top_comments) do
     Enum.map(top_comments, &[&1, ?\n])
   end
 
-  def dump_headers([]) do
+  defp dump_headers([]) do
     []
   end
 
@@ -211,12 +211,12 @@ defmodule Gettext.PO do
   #
   #   msgid ""
   #   msgstr ""
-  #     "Header: foo\n"
-  def dump_headers([first | _] = headers) when first != "" do
+  #   "Header: foo\n"
+  defp dump_headers([first | _] = headers) when first != "" do
     dump_headers(["" | headers])
   end
 
-  def dump_headers(headers) do
+  defp dump_headers(headers) do
     [~s(msgid ""\n),
       dump_kw_and_strings("msgstr", headers)]
   end
