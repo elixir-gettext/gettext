@@ -13,6 +13,7 @@ defmodule Gettext.InterpolationTest do
   end
 
   test "keys/1" do
+    # With a string as its argument
     assert Interpolation.keys("Hello %{name}")
            == [:name]
     assert Interpolation.keys("It's %{time} here in %{state}")
@@ -21,5 +22,9 @@ defmodule Gettext.InterpolationTest do
            == [:"your name"]
     assert Interpolation.keys("Hello %{name} in %{state} goodbye %{name}")
            == [:name, :state]
+
+    # With a list of segments as its argument
+    assert Interpolation.keys(["Hello ", :name, " it's ", :time, " goodbye ", :name])
+           == [:name, :time]
   end
 end
