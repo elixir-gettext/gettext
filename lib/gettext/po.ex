@@ -1,6 +1,7 @@
 defmodule Gettext.PO do
   @moduledoc """
-  This module provides facilities for working with `.po` files (mainly parsing).
+  This module provides facilities for working with PO (`.po`) and POT (`.pot`)
+  files (mainly parsing).
   """
 
   alias Gettext.PO
@@ -113,7 +114,7 @@ defmodule Gettext.PO do
   ## Examples
 
       Gettext.PO.parse_file "translations.po"
-      #=> {:ok, [%Translation{msgid: "foo", msgstr: "bar"}]}
+      #=> {:ok, [%Gettext.PO.Translation{msgid: "foo", msgstr: "bar"}]}
 
       Gettext.PO.parse_file "nonexistent"
       #=> {:error, :enoent}
