@@ -35,43 +35,46 @@ defmodule Gettext.Interpolation do
   @doc """
   Interpolate an interpolatable with the given bindings.
 
-  This function takes an interpolatable list returned from `to_interpolatable/1` and bindings
-  and returns the interpolated string. If it encounters an atom that should be interpolated
-  but is missing from the bindings, it will call the provided `handle_missing_binding` function.
-  The callback will be called with the missing binding, the original string and the locale.
-  See also the default implementation in `Gettext`.
+  This function takes an interpolatable list (like the ones returned by
+  `to_interpolatable/1`) and some bindings and returns an `{:ok,
+  interpolated_string}` tuple ` if interpolation is successful. If it encounters
+  an atom in `interpolatable` that is missing from `bindings`, it returns
+  `{:missing_bindings, incomplete_string, missing_bindings}` where
+  `incomplete_string` is the string with only the present bindings interpolated
+  and `missing_bindings` is a list of atoms representing bindings that are in
+  `interpolatable` but not in `bindings`.
 
   ## Examples
 
       iex> msgid = "Hello %{name}, you have %{count} unread messages"
       iex> interpolatable = Gettext.Interpolation.to_interpolatable(msgid)
       iex> good_bindings = %{name: "José", count: 3}
-      iex> Gettext.Interpolation.interpolate(interpolatable, :ok, good_bindings)
+      iex> Gettext.Interpolation.interpolate(interpolatable, good_bindings)
       {:ok, "Hello José, you have 3 unread messages"}
-      iex> bad_bindings = %{name: "José"}
-      iex> Gettext.Interpolation.interpolate(interpolatable, :ok, bad_bindings)
+      iex> Gettext.Interpolation.interpolate(interpolatable, %{name: "José"})
       {:missing_bindings, "Hello José, you have %{count} unread messages", [:count]}
 
   """
-  def interpolate(interpolatable, key, bindings) do
-    interpolate(interpolatable, key, bindings, [], [])
+  def interpolate(interpolatable, bindings)
+      when is_list(interpolatable) and is_map(bindings) do
+    interpolate(interpolatable, bindings, [], [])
   end
 
-  defp interpolate([string | segments], key, bindings, strings, missing) when is_binary(string) do
-    interpolate(segments, key, bindings, [string | strings], missing)
+  defp interpolate([string | segments], bindings, strings, missing) when is_binary(string) do
+    interpolate(segments, bindings, [string | strings], missing)
   end
-  defp interpolate([atom | segments], key, bindings, strings, missing) when is_atom(atom) do
+  defp interpolate([atom | segments], bindings, strings, missing) when is_atom(atom) do
     case bindings do
       %{^atom => value} ->
-        interpolate(segments, key, bindings, [to_string(value) | strings], missing)
+        interpolate(segments, bindings, [to_string(value) | strings], missing)
       %{} ->
-        interpolate(segments, key, bindings, ["%{" <> Atom.to_string(atom) <> "}" | strings], [atom | missing])
+        interpolate(segments, bindings, ["%{" <> Atom.to_string(atom) <> "}" | strings], [atom | missing])
     end
   end
-  defp interpolate([], key, _bindings, strings, []) do
-    {key, IO.iodata_to_binary(Enum.reverse(strings))}
+  defp interpolate([], _bindings, strings, []) do
+    {:ok, IO.iodata_to_binary(Enum.reverse(strings))}
   end
-  defp interpolate([], _key, _bindings, strings, missing) do
+  defp interpolate([], _bindings, strings, missing) do
     {:missing_bindings, IO.iodata_to_binary(Enum.reverse(strings)), missing}
   end
 
