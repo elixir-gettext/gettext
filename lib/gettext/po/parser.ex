@@ -44,7 +44,7 @@ defmodule Gettext.PO.Parser do
     {reference_comments, other_comments} = Enum.partition(comments, &match?("#:" <> _, &1))
     references =
       reference_comments
-      |> Enum.reject(fn("#:" <> comm) -> String.strip(comm) == "" end)
+      |> Enum.reject(fn("#:" <> comm) -> String.trim(comm) == "" end)
       |> Enum.flat_map(&parse_references/1)
 
     %{translation | references: references, comments: other_comments}
@@ -52,7 +52,7 @@ defmodule Gettext.PO.Parser do
 
   defp parse_references("#:" <> comment) do
     comment
-    |> String.strip()
+    |> String.trim()
     |> String.split(":")                      # we remain with "21 foo.ex"
     |> Enum.flat_map(&parse_reference_part/1) # [file, line, file, line...]
     |> Enum.chunk(2)                          # [[file, line], [file, line], ...]
@@ -62,7 +62,7 @@ defmodule Gettext.PO.Parser do
   defp parse_reference_part(part) do
     case Integer.parse(part) do
       {next_line_no, ""}       -> [next_line_no] # last line number
-      {next_line_no, filename} -> [next_line_no, String.lstrip(filename)]
+      {next_line_no, filename} -> [next_line_no, String.trim_leading(filename)]
       :error                   -> [part] # first filename
     end
   end

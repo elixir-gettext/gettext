@@ -27,8 +27,10 @@ defmodule Gettext.Interpolation do
     split = Regex.split(@interpolation_regex, str, on: [:left, :right], trim: true)
 
     Enum.map split, fn
-      "%{" <> rest -> rest |> String.rstrip(?}) |> String.to_atom
-      segment      -> segment
+      "%{" <> rest ->
+        rest |> String.replace_trailing("}", "") |> String.to_atom
+      segment ->
+        segment
     end
   end
 
