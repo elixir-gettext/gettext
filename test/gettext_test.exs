@@ -377,6 +377,7 @@ defmodule GettextTest do
     Gettext.with_locale Translator, "it", fn ->
       assert Gettext.gettext(Translator, "Hello world") == "Ciao mondo"
     end
+    assert Gettext.get_locale(Translator) == "en"
   end
 
   test "known_locales/1: returns all the locales for which a backend has PO files" do
