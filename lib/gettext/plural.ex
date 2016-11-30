@@ -104,15 +104,13 @@ defmodule Gettext.Plural do
   @doc """
   Returns the number of possible plural forms in the given `locale`.
   """
-  @callback nplurals(locale :: String.t)
-    :: non_neg_integer
+  @callback nplurals(locale :: String.t) :: pos_integer
 
   @doc """
   Returns the plural form in the given `locale` for the given `count` of
   elements.
   """
-  @callback plural(locale :: String.t, count :: non_neg_integer)
-    :: (plural_form :: non_neg_integer)
+  @callback plural(locale :: String.t, count :: integer) :: (plural_form :: non_neg_integer)
 
   defmodule UnknownLocaleError do
     @moduledoc """
