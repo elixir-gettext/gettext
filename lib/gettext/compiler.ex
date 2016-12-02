@@ -132,18 +132,27 @@ defmodule Gettext.Compiler do
   def dynamic_clauses do
     quote do
       def lgettext(locale, domain, msgid, bindings) do
+        import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
+
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
-        msgid
-        |> Gettext.Interpolation.to_interpolatable()
-        |> Gettext.Interpolation.interpolate(:default, bindings)
+
+        case interpolate(to_interpolatable(msgid), bindings) do
+          {:ok, interpolated} -> {:default, interpolated}
+          other -> other
+        end
       end
 
       def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
+        import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
+
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+        string = (if n == 1, do: msgid, else: msgid_plural)
         bindings = Map.put(bindings, :count, n)
-        (if n == 1, do: msgid, else: msgid_plural)
-        |> Gettext.Interpolation.to_interpolatable()
-        |> Gettext.Interpolation.interpolate(:default, bindings)
+
+        case interpolate(to_interpolatable(string), bindings) do
+          {:ok, interpolated} -> {:default, interpolated}
+          other -> other
+        end
       end
     end
   end
@@ -297,7 +306,7 @@ defmodule Gettext.Compiler do
         unquote(match) ->
           {:ok, unquote(interpolation)}
         %{} ->
-          Gettext.Interpolation.interpolate(unquote(interpolatable), :ok, var!(bindings))
+          Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings))
       end
     end
   end
