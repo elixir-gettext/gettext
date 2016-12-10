@@ -129,4 +129,50 @@ defmodule Gettext.Backend do
   @macrocallback ngettext(msgid :: String.t,
                           msgid_plural :: String.t,
                           n :: Macro.t) :: Macro.t
+
+  @doc """
+  Marks the given translation for extraction and returns it unchanged.
+
+  This macro can be used to mark a translation for extraction so that it is
+  extracted when `mix gettext.extract` is run. The return value is the given
+  string, so that this macro can be used seamlessly in place of the string to
+  extract.
+
+  ## Examples
+
+      MyApp.Gettext.dgettext_noop("errors", "Error found!")
+      #=> "Error found!"
+
+  """
+  @macrocallback dgettext_noop(domain :: String.t, msgid :: String.t) :: Macro.t
+
+  @doc """
+  Same as `dgettext_noop("default", msgid).
+  """
+  @macrocallback gettext_noop(msgid :: String.t) :: Macro.t
+
+  @doc """
+  Marks the given translation for extract and returns `{msgid, msgid_plural}`.
+
+  This macro can be used to mark a translation for extract so that it is
+  extracted when the `mix gettext.extract` Mix task is run. The return value of
+  this macro is `{msgid, msgid_plural}`.
+
+  ## Examples
+
+      my_fun = fn {msgid, msgid_plural} ->
+        # do something with msgid and msgid_plural
+      end
+
+      my_fun.(MyApp.Gettext.dngettext_noop("errors", "One error", "%{count} errors"))
+
+  """
+  @macrocallback dngettext_noop(domain :: Macro.t,
+                                msgid :: String.t,
+                                msgid_plural :: String.t) :: Macro.t
+
+  @doc """
+  Same as `dngettext_noop("default", msgid, mgsid_plural)`.
+  """
+  @macrocallback ngettext_noop(msgid :: String.t, msgid_plural :: String.t) :: String.t
 end
