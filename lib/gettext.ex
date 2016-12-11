@@ -129,6 +129,7 @@ defmodule Gettext do
     * `dgettext/3`
     * `ngettext/4`
     * `dngettext/5`
+    * `gettext_noop/1`, `dgettext_noop/2`, `ngettext_noop/3`, `dngettext_noop/4`
 
   Supposing the caller module is `MyApp.Gettext`, the macros mentioned above
   behave as follows:
@@ -141,6 +142,12 @@ defmodule Gettext do
       like `Gettext.ngettext(MyApp.Gettext, msgid, msgid_plural, n, bindings)`
     * `dngettext(domain, msgid, msgid_plural, n, bindings \\ %{})` -
       like `Gettext.dngettext(MyApp.Gettext, domain, msgid, msgid_plural, n, bindings)`
+    * `*_noop` family of functions - used to mark translations for extraction
+      without translating them; see the documentation for these macros in
+      `Gettext.Backend`
+
+  See also the `Gettext.Backend` behaviour for more detailed documentation about
+  these macros.
 
   Using macros is preferred as gettext is able to automatically sync the
   translations in your code with PO files. This, however, imposes a constraint:

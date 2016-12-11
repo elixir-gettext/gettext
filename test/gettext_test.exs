@@ -299,6 +299,18 @@ defmodule GettextTest do
     assert Translator.gettext("%{msg}", msg: "foo") == "foo"
   end
 
+  test "(d)gettext_noop" do
+    assert Translator.dgettext_noop("errors", "Oops") == "Oops"
+    assert Translator.gettext_noop("Hello %{name}!") == "Hello %{name}!"
+  end
+
+  test "n(d)gettext_noop" do
+    assert Translator.dngettext_noop("errors", "One error", "%{count} errors")
+           == {"One error", "%{count} errors"}
+
+    assert Translator.ngettext_noop("One message", "%{count} messages")
+           == {"One message", "%{count} messages"}
+  end
 
   # Actual Gettext functions (not the ones generated in the modules that `use
   # Gettext`).
