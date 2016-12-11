@@ -1,6 +1,8 @@
 defmodule Gettext.Interpolation do
   @moduledoc false
 
+  @type interpolatable :: [String.t | atom]
+
   @doc """
   Extracts interpolations from a given string.
 
@@ -10,22 +12,26 @@ defmodule Gettext.Interpolation do
 
   ## Examples
 
-      iex> Gettext.Interpolation.to_interpolatable("Hello %{name}, you have %{count} unread messages")
+      iex> msgid = "Hello %{name}, you have %{count} unread messages"
+      iex> Gettext.Interpolation.to_interpolatable(msgid)
       ["Hello ", :name, ", you have ", :count, " unread messages"]
 
+      iex> Gettext.Interpolation.to_interpolatable("Empties %{} stay empty")
+      ["Empties %{} stay empty"]
+
   """
-  @spec to_interpolatable(binary) :: [binary | atom]
-  def to_interpolatable(str) do
+  @spec to_interpolatable(String.t) :: interpolatable
+  def to_interpolatable(string) do
     start_pattern = :binary.compile_pattern("%{")
     end_pattern = :binary.compile_pattern("}")
 
-    str
+    string
     |> to_interpolatable(_current = "", _acc = [], start_pattern, end_pattern)
     |> Enum.reverse()
   end
 
-  defp to_interpolatable(str, current, acc, start_pattern, end_pattern) do
-    case :binary.split(str, start_pattern) do
+  defp to_interpolatable(string, current, acc, start_pattern, end_pattern) do
+    case :binary.split(string, start_pattern) do
       # If we have one element, no %{ was found so this is the final part of the
       # string.
       [rest] ->
@@ -42,7 +48,7 @@ defmodule Gettext.Interpolation do
           # like "foo %{ no end". In this case we consider no bindings to be
           # there.
           [_] ->
-            [current <> str | acc]
+            [current <> string | acc]
           # This is the case where we found a binding, so we put it in the acc
           # and keep going.
           [binding, rest] ->
@@ -53,14 +59,14 @@ defmodule Gettext.Interpolation do
   end
 
   defp prepend_if_not_empty("", list), do: list
-  defp prepend_if_not_empty(str, list), do: [str | list]
+  defp prepend_if_not_empty(string, list), do: [string | list]
 
   @doc """
   Interpolate an interpolatable with the given bindings.
 
   This function takes an interpolatable list (like the ones returned by
   `to_interpolatable/1`) and some bindings and returns an `{:ok,
-  interpolated_string}` tuple ` if interpolation is successful. If it encounters
+  interpolated_strping}` tuple ` if interpolation is successful. If it encounters
   an atom in `interpolatable` that is missing from `bindings`, it returns
   `{:missing_bindings, incomplete_string, missing_bindings}` where
   `incomplete_string` is the string with only the present bindings interpolated
@@ -78,6 +84,8 @@ defmodule Gettext.Interpolation do
       {:missing_bindings, "Hello José, you have %{count} unread messages", [:count]}
 
   """
+  @spec interpolate(interpolatable, %{required(atom) => String.Chars.t}) ::
+        {:ok, String.t} | {:missing_bindings, String.t, [atom]}
   def interpolate(interpolatable, bindings)
       when is_list(interpolatable) and is_map(bindings) do
     interpolate(interpolatable, bindings, [], [])
@@ -125,10 +133,11 @@ defmodule Gettext.Interpolation do
       [:name]
 
   """
-  @spec keys(binary | [atom]) :: [atom]
+  @spec keys(String.t | interpolatable) :: [atom]
+  def keys(string_or_interpolatable)
 
-  def keys(str) when is_binary(str),
-    do: str |> to_interpolatable |> keys
-  def keys(segments) when is_list(segments),
-    do: Enum.filter(segments, &is_atom/1) |> Enum.uniq
+  def keys(string) when is_binary(string),
+    do: string |> to_interpolatable() |> keys()
+  def keys(interpolatable) when is_list(interpolatable),
+    do: interpolatable |> Enum.filter(&is_atom/1) |> Enum.uniq
 end
