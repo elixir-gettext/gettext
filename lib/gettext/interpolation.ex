@@ -1,14 +1,6 @@
 defmodule Gettext.Interpolation do
   @moduledoc false
 
-  @interpolation_regex ~r/
-    (?<left>)  # Start, available through :left
-    %{         # Literal '%{'
-      [^}]+    # One or more non-} characters
-    }          # Literal '}'
-    (?<right>) # End, available through :right
-  /x
-
   @doc """
   Extracts interpolations from a given string.
 
@@ -24,13 +16,44 @@ defmodule Gettext.Interpolation do
   """
   @spec to_interpolatable(binary) :: [binary | atom]
   def to_interpolatable(str) do
-    split = Regex.split(@interpolation_regex, str, on: [:left, :right], trim: true)
+    start_pattern = :binary.compile_pattern("%{")
+    end_pattern = :binary.compile_pattern("}")
 
-    Enum.map split, fn
-      "%{" <> rest -> rest |> String.rstrip(?}) |> String.to_atom
-      segment      -> segment
+    str
+    |> to_interpolatable(_current = "", _acc = [], start_pattern, end_pattern)
+    |> Enum.reverse()
+  end
+
+  defp to_interpolatable(str, current, acc, start_pattern, end_pattern) do
+    case :binary.split(str, start_pattern) do
+      # If we have one element, no %{ was found so this is the final part of the
+      # string.
+      [rest] ->
+        prepend_if_not_empty(current <> rest, acc)
+      # If we found a %{ but it's followed by an immediate }, then we just
+      # append %{} to the current string and keep going.
+      [before, "}" <> rest] ->
+        new_current = current <> before <> "%{}"
+        to_interpolatable(rest, new_current, acc, start_pattern, end_pattern)
+      # Otherwise, we found the start of a binding.
+      [before, binding_and_rest] ->
+        case :binary.split(binding_and_rest, end_pattern) do
+          # If we don't find the end of this binding, it means we're at a string
+          # like "foo %{ no end". In this case we consider no bindings to be
+          # there.
+          [_] ->
+            [current <> str | acc]
+          # This is the case where we found a binding, so we put it in the acc
+          # and keep going.
+          [binding, rest] ->
+            new_acc = [String.to_atom(binding) | prepend_if_not_empty(before, acc)]
+            to_interpolatable(rest, "", new_acc, start_pattern, end_pattern)
+        end
     end
   end
+
+  defp prepend_if_not_empty("", list), do: list
+  defp prepend_if_not_empty(str, list), do: [str | list]
 
   @doc """
   Interpolate an interpolatable with the given bindings.
