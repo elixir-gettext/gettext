@@ -75,6 +75,7 @@ defmodule Gettext.Interpolation do
     {:ok, IO.iodata_to_binary(Enum.reverse(strings))}
   end
   defp interpolate([], _bindings, strings, missing) do
+    missing = missing |> Enum.reverse |> Enum.uniq
     {:missing_bindings, IO.iodata_to_binary(Enum.reverse(strings)), missing}
   end
 

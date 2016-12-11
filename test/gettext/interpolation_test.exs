@@ -3,6 +3,24 @@ defmodule Gettext.InterpolationTest do
   doctest Gettext.Interpolation
   alias Gettext.Interpolation
 
+  test "interpolate/2" do
+    interpolatable = Interpolation.to_interpolatable("%{a} %{b} %{c}")
+
+    assert Interpolation.interpolate(interpolatable, %{a: 1, b: :two, c: "thr ee"})
+           == {:ok, "1 two thr ee"}
+
+    assert Interpolation.interpolate(interpolatable, %{a: "a"})
+           == {:missing_bindings, "a %{b} %{c}", [:b, :c]}
+
+    interpolatable = Interpolation.to_interpolatable("%{a} %{a} %{a}")
+
+    assert Interpolation.interpolate(interpolatable, %{a: "foo"})
+           == {:ok, "foo foo foo"}
+
+    assert Interpolation.interpolate(interpolatable, %{b: "bar"})
+           == {:missing_bindings, "%{a} %{a} %{a}", [:a]}
+  end
+
   test "to_interpolatable/1" do
     assert Interpolation.to_interpolatable("Hello %{name}")
            == ["Hello ", :name]
