@@ -84,7 +84,7 @@ defmodule Gettext.Interpolation do
       {:missing_bindings, "Hello José, you have %{count} unread messages", [:count]}
 
   """
-  @spec interpolate(interpolatable, %{required(atom) => String.Chars.t}) ::
+  @spec interpolate(interpolatable, map) ::
         {:ok, String.t} | {:missing_bindings, String.t, [atom]}
   def interpolate(interpolatable, bindings)
       when is_list(interpolatable) and is_map(bindings) do
