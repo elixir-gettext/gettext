@@ -133,10 +133,9 @@ defmodule Gettext.Backend do
   @doc """
   Marks the given translation for extraction and returns it unchanged.
 
-  This macro can be used to mark a translation for extraction so that it is
-  extracted when `mix gettext.extract` is run. The return value is the given
-  string, so that this macro can be used seamlessly in place of the string to
-  extract.
+  This macro can be used to mark a translation for extraction when `mix
+  gettext.extract` is run. The return value is the given string, so that this
+  macro can be used seamlessly in place of the string to extract.
 
   ## Examples
 
@@ -147,16 +146,17 @@ defmodule Gettext.Backend do
   @macrocallback dgettext_noop(domain :: String.t, msgid :: String.t) :: Macro.t
 
   @doc """
-  Same as `dgettext_noop("default", msgid).
+  Same as `dgettext_noop("default", msgid)`.
   """
   @macrocallback gettext_noop(msgid :: String.t) :: Macro.t
 
   @doc """
-  Marks the given translation for extract and returns `{msgid, msgid_plural}`.
+  Marks the given translation for extraction and returns
+  `{msgid, msgid_plural}`.
 
-  This macro can be used to mark a translation for extract so that it is
-  extracted when the `mix gettext.extract` Mix task is run. The return value of
-  this macro is `{msgid, msgid_plural}`.
+  This macro can be used to mark a translation for extraction when `mix
+  gettext.extract` is run. The return value of this macro is `{msgid,
+  msgid_plural}`.
 
   ## Examples
 
