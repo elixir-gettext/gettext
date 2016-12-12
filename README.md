@@ -84,7 +84,7 @@ Read the [documentation for the `Gettext` module][docs-gettext-module] for more 
 
 ## Workflow
 
-`gettext` is able to automatically extract transformations from your source code, alleviating developers and translators from the repetitive and error-prone work of maintaining translation files.
+`gettext` is able to automatically extract translations from your source code, alleviating developers and translators from the repetitive and error-prone work of maintaining translation files.
 
 When extracted from source, translations are placed into `.pot` files, which are template files. Those templates files can then be merged into translation files for each specific locale your application is being currently translated to.
 
