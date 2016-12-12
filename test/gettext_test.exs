@@ -57,38 +57,38 @@ defmodule GettextTest do
   end
 
   test "found translations return {:ok, translation}" do
-    assert Translator.lgettext("it", "default", "Hello world", %{})
-           == {:ok, "Ciao mondo"}
+    assert Translator.lgettext("it", "default", "Hello world", %{}) ==
+           {:ok, "Ciao mondo"}
 
-    assert Translator.lgettext("it", "errors", "Invalid email address", %{})
-           == {:ok, "Indirizzo email non valido"}
+    assert Translator.lgettext("it", "errors", "Invalid email address", %{}) ==
+           {:ok, "Indirizzo email non valido"}
   end
 
   test "non-found translations return the argument message" do
     # Unknown msgid.
-    assert Translator.lgettext("it", "default", "nonexistent", %{})
-           == {:default, "nonexistent"}
+    assert Translator.lgettext("it", "default", "nonexistent", %{}) ==
+           {:default, "nonexistent"}
 
     # Unknown domain.
-    assert Translator.lgettext("it", "unknown", "Hello world", %{})
-           == {:default, "Hello world"}
+    assert Translator.lgettext("it", "unknown", "Hello world", %{}) ==
+           {:default, "Hello world"}
 
     # Unknown locale.
-    assert Translator.lgettext("pt_BR", "nonexistent", "Hello world", %{})
-           == {:default, "Hello world"}
+    assert Translator.lgettext("pt_BR", "nonexistent", "Hello world", %{}) ==
+           {:default, "Hello world"}
   end
 
   test "translations with empty msgstrs fallback to {:default, _}" do
-    assert Translator.lgettext("it", "default", "Empty msgstr!", %{})
-           == {:default, "Empty msgstr!"}
+    assert Translator.lgettext("it", "default", "Empty msgstr!", %{}) ==
+           {:default, "Empty msgstr!"}
   end
 
   test "a custom 'priv' directory can be used to store translations" do
-    assert TranslatorWithCustomPriv.lgettext("it", "default", "Hello world", %{})
-           == {:ok, "Ciao mondo"}
+    assert TranslatorWithCustomPriv.lgettext("it", "default", "Hello world", %{}) ==
+           {:ok, "Ciao mondo"}
 
-    assert TranslatorWithCustomPriv.lgettext("it", "errors", "Invalid email address", %{})
-           == {:ok, "Indirizzo email non valido"}
+    assert TranslatorWithCustomPriv.lgettext("it", "errors", "Invalid email address", %{}) ==
+           {:ok, "Indirizzo email non valido"}
   end
 
   test "using a custom Gettext.Plural module" do
@@ -110,60 +110,60 @@ defmodule GettextTest do
   end
 
   test "by default, non-found pluralized translation behave like regular translation" do
-    assert Translator.lngettext("it", "not a domain", "foo", "foos", 1, %{})
-           == {:default, "foo"}
-    assert Translator.lngettext("it", "not a domain", "foo", "foos", 10, %{})
-           == {:default, "foos"}
+    assert Translator.lngettext("it", "not a domain", "foo", "foos", 1, %{}) ==
+           {:default, "foo"}
+    assert Translator.lngettext("it", "not a domain", "foo", "foos", 10, %{}) ==
+           {:default, "foos"}
   end
 
   test "plural translations with empty msgstrs fallback to {:default, _}" do
     msgid        = "Not even one msgstr"
     msgid_plural = "Not even %{count} msgstrs"
 
-    assert Translator.lngettext("it", "default", msgid, msgid_plural, 1, %{})
-           == {:default, "Not even one msgstr"}
-    assert Translator.lngettext("it", "default", msgid, msgid_plural, 2, %{})
-           == {:default, "Not even 2 msgstrs"}
+    assert Translator.lngettext("it", "default", msgid, msgid_plural, 1, %{}) ==
+           {:default, "Not even one msgstr"}
+    assert Translator.lngettext("it", "default", msgid, msgid_plural, 2, %{}) ==
+           {:default, "Not even 2 msgstrs"}
   end
 
   test "interpolation is supported by lgettext" do
-    assert Translator.lgettext("it", "interpolations", "Hello %{name}", %{name: "Jane"})
-           == {:ok, "Ciao Jane"}
+    assert Translator.lgettext("it", "interpolations", "Hello %{name}", %{name: "Jane"}) ==
+           {:ok, "Ciao Jane"}
 
     msgid = "My name is %{name} and I'm %{age}"
-    assert Translator.lgettext("it", "interpolations", msgid, %{name: "Meg", age: 33})
-           == {:ok, "Mi chiamo Meg e ho 33 anni"}
+    assert Translator.lgettext("it", "interpolations", msgid, %{name: "Meg", age: 33}) ==
+           {:ok, "Mi chiamo Meg e ho 33 anni"}
 
     # A map of bindings is supported as well.
-    assert Translator.lgettext("it", "interpolations", "Hello %{name}", %{name: "Jane"})
-           == {:ok, "Ciao Jane"}
+    assert Translator.lgettext("it", "interpolations", "Hello %{name}", %{name: "Jane"}) ==
+           {:ok, "Ciao Jane"}
   end
 
   test "interpolation is supported by lngettext" do
     msgid        = "There was an error"
     msgid_plural = "There were %{count} errors"
-    assert Translator.lngettext("it", "errors", msgid, msgid_plural, 1, %{})
-           == {:ok, "C'è stato un errore"}
-    assert Translator.lngettext("it", "errors", msgid, msgid_plural, 4, %{})
-           == {:ok, "Ci sono stati 4 errori"}
+    assert Translator.lngettext("it", "errors", msgid, msgid_plural, 1, %{}) ==
+           {:ok, "C'è stato un errore"}
+    assert Translator.lngettext("it", "errors", msgid, msgid_plural, 4, %{}) ==
+           {:ok, "Ci sono stati 4 errori"}
 
     msgid        = "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
-    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, %{name: "Jane"})
-           == {:ok, "Hai un messaggio, Jane"}
-    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 0, %{name: "Jane"})
-           == {:ok, "Hai 0 messaggi, Jane"}
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, %{name: "Jane"}) ==
+           {:ok, "Hai un messaggio, Jane"}
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 0, %{name: "Jane"}) ==
+           {:ok, "Hai 0 messaggi, Jane"}
   end
 
   test "strings are concatenated before generating function clauses" do
     msgid = "Concatenated and long string"
-    assert Translator.lgettext("it", "default", msgid, %{})
-           == {:ok, "Stringa lunga e concatenata"}
+    assert Translator.lgettext("it", "default", msgid, %{}) ==
+           {:ok, "Stringa lunga e concatenata"}
 
     msgid        = "A friend"
     msgid_plural = "%{count} friends"
-    assert Translator.lngettext("it", "default", msgid, msgid_plural, 1, %{})
-           == {:ok, "Un amico"}
+    assert Translator.lngettext("it", "default", msgid, msgid_plural, 1, %{}) ==
+           {:ok, "Un amico"}
   end
 
   test "lgettext/4: default handle_missing_binding preserves key" do
@@ -174,8 +174,8 @@ defmodule GettextTest do
 
   test "lgettext/4: interpolation works when a translation is missing" do
     msgid = "Hello %{name}, missing translation!"
-    assert Translator.lgettext("pl", "foo", msgid, %{name: "Samantha"})
-           == {:default, "Hello Samantha, missing translation!"}
+    assert Translator.lgettext("pl", "foo", msgid, %{name: "Samantha"}) ==
+           {:default, "Hello Samantha, missing translation!"}
 
     msgid = "Hello world!"
     assert Translator.lgettext("pl", "foo", msgid, %{}) ==
@@ -200,20 +200,20 @@ defmodule GettextTest do
   test "lngettext/6: interpolation works when a translation is missing" do
     msgid        = "One error"
     msgid_plural = "%{count} errors"
-    assert Translator.lngettext("pl", "foo", msgid, msgid_plural, 1, %{})
-           == {:default, "One error"}
-    assert Translator.lngettext("pl", "foo", msgid, msgid_plural, 9, %{})
-           == {:default, "9 errors"}
+    assert Translator.lngettext("pl", "foo", msgid, msgid_plural, 1, %{}) ==
+           {:default, "One error"}
+    assert Translator.lngettext("pl", "foo", msgid, msgid_plural, 9, %{}) ==
+           {:default, "9 errors"}
   end
 
   test "dgettext/3: binary msgid at compile-time" do
     Gettext.put_locale Translator, "it"
 
-    assert Translator.dgettext("errors", "Invalid email address")
-           == "Indirizzo email non valido"
+    assert Translator.dgettext("errors", "Invalid email address") ==
+           "Indirizzo email non valido"
     keys = %{name: "Jim"}
-    assert Translator.dgettext("interpolations", "Hello %{name}", keys)
-           == "Ciao Jim"
+    assert Translator.dgettext("interpolations", "Hello %{name}", keys) ==
+           "Ciao Jim"
 
     log = capture_log(fn ->
       assert Translator.dgettext("interpolations", "Hello %{name}") == "Ciao %{name}"
@@ -283,15 +283,15 @@ defmodule GettextTest do
 
   test "ngettext/4" do
     Gettext.put_locale Translator, "it"
-    assert Translator.ngettext("One new email", "%{count} new emails", 1)
-           == "Una nuova email"
-    assert Translator.ngettext("One new email", "%{count} new emails", 2)
-           == "2 nuove email"
+    assert Translator.ngettext("One new email", "%{count} new emails", 1) ==
+           "Una nuova email"
+    assert Translator.ngettext("One new email", "%{count} new emails", 2) ==
+           "2 nuove email"
 
-    assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 1)
-           == "Una nuova email"
-    assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 2)
-           == "2 nuove email"
+    assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 1) ==
+           "Una nuova email"
+    assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 2) ==
+           "2 nuove email"
   end
 
   test "the d?n?gettext macros support a kw list for interpolation" do
@@ -305,11 +305,11 @@ defmodule GettextTest do
   end
 
   test "n(d)gettext_noop" do
-    assert Translator.dngettext_noop("errors", "One error", "%{count} errors")
-           == {"One error", "%{count} errors"}
+    assert Translator.dngettext_noop("errors", "One error", "%{count} errors") ==
+           {"One error", "%{count} errors"}
 
-    assert Translator.ngettext_noop("One message", "%{count} messages")
-           == {"One message", "%{count} messages"}
+    assert Translator.ngettext_noop("One message", "%{count} messages") ==
+           {"One message", "%{count} messages"}
   end
 
   # Actual Gettext functions (not the ones generated in the modules that `use
@@ -319,8 +319,8 @@ defmodule GettextTest do
     Gettext.put_locale Translator, "it"
 
     msgid = "Invalid email address"
-    assert Gettext.dgettext(Translator, "errors", msgid)
-           == "Indirizzo email non valido"
+    assert Gettext.dgettext(Translator, "errors", msgid) ==
+           "Indirizzo email non valido"
 
     assert Gettext.dgettext(Translator, "foo", "Foo") == "Foo"
 
@@ -340,20 +340,20 @@ defmodule GettextTest do
     Gettext.put_locale Translator, "it"
     msgid        = "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
-    assert Gettext.dngettext(Translator, "interpolations", msgid, msgid_plural, 1, %{name: "Meg"})
-           == "Hai un messaggio, Meg"
-    assert Gettext.dngettext(Translator, "interpolations", msgid, msgid_plural, 5, %{name: "Meg"})
-           == "Hai 5 messaggi, Meg"
+    assert Gettext.dngettext(Translator, "interpolations", msgid, msgid_plural, 1, %{name: "Meg"}) ==
+           "Hai un messaggio, Meg"
+    assert Gettext.dngettext(Translator, "interpolations", msgid, msgid_plural, 5, %{name: "Meg"}) ==
+           "Hai 5 messaggi, Meg"
   end
 
   test "ngettext/5" do
     Gettext.put_locale Translator, "it"
     msgid        = "One cake, %{name}"
     msgid_plural = "%{count} cakes, %{name}"
-    assert Gettext.ngettext(Translator, msgid, msgid_plural, 1, %{name: "Meg"})
-           == "One cake, Meg"
-    assert Gettext.ngettext(Translator, msgid, msgid_plural, 5, %{name: "Meg"})
-           == "5 cakes, Meg"
+    assert Gettext.ngettext(Translator, msgid, msgid_plural, 1, %{name: "Meg"}) ==
+           "One cake, Meg"
+    assert Gettext.ngettext(Translator, msgid, msgid_plural, 5, %{name: "Meg"}) ==
+           "5 cakes, Meg"
   end
 
   test "the d?n?gettext functions support kw list for interpolations" do
