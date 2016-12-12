@@ -10,7 +10,7 @@
 
     ```elixir
     def deps do
-      [{:gettext, "~> 0.8"}]
+      [{:gettext, "~> 0.13"}]
     end
     ```
 

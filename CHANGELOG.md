@@ -1,9 +1,14 @@
 # Changelog
 
+## v0.13.0
+
+* Add the `gettext_noop/1`, `dgettext_noop/2`, `ngettext_noop/3`, and `dngettext_noop/4` macros to Gettext backends; these macros can be used to mark translations for extractions without tranlating the given string
+
 ## v0.12.2
 
 * Fix a bug where we failed miserably with a "no process" error when extracting
   translations without having the `:gettext` compiler run
+* Slightly revisit the indentation of subsequent literal strings in dumped PO(T) files; before, they were dumped one per line, indented one level more than the parenttranslation, while now they're indented at the same level as the parent translation
 
 ## v0.12.1
 
