@@ -174,5 +174,5 @@ defmodule Gettext.Backend do
   @doc """
   Same as `dngettext_noop("default", msgid, mgsid_plural)`.
   """
-  @macrocallback ngettext_noop(msgid :: String.t, msgid_plural :: String.t) :: String.t
+  @macrocallback ngettext_noop(msgid :: String.t, msgid_plural :: String.t) :: Macro.t
 end
