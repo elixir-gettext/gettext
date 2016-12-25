@@ -16,6 +16,12 @@ defmodule Gettext.PO.TokenizerTest do
       {:msgid_plural, 1},
       {:msgstr, 1},
     ]}
+
+    str = "msgctxt msgid "
+    assert tokenize(str) == {:ok, [
+      {:msgctxt, 1},
+      {:msgid, 1},
+    ]}
   end
 
   test "keywords must be followed by a space" do

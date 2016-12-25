@@ -1,6 +1,6 @@
 Nonterminals grammar translations translation pluralizations pluralization
-             strings comments.
-Terminals str msgid msgid_plural msgstr plural_form comment.
+             strings comments maybe_msgctxt.
+Terminals str msgid msgid_plural msgctxt msgstr plural_form comment.
 Rootsymbol grammar.
 
 grammar ->
@@ -16,19 +16,19 @@ translations ->
   comments translation translations : [add_comments_to_translation('$2', '$1')|'$3'].
 
 translation ->
-  msgid strings msgstr strings : {translation, #{
+  maybe_msgctxt msgid strings msgstr strings : {translation, #{
     comments       => [],
-    msgid          => '$2',
-    msgstr         => '$4',
-    po_source_line => extract_line('$1')
+    msgid          => '$3',
+    msgstr         => '$5',
+    po_source_line => extract_line('$2')
   }}.
 translation ->
-  msgid strings msgid_plural strings pluralizations : {plural_translation, #{
+  maybe_msgctxt msgid strings msgid_plural strings pluralizations : {plural_translation, #{
     comments       => [],
-    msgid          => '$2',
-    msgid_plural   => '$4',
-    msgstr         => plural_forms_map_from_list('$5'),
-    po_source_line => extract_line('$1')
+    msgid          => '$3',
+    msgid_plural   => '$5',
+    msgstr         => plural_forms_map_from_list('$6'),
+    po_source_line => extract_line('$2')
   }}.
 
 pluralizations ->
@@ -49,6 +49,11 @@ comments ->
 comments ->
   comment comments : [extract_simple_token('$1')|'$2'].
 
+%% For now, we ignore the msgctxt.
+maybe_msgctxt ->
+  '$empty' : [].
+maybe_msgctxt ->
+  msgctxt strings : [].
 
 Erlang code.
 
