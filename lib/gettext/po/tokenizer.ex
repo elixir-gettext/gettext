@@ -12,6 +12,7 @@ defmodule Gettext.PO.Tokenizer do
     {:msgid, line} |
     {:msgid_plural, line} |
     {:msgstr, line} |
+    {:msgctxt, line} |
     {:comment, line, binary}
 
 
@@ -23,6 +24,7 @@ defmodule Gettext.PO.Tokenizer do
   @keywords ~w(
     msgid_plural
     msgid
+    msgctxt
   )
 
   @whitespace [?\n, ?\t, ?\r, ?\s]

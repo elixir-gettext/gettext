@@ -294,6 +294,27 @@ defmodule Gettext.PO.ParserTest do
     } = parsed
   end
 
+  test "msgctxt is parsed correctly but ignored" do
+    parsed = Parser.parse([
+      {:msgctxt, 1}, {:str, 1, "my_"}, {:str, 1, "context"},
+      {:msgid, 2}, {:str, 2, "my_msgid"},
+      {:msgstr, 3}, {:str, 3, "my_msgstr"},
+    ])
+
+    assert {:ok, [], [], [%Translation{} = translation]} = parsed
+    assert translation.msgid == ["my_msgid"]
+    assert translation.msgstr == ["my_msgstr"]
+
+    # Badly placed msgctxt still causes a syntax error
+    parsed = Parser.parse([
+      {:msgid, 1}, {:str, 1, "my_msgid"},
+      {:msgctxt, 2}, {:str, 2, "my_context"},
+      {:msgstr, 3}, {:str, 3, "my_msgstr"},
+    ])
+
+    assert parsed == {:error, 2, "syntax error before: msgctxt"}
+  end
+
   test "tokens are printed as Elixir terms, not Erlang terms" do
     parsed = Parser.parse([
       {:msgid, 1}, {:str, 1, ""},
