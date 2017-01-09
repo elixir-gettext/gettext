@@ -393,6 +393,9 @@ defmodule Gettext do
       "mix compile.gettext" won't work as expected. By default it's
       `"priv/gettext"`.
 
+    * `:compiler_po_wildcard` - allows to explicitly choose the po files that
+      are tracked by the compiler. By default it's `"gettext/*/LC_MESSAGES/*.po"`
+
     * `:plural_forms` - a module which will act as a "pluralizer". For more
       information, look at the documentation for `Gettext.Plural`.
 

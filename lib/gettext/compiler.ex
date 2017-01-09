@@ -29,6 +29,14 @@ defmodule Gettext.Compiler do
     opts = Keyword.merge(mix_config_opts, compile_time_opts)
 
     priv = Keyword.get(opts, :priv, @default_priv)
+    wildcard = Keyword.get(opts, :compiler_po_wildcard)
+    # NOTE: compiler_po_wildcard format: "gettext/*/LC_MESSAGES/*.po"
+    if wildcard do
+      [_ | wildcard] = Path.split(wildcard)
+      wildcard = Path.join(wildcard)
+    else
+      wildcard = @po_wildcard
+    end
     plural_forms = Keyword.get(opts, :plural_forms, Gettext.Plural)
 
     translations_dir = Application.app_dir(otp_app, priv)
@@ -56,7 +64,7 @@ defmodule Gettext.Compiler do
 
       unquote(macros())
       unquote(signatures())
-      unquote(compile_po_files(translations_dir))
+      unquote(compile_po_files(translations_dir, wildcard))
       unquote(dynamic_clauses())
     end
   end
@@ -242,9 +250,9 @@ defmodule Gettext.Compiler do
   Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
   and `lngettext/6` function clauses.
   """
-  @spec compile_po_files(Path.t) :: Macro.t
-  def compile_po_files(dir) do
-    Enum.flat_map(po_files_in_dir(dir), &compile_po_file/1)
+  @spec compile_po_files(Path.t, Path.t) :: Macro.t
+  def compile_po_files(dir, wildcard) do
+    Enum.flat_map(po_files_in_dir(dir, wildcard), &compile_po_file/1)
   end
 
   # Compiles a .po file into a list of lgettext/4 (for translations) and
@@ -357,9 +365,9 @@ defmodule Gettext.Compiler do
 
   # Returns all the PO files in `translations_dir` (under "canonical" paths,
   # i.e., `locale/LC_MESSAGES/domain.po`).
-  defp po_files_in_dir(dir) do
+  defp po_files_in_dir(dir, wildcard) do
     dir
-    |> Path.join(@po_wildcard)
+    |> Path.join(wildcard)
     |> Path.wildcard()
   end
 
