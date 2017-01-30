@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.13.1
+
+* Fix a bug with Dialyzer specs for the `Gettext.Backend.ngettext_noop/2` callback
+* Parse `msgctxt` entries in PO and POT files so that they don't cause syntax errors, but ignore them in the parsed result
+
 ## v0.13.0
 
 * Add the `gettext_noop/1`, `dgettext_noop/2`, `ngettext_noop/3`, and `dngettext_noop/4` macros to Gettext backends; these macros can be used to mark translations for extractions without tranlating the given string
