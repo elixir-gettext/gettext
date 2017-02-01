@@ -30,13 +30,52 @@ defmodule GettextTest do
   require TranslatorWithCustomPriv
 
   test "the default locale is \"en\"" do
+    assert Gettext.get_locale() == "en"
     assert Gettext.get_locale(Translator) == "en"
   end
 
-  test "get_locale/1 and put_locale/2: setting/getting the locale" do
+  test "get_locale/0,1 and put_locale/1,2: setting/getting the locale" do
+    # First, we set the local for just one backend:
     Gettext.put_locale(Translator, "pt_BR")
+
+    # Now, let's check that only that backend was affected.
     assert Gettext.get_locale(Translator) == "pt_BR"
     assert Gettext.get_locale(TranslatorWithCustomPriv) == "en"
+    assert Gettext.get_locale() == "en"
+
+    # Now, let's change the global locale:
+    Gettext.put_locale("it")
+
+    # Let's check that the global locale was affected and that get_locale/1
+    # returns the global locale, but only for backends that have no
+    # backend-specific locale set.
+    assert Gettext.get_locale() == "it"
+    assert Gettext.get_locale(TranslatorWithCustomPriv) == "it"
+    assert Gettext.get_locale(Translator) == "pt_BR"
+  end
+
+  test "get_locale/0,1: using the default locales" do
+    global_default = Application.get_env(:gettext, :default_locale)
+    backend_config = Application.get_env(:test_application, Translator)
+
+    try do
+      Application.put_env(:gettext, :default_locale, "fr")
+
+      assert Gettext.get_locale() == "fr"
+      assert Gettext.get_locale(Translator) == "fr"
+
+      Application.put_env(:test_application, Translator, [default_locale: "es"])
+
+      assert Gettext.get_locale() == "fr"
+      assert Gettext.get_locale(Translator) == "es"
+    after
+      Application.put_env(:gettext, :default_locale, global_default)
+      if backend_config do
+        Application.put_env(:test_application, Translator, backend_config)
+      else
+        Application.delete_env(:test_application, Translator)
+      end
+    end
   end
 
   test "put_locale/2: only accepts binaries" do
@@ -369,6 +408,7 @@ defmodule GettextTest do
       :foo
     end
 
+    assert Gettext.get_locale(Translator) == "fr"
     assert res == :foo
   end
 
