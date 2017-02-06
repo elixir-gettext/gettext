@@ -82,24 +82,47 @@ defmodule Gettext do
 
   ## Locale
 
-  At runtime, all gettext-related functions and macros that do not explicitely
-  take a locale as an argument read the locale from `Gettext.get_locale/1`. The
-  locale can be set with `Gettext.put_locale/2`. Locales are expressed as
-  strings (like `"en"` or `"fr"`); they can be arbitrary strings as long as they
-  match a directory name.
+  At runtime, all gettext-related functions and macros that do not explicitly
+  take a locale as an argument read the locale from the backend locale and
+  fallbacks to Gettext's locale.
 
-  Gettext stores the locale **per-process** (in the process dictionary) and per
-  Gettext module. This means that `Gettext.put_locale/2` must be called in every
-  new process in order to have the right locale available in that process. Pay
-  attention to this behaviour, since not setting the locale with
-  `Gettext.put_locale/2` *will not* result in any errors when `Gettext.get_locale/1`
-  is called; the default locale will be returned instead.
+  `Gettext.put_locale/1` can be used to change the locale of all backends for
+  the current Elixir process. That's the preferred mechanism for setting the
+  locale at runtime. `Gettext.put_locale/2` can be used when you want to set the
+  locale of one specific Gettext backend without affecting other Gettext
+  backends.
+
+  Similarly, `Gettext.get_locale/0` gets the locale for all backends in the
+  current process. `Gettext.get_locale/`1 gets the locale of a specific backend
+  for the current process. Check their documentation for more information.
+
+  Locales are expressed as strings (like `"en"` or `"fr"`); they can be
+  arbitrary strings as long as they match a directory name. As mentioned above,
+  the locale is stored **per-process** (in the process dictionary): this means
+  that the locale must be set in every new process in order to have the right
+  locale available for that process. Pay attention to this behaviour, since not
+  setting the locale *will not* result in any errors when `Gettext.get_locale/0`
+  or `Gettext.get_locale/1` are called called; the default locale will be
+  returned instead.
+
+  To decide which locale to use, each gettext-related function in a given
+  backend follows these steps:
+
+    * if there is a backend-specific locale for the given backend for this
+      process (see `put_locale/2`), use that, otherwise
+    * if there is a global locale for this process (see `put_locale/1`), use
+      that, otherwise
+    * if there is a backend-specific default locale in the configuration for
+      that backend's `:otp_app` (see the "Default locale" section below), use
+      that, otherwise
+    * use the default global Gettext locale (see the "Default locale" section
+      below)
 
   ### Default locale
 
-  The default Gettext locale is `"en"`. The value of the default locale for a
-  given Gettext module can be set in the configuration for the `:otp_app` of
-  that Gettext module. For example, in the `config/config.exs` file of the
+  The value of the default locale for a
+  given Gettext backend can be set in the configuration for the `:otp_app` of
+  that Gettext backend. For example, in the `config/config.exs` file of the
   `my_app` application:
 
       config :my_app, MyApp.Gettext,
@@ -107,7 +130,16 @@ defmodule Gettext do
 
   This option is read dynamically every time the locale has not been explicitly
   set, so to change the default locale of a backend for all processes at runtime
-  it's enough to use `Application.put_env/3`.
+  it's enough to use `Application.put_env/3`. There's no default
+  backend-specific locale.
+
+  The global Gettext default locale can be configured through the
+  `:default_locale` key of the `:gettext` application:
+
+      config :gettext, :default_locale, "fr"
+
+  By default the global locale is `"en"`. See also `get_locale/0` and
+  `put_locale/1`.
 
   ## Gettext API
 
@@ -361,6 +393,14 @@ defmodule Gettext do
 
   ## Configuration
 
+  ### `:gettext` configuration
+
+  The `:gettext` application supports the following configuration options:
+
+    * `:default_locale` - a string which specifies the default global Gettext
+      locale to use for all backends. See the "Locale" section for more
+      information on backend-specific, global, and default locales.
+
   ### Backend configuration
 
   A **Gettext backend** supports some options to be configured. These options
@@ -472,14 +512,59 @@ defmodule Gettext do
   end
 
   @doc """
+  Gets the global Gettext locale for the current process.
+
+  This function returns the value of the global Gettext locale for the current
+  process. This global locale is shared between all Gettext backends; if you
+  want backend-specific locales, see `get_locale/1` and `put_locale/2`. If the
+  global Gettext locale is not set, this function returns the default global
+  locale (configurable in the configuration for the `:gettext` application, see
+  the module documentation for more information).
+
+  ## Examples
+
+      Gettext.get_locale()
+      #=> "en"
+
+  """
+  @spec get_locale() :: locale
+  def get_locale() do
+    if locale = Process.get(Gettext) do
+      locale
+    else
+      # If this is not set by the user, it's still set in mix.exs (to "en").
+      Application.fetch_env!(:gettext, :default_locale)
+    end
+  end
+
+  @doc """
+  Sets the global Gettext locale for the current process.
+
+  The locale is stored in the process dictionary. `locale` must be a string; if
+  it's not, an `ArgumentError` exception is raised.
+
+  ## Examples
+
+      Gettext.put_locale("pt_BR")
+      #=> nil
+      Gettext.get_locale()
+      #=> "pt_BR"
+
+  """
+  @spec put_locale(locale) :: nil
+  def put_locale(locale) when is_binary(locale),
+    do: Process.put(Gettext, locale)
+  def put_locale(locale),
+    do: raise(ArgumentError, "put_locale/1 only accepts binary locales, got: #{inspect locale}")
+
+  @doc """
   Gets the locale for the current process and the given backend.
 
   This function returns the value of the locale for the current process and the
   given `backend`. If there is no locale for the current process and the given
-  backend, the default locale is set as the locale for the current process and
-  the given backend and then returned. For more information on the default
-  locale and how it can be set, refer to the documentation of the `Gettext`
-  module.
+  backend, then either the global Gettext locale (if set), or the default locale
+  for the given backend, or the global default locale is returned. See the
+  "Locale" section in the module documentation for more information.
 
   ## Examples
 
@@ -489,14 +574,22 @@ defmodule Gettext do
   """
   @spec get_locale(backend) :: locale
   def get_locale(backend) do
-    if locale = Process.get(backend) do
-      locale
-    else
-      backend_config = Application.get_env(backend.__gettext__(:otp_app), backend, [])
-      default_locale = Keyword.get(backend_config, :default_locale, "en")
-      Process.put(backend, default_locale)
-      default_locale
+    cond do
+      locale = Process.get(backend) ->
+        locale
+      global_locale = Process.get(Gettext) ->
+        global_locale
+      default_locale = get_default_backend_locale(backend) ->
+        default_locale
+      true ->
+        # If this is not set by the user, it's still set in mix.exs (to "en").
+        Application.fetch_env!(:gettext, :default_locale)
     end
+  end
+
+  defp get_default_backend_locale(backend) do
+    backend_config = Application.get_env(backend.__gettext__(:otp_app), backend, [])
+    Keyword.get(backend_config, :default_locale)
   end
 
   @doc """
@@ -632,6 +725,49 @@ defmodule Gettext do
   end
 
   @doc """
+  Runs `fun` with the global Gettext locale set to `locale`.
+
+  This function just sets the global Gettext locale to `locale` before running
+  `fun` and sets it back to its previous value afterwards. Note that
+  `put_locale/2` is used to set the locale, which is thus set only for the
+  current process (keep this in mind if you plan on spawning processes inside
+  `fun`).
+
+  The value returned by this function is the return value of `fun`.
+
+  ## Examples
+
+      Gettext.put_locale("fr")
+
+      MyApp.Gettext.gettext("Hello world")
+      #=> "Bonjour monde"
+
+      Gettext.with_locale "it", fn ->
+        MyApp.Gettext.gettext("Hello world")
+      end
+      #=> "Ciao mondo"
+
+      MyApp.Gettext.gettext("Hello world")
+      #=> "Bonjour monde"
+
+  """
+  @spec with_locale(locale, (() -> result)) :: result when result: var
+  def with_locale(locale, fun) do
+    previous_locale = Process.get(Gettext)
+    Gettext.put_locale(locale)
+
+    try do
+      fun.()
+    after
+      if previous_locale do
+        Gettext.put_locale(previous_locale)
+      else
+        Process.delete(Gettext)
+      end
+    end
+  end
+
+  @doc """
   Runs `fun` with the gettext locale set to `locale` for the given `backend`.
 
   This function just sets the Gettext locale for `backend` to `locale` before
@@ -660,13 +796,17 @@ defmodule Gettext do
   """
   @spec with_locale(backend, locale, (() -> result)) :: result when result: var
   def with_locale(backend, locale, fun) do
-    previous_locale = Gettext.get_locale(backend)
+    previous_locale = Process.get(backend)
     Gettext.put_locale(backend, locale)
 
     try do
       fun.()
     after
-      Gettext.put_locale(backend, previous_locale)
+      if previous_locale do
+        Gettext.put_locale(backend, previous_locale)
+      else
+        Process.delete(backend)
+      end
     end
   end
 
