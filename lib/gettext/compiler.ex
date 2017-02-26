@@ -288,8 +288,10 @@ defmodule Gettext.Compiler do
     # function clause. The reason we do this is the same as for the
     # `%Translation{}` clause.
     unless Enum.any?(msgstr, &match?({_, ""}, &1)) do
-      clauses = Enum.map msgstr, fn({form, str}) ->
-        {:->, [], [[form], compile_interpolation(str)]}
+      # We use flat_map here because clauses can only be defined in blocks, so
+      # when quoted they are a list.
+      clauses = Enum.flat_map msgstr, fn {form, str} ->
+        quote do: (unquote(form) -> unquote(compile_interpolation(str)))
       end
 
       quote do
