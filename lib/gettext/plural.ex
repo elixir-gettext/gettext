@@ -65,7 +65,7 @@ defmodule Gettext.Plural do
   ### Unknown locales
 
   Trying to call `Gettext.Plural` functions with unknown locales will result in
-  a `UnknownLocaleError` exception.
+  a `Gettext.Plural.UnknownLocaleError` exception.
 
   ### Language and country
 
