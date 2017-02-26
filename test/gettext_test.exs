@@ -10,6 +10,7 @@ defmodule GettextTest.TranslatorWithCustomPluralForms do
   defmodule Plural do
     @behaviour Gettext.Plural
     def nplurals("elv"), do: 2
+    def nplurals(other), do: Gettext.Plural.nplurals(other)
     # Opposite of Italian (where 1 is singular, everything else is plural)
     def plural("it", 1), do: 1
     def plural("it", _), do: 0
@@ -163,6 +164,25 @@ defmodule GettextTest do
            {:default, "Not even one msgstr"}
     assert Translator.lngettext("it", "default", msgid, msgid_plural, 2, %{}) ==
            {:default, "Not even 2 msgstrs"}
+  end
+
+  test "an error is raised if a plural translation has no plural form for the given locale" do
+    log = capture_log(fn ->
+      Code.eval_quoted(quote do
+        defmodule BadTranslations do
+          use Gettext, otp_app: :test_application, priv: "bad_translations"
+        end
+      end)
+    end)
+
+    assert log =~ "translation is missing plural form 2 which is required by the locale \"ru\""
+
+    msgid = "should be at least %{count} character(s)"
+    msgid_plural = "should be at least %{count} character(s)"
+
+    assert_raise Gettext.Error, ~r/plural form 2 is required for locale \"ru\" but is missing/, fn ->
+      BadTranslations.lngettext("ru", "errors", msgid, msgid_plural, 8, %{}) |> IO.inspect
+    end
   end
 
   test "interpolation is supported by lgettext" do
