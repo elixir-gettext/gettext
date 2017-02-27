@@ -1,0 +1,5 @@
+# Russian has 3 plural forms, only 2 are defined here.
+msgid "should be at least %{count} character(s)"
+msgid_plural "should be at least %{count} character(s)"
+msgstr[0] "Требуется минимум один символ"
+msgstr[1] "Требуется минимум %{count} символов"

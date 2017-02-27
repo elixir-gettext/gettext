@@ -29,7 +29,7 @@ defmodule Gettext.Compiler do
     opts = Keyword.merge(mix_config_opts, compile_time_opts)
 
     priv = Keyword.get(opts, :priv, @default_priv)
-    plural_forms = Keyword.get(opts, :plural_forms, Gettext.Plural)
+    plural_mod = Keyword.get(opts, :plural_forms, Gettext.Plural)
 
     translations_dir = Application.app_dir(otp_app, priv)
     external_file = Path.join(".compile", priv) |> String.replace("/", "_")
@@ -47,16 +47,13 @@ defmodule Gettext.Compiler do
       # directory that contains .po/.pot files.
       @external_resource unquote(Application.app_dir(otp_app, external_file))
 
-      # This will be used when pluralizing in lngettext/6.
-      @plural_forms unquote(plural_forms)
-
       if Gettext.Extractor.extracting? do
         Gettext.ExtractorAgent.add_backend(__MODULE__)
       end
 
       unquote(macros())
       unquote(signatures())
-      unquote(compile_po_files(translations_dir))
+      unquote(compile_po_files(translations_dir, plural_mod))
       unquote(dynamic_clauses())
     end
   end
@@ -242,17 +239,17 @@ defmodule Gettext.Compiler do
   Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
   and `lngettext/6` function clauses.
   """
-  @spec compile_po_files(Path.t) :: Macro.t
-  def compile_po_files(dir) do
-    Enum.flat_map(po_files_in_dir(dir), &compile_po_file/1)
+  @spec compile_po_files(Path.t, module) :: Macro.t
+  def compile_po_files(dir, plural_mod) do
+    Enum.flat_map(po_files_in_dir(dir), &compile_po_file(&1, plural_mod))
   end
 
   # Compiles a .po file into a list of lgettext/4 (for translations) and
   # lngettext/6 (for plural translations) clauses.
-  defp compile_po_file(path) do
+  defp compile_po_file(path, plural_mod) do
     {locale, domain} = locale_and_domain_from_path(path)
-    %PO{translations: translations} = PO.parse_file!(path)
-    Enum.map(translations, &compile_translation(locale, domain, &1))
+    %PO{translations: translations, file: file} = PO.parse_file!(path)
+    Enum.map(translations, &compile_translation(locale, domain, &1, file, plural_mod))
   end
 
   defp locale_and_domain_from_path(path) do
@@ -261,7 +258,7 @@ defmodule Gettext.Compiler do
     {locale, domain}
   end
 
-  defp compile_translation(locale, domain, %Translation{} = t) do
+  defp compile_translation(locale, domain, %Translation{} = t, _file, _plural_mod) do
     msgid  = IO.iodata_to_binary(t.msgid)
     msgstr = IO.iodata_to_binary(t.msgstr)
 
@@ -278,7 +275,9 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp compile_translation(locale, domain, %PluralTranslation{} = t) do
+  defp compile_translation(locale, domain, %PluralTranslation{} = t, file, plural_mod) do
+    warn_if_missing_plural_forms(locale, plural_mod, t, file)
+
     msgid        = IO.iodata_to_binary(t.msgid)
     msgid_plural = IO.iodata_to_binary(t.msgid_plural)
 
@@ -294,17 +293,33 @@ defmodule Gettext.Compiler do
         quote do: (unquote(form) -> unquote(compile_interpolation(str)))
       end
 
+      error_clause = quote do
+        form ->
+          raise Gettext.Error,
+            "plural form #{form} is required for locale #{inspect(unquote(locale))} " <>
+            "but is missing for translation compiled from #{unquote(file)}:#{unquote(t.po_source_line)}"
+      end
+
       quote do
         def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n, bindings) do
-          # @plural_forms is defined in the current backend by
-          # __before_compile__/1.
-          plural_form    = @plural_forms.plural(unquote(locale), n)
+          plural_form = unquote(plural_mod).plural(unquote(locale), n)
           var!(bindings) = Map.put(bindings, :count, n)
 
-          case plural_form, do: unquote(clauses)
+          case plural_form, do: unquote(clauses ++ error_clause)
         end
       end
     end
+  end
+
+  defp warn_if_missing_plural_forms(locale, plural_mod, translation, file) do
+    Enum.each(0..plural_mod.nplurals(locale) - 1, fn form ->
+      unless Map.has_key?(translation.msgstr, form) do
+        Logger.error([
+          "#{file}:#{translation.po_source_line}: translation is missing plural form ",
+          Integer.to_string(form), " which is required by the locale ", inspect(locale),
+        ])
+      end
+    end)
   end
 
   # Compiles a string into a full-blown `case` statement which interpolates the
