@@ -130,7 +130,7 @@ defmodule Gettext do
 
   This option is read dynamically every time the locale has not been explicitly
   set, so to change the default locale of a backend for all processes at runtime
-  it's enough to use `Application.put_env/3`. There's no default
+  it's enough to use `Application.put_env/4`. There's no default
   backend-specific locale.
 
   The global Gettext default locale can be configured through the
