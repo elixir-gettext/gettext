@@ -32,11 +32,11 @@ defmodule Gettext.PO do
   @bom <<0xef, 0xbb, 0xbf>> # (see prune_bom/2)
 
   @doc """
-  Parses a string into a list of translations.
+  Parses a string into a `Gettext.PO` struct.
 
-  This function parses a given `str` into a list of `Gettext.PO.Translation` and
-  `Gettext.PO.PluralTranslation` structs. It returns `{:ok, translations}` if
-  there are no errors, otherwise `{:error, line, reason}`.
+  This function parses a given `str` into a `Gettext.PO` struct.
+  It returns `{:ok, po}` if there are no errors,
+  otherwise `{:error, line, reason}`.
 
   ## Examples
 
@@ -76,10 +76,10 @@ defmodule Gettext.PO do
   end
 
   @doc """
-  Parses a string into a list of translations, raising an exception if there are
+  Parses a string into a `Gettext.PO` struct, raising an exception if there are
   any errors.
 
-  Works exactly like `parse_string/1`, but returns the list of translations
+  Works exactly like `parse_string/1`, but returns a `Gettext.PO` struct
   if there are no errors or raises a `Gettext.PO.SyntaxError` error if there
   are.
 
@@ -100,12 +100,12 @@ defmodule Gettext.PO do
   end
 
   @doc """
-  Parses the contents of a file into a list of translations.
+  Parses the contents of a file into a `Gettext.PO` struct.
 
   This function works similarly to `parse_string/1` except that it takes a file
   and parses the contents of that file. It can return:
 
-    * `{:ok, translations}`
+    * `{:ok, po}`
     * `{:error, line, reason}` if there is an error with the contents of the
       `.po` file (e.g., a syntax error)
     * `{:error, reason}` if there is an error with reading the file (this error
@@ -114,7 +114,10 @@ defmodule Gettext.PO do
   ## Examples
 
       Gettext.PO.parse_file "translations.po"
-      #=> {:ok, [%Gettext.PO.Translation{msgid: "foo", msgstr: "bar"}]}
+      #=> {:ok,
+      %Gettext.PO{file: "translations.po", headers: [], top_of_the_file_comments: [],
+       translations: [%Gettext.PO.Translation{comments: [], flags: #MapSet<[]>,
+         msgid: ["foo"], msgstr: ["bar"], po_source_line: 1, references: []}]}}
 
       Gettext.PO.parse_file "nonexistent"
       #=> {:error, :enoent}
@@ -134,7 +137,7 @@ defmodule Gettext.PO do
   end
 
   @doc """
-  Parses the contents of a file into a list of translations, raising if there
+  Parses the contents of a file into a `Gettext.PO` struct, raising if there
   are any errors.
 
   Works like `parse_file/1`, except that it raises a `Gettext.PO.SyntaxError`
@@ -144,7 +147,7 @@ defmodule Gettext.PO do
   ## Examples
 
       Gettext.PO.parse_file! "nonexistent.po"
-      #=> ** (File.Error) could not parse file nonexistent.po: no such file or directory
+      #=> ** (File.Error) could not parse "nonexistent.po": no such file or directory
 
   """
   @spec parse_file!(Path.t) :: t | no_return
