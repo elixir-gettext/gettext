@@ -16,8 +16,10 @@ defmodule Gettext.PO.Translation do
 
     * `msgid` - the id of the translation.
     * `msgstr` - the translated string.
-    * `comments` - a list of comments as they are found in the PO file (e.g.,
+    * `comments` - a list of translator comments as they are found in the PO file (e.g.,
       `["# foo"]`).
+    * `extracted_comments`  - a list of comments extracted from the program source (e.g.,
+      `["#. bar"]`).
     * `references` - a list of references (files this translation comes from) in
       the form `{file, line}`.
     * `flags` - a set of flags for this translation.
@@ -30,6 +32,7 @@ defmodule Gettext.PO.Translation do
     msgid: [binary],
     msgstr: [binary],
     comments: [binary],
+    extracted_comments: [binary],
     references: [{binary, pos_integer}],
     flags: MapSet.t,
     po_source_line: pos_integer,
@@ -38,6 +41,7 @@ defmodule Gettext.PO.Translation do
   defstruct msgid: nil,
             msgstr: nil,
             comments: [],
+            extracted_comments: [],
             references: [],
             flags: MapSet.new,
             po_source_line: nil

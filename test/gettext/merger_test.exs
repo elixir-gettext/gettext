@@ -52,6 +52,14 @@ defmodule Gettext.MergerTest do
     assert t.comments == ["# existing comment"]
   end
 
+  test "merge/2: when translations match, new extracted comments replace old ones" do
+    old_po = %PO{translations: [%Translation{msgid: ["foo"], extracted_comments: ["#. existing extracted comment"]}]}
+    new_pot = %PO{translations: [%Translation{msgid: ["foo"], extracted_comments: ["#. new extracted comment"]}]}
+
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert t.extracted_comments == ["#. new extracted comment"]
+  end
+
   test "merge/2: when translations match, existing references are replaced by new ones" do
     old_po = %PO{translations: [%Translation{msgid: "foo", references: [{"foo.ex", 1}]}]}
     new_pot = %PO{translations: [%Translation{msgid: "foo", references: [{"bar.ex", 1}]}]}
