@@ -300,7 +300,7 @@ defmodule Gettext.POTest do
   test "dump/1: flags" do
     po = %PO{translations: [
       %Translation{
-        flags: ~w(foo bar baz) |> Enum.into(MapSet.new),
+        flags: MapSet.new(~w(bar baz foo)),
         comments: ["# other comment"],
         msgid: ["foo"],
         msgstr: ["bar"]},
@@ -308,7 +308,7 @@ defmodule Gettext.POTest do
 
     assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     # other comment
-    #, bar baz foo
+    #, bar, baz, foo
     msgid "foo"
     msgstr "bar"
     """

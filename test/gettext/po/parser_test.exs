@@ -178,15 +178,15 @@ defmodule Gettext.PO.ParserTest do
 
   test "flags are extracted in to the :flags field of a translation" do
     parsed = Parser.parse([
-      {:comment, 1, "#, flag other-flag"},
+      {:comment, 1, "#, flag,a-flag b-flag, c-flag"},
       {:comment, 2, "# comment"},
-      {:comment, 3, "#, other-flag other-other-flag"},
+      {:comment, 3, "#, flag,  ,d-flag ,, e-flag"},
       {:msgid, 4}, {:str, 4, "foo"},
       {:msgstr, 5}, {:str, 5, "bar"},
     ])
 
     assert {:ok, [], [], [%Translation{} = t]} = parsed
-    assert Enum.sort(t.flags) == ~w(flag other-flag other-other-flag)
+    assert Enum.sort(t.flags) == ~w(a-flag b-flag c-flag d-flag e-flag flag)
     assert t.comments == ["# comment"]
   end
 

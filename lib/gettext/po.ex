@@ -280,8 +280,8 @@ defmodule Gettext.PO do
       flags =
         flags
         |> Enum.sort
-        |> Enum.map(&[?\s, &1])
-      ["#,", flags, ?\n]
+        |> Enum.intersperse(", ")
+      ["#, ", flags, ?\n]
     end
   end
 
