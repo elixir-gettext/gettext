@@ -58,7 +58,7 @@ defmodule Gettext.Fuzzy do
   """
   @spec merge(PO.translation, PO.translation) :: PO.translation
   def merge(new, existing) do
-    new
+    %{ new | comments: existing.comments }
     |> merge_fuzzy(existing)
     |> PO.Translations.mark_as_fuzzy()
   end
@@ -67,6 +67,8 @@ defmodule Gettext.Fuzzy do
     do: %{new | msgstr: existing.msgstr}
   defp merge_fuzzy(%Translation{} = new, %PluralTranslation{} = existing),
     do: %{new | msgstr: existing.msgstr[0]}
+  defp merge_fuzzy(%PluralTranslation{msgstr: nil} = new, %Translation{} = existing),
+    do: %{new | msgstr: %{0 => existing.msgstr}}
   defp merge_fuzzy(%PluralTranslation{} = new, %Translation{} = existing),
     do: %{new | msgstr: Map.new(new.msgstr, fn {i, _} -> {i, existing.msgstr} end)}
   defp merge_fuzzy(%PluralTranslation{} = new, %PluralTranslation{} = existing),
