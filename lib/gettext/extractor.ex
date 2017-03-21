@@ -9,7 +9,7 @@ defmodule Gettext.Extractor do
   #
   # Ordering is mostly taken care of in merge_template/2, where we go over the
   # translations in an existing POT file and merge them if necessary (thus
-  # keeping the order from the original file), then adding the translations form
+  # keeping the order from the original file), then adding the translations from
   # the new in-memory POT (sorted by name).
 
   alias Gettext.ExtractorAgent
@@ -56,7 +56,7 @@ defmodule Gettext.Extractor do
   end
 
   @doc """
-  Returns a list of POT files based o the results of the extraction.
+  Returns a list of POT files based on the results of the extraction.
 
   Returns a list of paths and their contents to be written to disk. Existing POT
   files are either purged from obsolete translations (in case no extracted
