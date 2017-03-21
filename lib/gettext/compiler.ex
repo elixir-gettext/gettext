@@ -60,44 +60,46 @@ defmodule Gettext.Compiler do
 
   defp macros do
     quote unquote: false do
-      defmacro dgettext_noop(domain, msgid) do
+      defmacro dgettext_noop(domain, msgid, bindings \\ Macro.escape(%{})) do
         domain = Gettext.Compiler.expand_to_binary(domain, "domain", __MODULE__, __CALLER__)
         msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
+        bindings = Gettext.Compiler.expand_bindings(bindings, __CALLER__)
 
         if Gettext.Extractor.extracting? do
-          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, msgid)
+          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, msgid, bindings)
         end
 
         msgid
       end
 
-      defmacro gettext_noop(msgid) do
+      defmacro gettext_noop(msgid, bindings \\ Macro.escape(%{})) do
         quote do
-          unquote(__MODULE__).dgettext_noop("default", unquote(msgid))
+          unquote(__MODULE__).dgettext_noop("default", unquote(msgid), unquote(bindings))
         end
       end
 
-      defmacro dngettext_noop(domain, msgid, msgid_plural) do
+      defmacro dngettext_noop(domain, msgid, msgid_plural, bindings \\ Macro.escape(%{})) do
         domain = Gettext.Compiler.expand_to_binary(domain, "domain", __MODULE__, __CALLER__)
         msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
         msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __MODULE__, __CALLER__)
+        bindings = Gettext.Compiler.expand_bindings(bindings, __CALLER__)
 
         if Gettext.Extractor.extracting? do
-          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, {msgid, msgid_plural})
+          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, {msgid, msgid_plural}, bindings)
         end
 
         {msgid, msgid_plural}
       end
 
-      defmacro ngettext_noop(msgid, msgid_plural) do
+      defmacro ngettext_noop(msgid, msgid_plural, bindings \\ Macro.escape(%{})) do
         quote do
-          unquote(__MODULE__).dngettext_noop("default", unquote(msgid), unquote(msgid_plural))
+          unquote(__MODULE__).dngettext_noop("default", unquote(msgid), unquote(msgid_plural), unquote(bindings))
         end
       end
 
       defmacro dgettext(domain, msgid, bindings \\ Macro.escape(%{})) do
         quote do
-          msgid = unquote(__MODULE__).dgettext_noop(unquote(domain), unquote(msgid))
+          msgid = unquote(__MODULE__).dgettext_noop(unquote(domain), unquote(msgid), unquote(bindings))
           Gettext.dgettext(unquote(__MODULE__), unquote(domain), msgid, unquote(bindings))
         end
       end
@@ -111,7 +113,7 @@ defmodule Gettext.Compiler do
       defmacro dngettext(domain, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
         quote do
           {msgid, msgid_plural} =
-            unquote(__MODULE__).dngettext_noop(unquote(domain), unquote(msgid), unquote(msgid_plural))
+            unquote(__MODULE__).dngettext_noop(unquote(domain), unquote(msgid), unquote(msgid_plural), unquote(bindings))
 
           Gettext.dngettext(
             unquote(__MODULE__),
@@ -214,6 +216,26 @@ defmodule Gettext.Compiler do
         if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces, ""), else: raiser.()
       _ ->
         raiser.()
+    end
+  end
+
+  @doc """
+  Expands the given `bindings` in the given `env`.
+  If a key `:comment` with a binary value can be found,
+  `%{comment: comment}` will be returned, otherwise `%{}`.
+  """
+  @spec expand_bindings(Macro.t, Macro.Env.t) :: Map.t
+  def expand_bindings(term, env) do
+    case Macro.expand(term, env) do
+      %{comment: comment} = term when is_binary(comment) ->
+	term
+      {:%{}, _, pieces} when is_list(pieces) ->
+	case Keyword.get(pieces, :comment) do
+	  comment when is_binary(comment) -> %{comment: comment}
+	  _ -> %{}
+	end
+      _ ->
+	%{}
     end
   end
 

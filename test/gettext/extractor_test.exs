@@ -179,7 +179,7 @@ defmodule Gettext.ExtractorTest do
       def bar do
         gettext "foo"
         dngettext "errors", "one error", "%{count} errors", 2
-        gettext "foo"
+        gettext "foo", %{comment: "blarg\\nblub"}
         Gettext.ExtractorTest.MyOtherGettext.dgettext "greetings", "hi"
       end
     end
@@ -193,6 +193,8 @@ defmodule Gettext.ExtractorTest do
         msgid ""
         msgstr ""
 
+        #. blarg
+        #. blub
         #: foo.ex:14 foo.ex:16
         msgid "foo"
         msgstr ""
