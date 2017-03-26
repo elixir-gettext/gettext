@@ -152,7 +152,7 @@ defmodule Gettext.Compiler do
   @spec dynamic_clauses() :: Macro.t
   def dynamic_clauses do
     quote do
-      def lgettext(locale, domain, msgid, bindings) do
+      def lgettext(_locale, domain, msgid, bindings) do
         import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
 
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
@@ -210,7 +210,7 @@ defmodule Gettext.Compiler do
         term
       {:<<>>, _, pieces} ->
         # TODO: Remove this once Elixir will fix ~s to expand to just a binary when
-        # here's no interpolation.
+        # there's no interpolation.
         if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces, ""), else: raiser.()
       _ ->
         raiser.()
