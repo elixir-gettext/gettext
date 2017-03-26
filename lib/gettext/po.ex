@@ -113,11 +113,9 @@ defmodule Gettext.PO do
 
   ## Examples
 
-      Gettext.PO.parse_file "translations.po"
-      #=> {:ok,
-      %Gettext.PO{file: "translations.po", headers: [], top_of_the_file_comments: [],
-       translations: [%Gettext.PO.Translation{comments: [], flags: #MapSet<[]>,
-         msgid: ["foo"], msgstr: ["bar"], po_source_line: 1, references: []}]}}
+      {:ok, po} = Gettext.PO.parse_file "translations.po"
+      po.file
+      #=> "translations.po"
 
       Gettext.PO.parse_file "nonexistent"
       #=> {:error, :enoent}
