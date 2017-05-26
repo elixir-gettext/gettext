@@ -102,11 +102,13 @@ In other words, the typical workflow looks like this:
 
   3. `.pot` files can then be merged into locale-specific `.po` files with `mix gettext.merge`:
 
-        # Merge .pot into all locales
-        mix gettext.merge priv/gettext
+     ```bash
+     # Merge .pot into all locales
+     mix gettext.merge priv/gettext
 
-        # Merge .pot into one specific locale
-        mix gettext.merge priv/gettext --locale en
+     # Merge .pot into one specific locale
+     mix gettext.merge priv/gettext --locale en
+     ```
 
 It is also possible to execute both the extract and merge operations in one step with `mix gettext.extract --merge`.
 
