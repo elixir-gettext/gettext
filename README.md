@@ -8,34 +8,34 @@
 
   1. Add `:gettext` to your list of dependencies in mix.exs:
 
-    ```elixir
-    def deps do
-      [{:gettext, "~> 0.13"}]
-    end
-    ```
+     ```elixir
+     def deps do
+       [{:gettext, "~> 0.13"}]
+     end
+     ```
 
   2. Ensure `:gettext` is started before your application:
 
-    ```elixir
-    def application do
-      [applications: [:gettext, :logger]]
-    end
-    ```
+     ```elixir
+     def application do
+       [applications: [:gettext, :logger]]
+     end
+     ```
 
   3. Optional: add the `:gettext` compiler so your backends
-    are recompiled when `.po` files change:
+     are recompiled when `.po` files change:
 
-    ```elixir
-    def project do
-      [compilers: [:gettext] ++ Mix.compilers]
-    end
-    ```
+     ```elixir
+     def project do
+       [compilers: [:gettext] ++ Mix.compilers]
+     end
+     ```
 
 [Documentation for `Gettext` is available on Hex][docs-gettext].
 
 ## Usage
 
-To use gettext, you must define a gettext module:
+To use Gettext, you must define a Gettext module:
 
 ```elixir
 defmodule MyApp.Gettext do
@@ -43,7 +43,7 @@ defmodule MyApp.Gettext do
 end
 ```
 
-And invoke the gettext API, based on the `*gettext` functions:
+And invoke the Gettext API, based on the `*gettext` functions:
 
 ```elixir
 import MyApp.Gettext
@@ -62,7 +62,7 @@ ngettext "The apple is ripe",
 dgettext "errors", "Here is an error message to translate"
 ```
 
-Translations in gettext are stored in Portable Object files (`.po`). Such files must be placed at `priv/gettext/en/LC_MESSAGES/domain.po`, where `en` is the locale and `domain` is the domain (the default domain is called `default`).
+Translations in Gettext are stored in Portable Object files (`.po`). Such files must be placed at `priv/gettext/en/LC_MESSAGES/domain.po`, where `en` is the locale and `domain` is the domain (the default domain is called `default`).
 
 For example, the translation to `pt_BR` of the first two `*gettext` calls in the snippet above must be placed in the `priv/gettext/pt_BR/LC_MESSAGES/default.po` file with contents:
 
@@ -84,14 +84,14 @@ Read the [documentation for the `Gettext` module][docs-gettext-module] for more 
 
 ## Workflow
 
-`gettext` is able to automatically extract translations from your source code, alleviating developers and translators from the repetitive and error-prone work of maintaining translation files.
+Gettext is able to automatically extract translations from your source code, alleviating developers and translators from the repetitive and error-prone work of maintaining translation files.
 
 When extracted from source, translations are placed into `.pot` files, which are template files. Those templates files can then be merged into translation files for each specific locale your application is being currently translated to.
 
 In other words, the typical workflow looks like this:
 
   1. Add `gettext` calls to your source code. No need to touch translation files
-     at this point as gettext will return the given string if no translation is
+     at this point as Gettext will return the given string if no translation is
      available:
 
         gettext "Welcome back!"
