@@ -60,6 +60,7 @@ defmodule Gettext.PO do
   def parse_string(str) do
     str = prune_bom(str, "nofile")
 
+    # TODO: use "with" here once we depend on Elixir 1.3 and on.
     case Tokenizer.tokenize(str) do
       {:error, _line, _reason} = error ->
         error
@@ -123,6 +124,7 @@ defmodule Gettext.PO do
   """
   @spec parse_file(Path.t) :: {:ok, t} | parse_error | {:error, atom}
   def parse_file(path) do
+    # TODO: use "with" here once we depend on Elixir 1.3 and on.
     case File.read(path) do
       {:ok, contents} ->
         case parse_string(prune_bom(contents, path)) do
