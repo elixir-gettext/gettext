@@ -50,9 +50,9 @@ defmodule Gettext.Extractor do
 
   Note that this function doesn't perform any operation on the filesystem.
   """
-  @spec extract(Macro.Env.t, module, binary, binary | {binary, binary}) :: :ok
-  def extract(%Macro.Env{file: file, line: line} = _caller, backend, domain, id) do
-    ExtractorAgent.add_translation(backend, domain, create_translation_struct(id, file, line))
+  @spec extract(Macro.Env.t, module, binary, binary | {binary, binary}, Map.t) :: :ok
+  def extract(%Macro.Env{file: file, line: line} = _caller, backend, domain, id, bindings) do
+    ExtractorAgent.add_translation(backend, domain, create_translation_struct(id, file, line) |> add_comments(bindings))
   end
 
   @doc """
@@ -136,6 +136,24 @@ defmodule Gettext.Extractor do
           msgstr: [""],
           references: [{Path.relative_to_cwd(file), line}],
         }
+
+  defp add_comments(%{extracted_comments: extracted_comments} = t, %{comment: comment}) do
+    %{ t | extracted_comments: format_extracted_comments(comment) ++ extracted_comments }
+  end
+  defp add_comments(t, _) do
+    t
+  end
+
+  # For backwards compatibility with interpolations, do not signal any
+  # error when the comment is not a binary, as it might be a binding.
+  defp format_extracted_comments(comment) when is_binary(comment) do
+    comment
+    |> String.split("\n", trim: true)
+    |> Enum.map(&("#. " <> &1))
+  end
+  defp format_extracted_comments(_) do
+    []
+  end
 
   # Made public for testing.
   @doc false
@@ -281,6 +299,9 @@ defmodule Gettext.Extractor do
       # The new in-memory translation has no comments since it was extracted
       # from the source code.
       comments: old.comments,
+      # We don't care about the extracted comments of the old translation since
+      # we only want the newly extracted comments, not possibly outdated ones.
+      extracted_comments: new.extracted_comments,
       # We don't care about the references of the old translation since the new
       # in-memory translation has all the actual and current references.
       references: new.references,
@@ -296,6 +317,7 @@ defmodule Gettext.Extractor do
       msgid_plural: old.msgid_plural,
       msgstr: old.msgstr,
       comments: old.comments,
+      extracted_comments: new.extracted_comments,
       references: new.references,
     }
   end

@@ -32,12 +32,18 @@ defmodule Gettext.PO.Parser do
   end
 
   defp to_struct({:translation, translation}),
-    do: struct(Translation, translation) |> extract_references() |> extract_flags()
+    do: struct(Translation, translation) |> extract_extracted_comments() |> extract_references() |> extract_flags()
   defp to_struct({:plural_translation, translation}),
-    do: struct(PluralTranslation, translation) |> extract_references() |> extract_flags()
+    do: struct(PluralTranslation, translation) |> extract_extracted_comments() |> extract_references() |> extract_flags()
 
   defp parse_error({:error, {line, _module, reason}}) do
     {:error, line, parse_error_reason(reason)}
+  end
+
+  defp extract_extracted_comments(%{__struct__: _, comments: comments} = translation) do
+    {extracted_comments, other_comments} = Enum.partition(comments, &match?("#." <> _, &1))
+
+    %{translation | extracted_comments: extracted_comments, comments: other_comments}
   end
 
   defp extract_references(%{__struct__: _, comments: comments} = translation) do

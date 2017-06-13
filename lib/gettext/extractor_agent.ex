@@ -67,6 +67,7 @@ defmodule Gettext.ExtractorAgent do
   end
 
   defp merge_translations(t1, t2) do
-    update_in t1.references, &(&1 ++ t2.references)
+    %{ t1 | references: t1.references ++ t2.references,
+       extracted_comments: t1.extracted_comments ++ t2.extracted_comments}
   end
 end

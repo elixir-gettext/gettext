@@ -71,10 +71,11 @@ defmodule Gettext.PO.ParserTest do
   test "comments are associated with translations" do
     parsed = Parser.parse([
       {:comment, 1, "# This is a translation"},
-      {:comment, 2, "#: lib/foo.ex:32"},
-      {:comment, 3, "# Ah, another comment!"},
-      {:msgid, 4}, {:str, 4, "foo"},
-      {:msgstr, 5}, {:str, 5, "bar"},
+      {:comment, 2, "#. Note to translators"},
+      {:comment, 3, "#: lib/foo.ex:32"},
+      {:comment, 4, "# Ah, another comment!"},
+      {:msgid, 5}, {:str, 5, "foo"},
+      {:msgstr, 6}, {:str, 6, "bar"},
     ])
 
     assert {:ok, [], [], [%Translation{
@@ -84,6 +85,7 @@ defmodule Gettext.PO.ParserTest do
         "# This is a translation",
         "# Ah, another comment!",
       ],
+      extracted_comments: ["#. Note to translators"],
       references: [{"lib/foo.ex", 32}],
     }]} = parsed
   end

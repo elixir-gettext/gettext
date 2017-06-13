@@ -233,15 +233,18 @@ defmodule Gettext.PO do
 
   defp dump_translation(%Translation{} = t) do
     [dump_comments(t.comments),
-     dump_flags(t.flags), dump_references(t.references),
+     dump_comments(t.extracted_comments),
+     dump_references(t.references),
+     dump_flags(t.flags),
      dump_kw_and_strings("msgid", t.msgid),
      dump_kw_and_strings("msgstr", t.msgstr)]
   end
 
   defp dump_translation(%PluralTranslation{} = t) do
     [dump_comments(t.comments),
-     dump_flags(t.flags),
+     dump_comments(t.extracted_comments),
      dump_references(t.references),
+     dump_flags(t.flags),
      dump_kw_and_strings("msgid", t.msgid),
      dump_kw_and_strings("msgid_plural", t.msgid_plural),
      dump_plural_msgstr(t.msgstr)]
