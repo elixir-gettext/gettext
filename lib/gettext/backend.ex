@@ -175,4 +175,28 @@ defmodule Gettext.Backend do
   Same as `dngettext_noop("default", msgid, mgsid_plural)`.
   """
   @macrocallback ngettext_noop(msgid :: String.t, msgid_plural :: String.t) :: Macro.t
+
+  @doc """
+  Stores an "extracted comment" for the next translation.
+
+  This macro can be used to add comments (Gettext refers to such
+  comments as *extracted comments*) to the next translation that will
+  be extracted. Extracted comments will be prefixed with `#.` in POT
+  files.
+
+  Calling this function multiple times will accumulate the comments;
+  when another Gettext macro (such as `c:gettext/2`) is called,
+  the comments will be extracted and attached to that translation, and
+  they will be flushed so as to start again.
+
+  This macro always returns `:ok`.
+
+  ## Examples
+
+      MyApp.Gettext.gettext_comment("The next translation is awesome")
+      MyApp.Gettext.gettext_comment("Another comment for the next translation")
+      MyApp.Gettext.gettext("The awesome translation")
+
+  """
+  @macrocallback gettext_comment(comment :: String.t) :: :ok
 end

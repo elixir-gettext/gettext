@@ -177,8 +177,11 @@ defmodule Gettext.ExtractorTest do
       require Gettext.ExtractorTest.MyOtherGettext
 
       def bar do
+        gettext_comment "some comment"
+        gettext_comment "some other comment"
         gettext "foo"
         dngettext "errors", "one error", "%{count} errors", 2
+        gettext_comment "one more comment"
         gettext "foo"
         Gettext.ExtractorTest.MyOtherGettext.dgettext "greetings", "hi"
       end
@@ -193,7 +196,10 @@ defmodule Gettext.ExtractorTest do
         msgid ""
         msgstr ""
 
-        #: foo.ex:14 foo.ex:16
+        #. some comment
+        #. some other comment
+        #. one more comment
+        #: foo.ex:16 foo.ex:19
         msgid "foo"
         msgstr ""
         """},
@@ -203,7 +209,7 @@ defmodule Gettext.ExtractorTest do
           msgid ""
           msgstr ""
 
-          #: foo.ex:15
+          #: foo.ex:17
           msgid "one error"
           msgid_plural "%{count} errors"
           msgstr[0] ""
@@ -215,7 +221,7 @@ defmodule Gettext.ExtractorTest do
           msgid ""
           msgstr ""
 
-          #: foo.ex:17
+          #: foo.ex:20
           msgid "hi"
           msgstr ""
           """}
@@ -229,12 +235,10 @@ defmodule Gettext.ExtractorTest do
 
     # We check that dumped strings end with the `expected` string because
     # there's the informative comment at the start of each dumped string.
-    assert Enum.all?(dumped, fn {path, contents} ->
+    Enum.each(dumped, fn {path, contents} ->
       {^path, expected_contents} = List.keyfind(expected, path, 0)
-      String.ends_with?(contents, expected_contents)
-    end)
-    assert Enum.all?(dumped, fn {_, contents} ->
-      contents =~ "## This file is a PO Template file."
+      assert String.starts_with?(contents, "## This file is a PO Template file.")
+      assert String.ends_with?(contents, expected_contents)
     end)
   after
     Extractor.disable

@@ -19,6 +19,8 @@ defmodule Gettext.PO.PluralTranslation do
       `Gettext.Plural`.
     * `comments` - a list of comments as they are found in the PO file (e.g.,
       `["# foo"]`).
+    * `extracted_comments` - a list of extracted comments (for example,
+      `["foo", "bar"]`).
     * `references` - a list of references (files this translation comes from) in
       the form `{file, line}`.
     * `flags` - a set of flags for this translation.
@@ -32,6 +34,7 @@ defmodule Gettext.PO.PluralTranslation do
     msgid_plural: [binary],
     msgstr: %{non_neg_integer => [binary]},
     comments: [binary],
+    extracted_comments: [binary],
     references: [{binary, pos_integer}],
     flags: MapSet.t,
     po_source_line: pos_integer,
@@ -41,6 +44,7 @@ defmodule Gettext.PO.PluralTranslation do
             msgid_plural: nil,
             msgstr: nil,
             comments: [],
+            extracted_comments: [],
             references: [],
             flags: MapSet.new,
             po_source_line: nil

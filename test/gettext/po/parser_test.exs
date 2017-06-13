@@ -73,8 +73,9 @@ defmodule Gettext.PO.ParserTest do
       {:comment, 1, "# This is a translation"},
       {:comment, 2, "#: lib/foo.ex:32"},
       {:comment, 3, "# Ah, another comment!"},
-      {:msgid, 4}, {:str, 4, "foo"},
-      {:msgstr, 5}, {:str, 5, "bar"},
+      {:comment, 4, "#. An extracted comment"},
+      {:msgid, 5}, {:str, 5, "foo"},
+      {:msgstr, 6}, {:str, 6, "bar"},
     ])
 
     assert {:ok, [], [], [%Translation{
@@ -84,6 +85,7 @@ defmodule Gettext.PO.ParserTest do
         "# This is a translation",
         "# Ah, another comment!",
       ],
+      extracted_comments: ["#. An extracted comment"],
       references: [{"lib/foo.ex", 32}],
     }]} = parsed
   end
@@ -173,6 +175,26 @@ defmodule Gettext.PO.ParserTest do
     assert t.comments == [
       "# Not a reference comment",
       "# : Not a reference comment either",
+    ]
+  end
+
+  test "extracted comments are extracted into the :extracted_comments field of a translation" do
+    parsed = Parser.parse([
+      {:comment, 1, "#. Extracted comment"},
+      {:comment, 1, "# Not an extracted comment"},
+      {:comment, 1, "#.Another extracted comment"},
+      {:msgid, 1}, {:str, 1, "foo"},
+      {:msgstr, 1}, {:str, 1, "bar"},
+    ])
+
+    assert {:ok, [], [], [%Translation{} = t]} = parsed
+    assert t.extracted_comments == [
+      "#. Extracted comment",
+      "#.Another extracted comment",
+    ]
+    # All the reference comments are removed.
+    assert t.comments == [
+      "# Not an extracted comment",
     ]
   end
 
