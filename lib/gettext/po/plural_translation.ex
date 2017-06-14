@@ -20,7 +20,7 @@ defmodule Gettext.PO.PluralTranslation do
     * `comments` - a list of comments as they are found in the PO file (e.g.,
       `["# foo"]`).
     * `extracted_comments` - a list of extracted comments (for example,
-      `["foo", "bar"]`).
+      `["#. foo", "#. bar"]`).
     * `references` - a list of references (files this translation comes from) in
       the form `{file, line}`.
     * `flags` - a set of flags for this translation.
