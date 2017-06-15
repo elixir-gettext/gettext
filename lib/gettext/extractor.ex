@@ -50,9 +50,9 @@ defmodule Gettext.Extractor do
 
   Note that this function doesn't perform any operation on the filesystem.
   """
-  @spec extract(Macro.Env.t, module, binary, binary | {binary, binary}) :: :ok
-  def extract(%Macro.Env{file: file, line: line} = _caller, backend, domain, id) do
-    ExtractorAgent.add_translation(backend, domain, create_translation_struct(id, file, line))
+  @spec extract(Macro.Env.t, module, binary, binary | {binary, binary}, [binary]) :: :ok
+  def extract(%Macro.Env{file: file, line: line} = _caller, backend, domain, id, extracted_comments) do
+    ExtractorAgent.add_translation(backend, domain, create_translation_struct(id, file, line, extracted_comments))
   end
 
   @doc """
@@ -123,18 +123,20 @@ defmodule Gettext.Extractor do
     update_in(translation.references, &Enum.sort/1)
   end
 
-  defp create_translation_struct({msgid, msgid_plural}, file, line),
+  defp create_translation_struct({msgid, msgid_plural}, file, line, extracted_comments),
     do: %PluralTranslation{
           msgid: [msgid],
           msgid_plural: [msgid_plural],
           msgstr: %{0 => [""], 1 => [""]},
           references: [{Path.relative_to_cwd(file), line}],
+          extracted_comments: extracted_comments,
         }
-  defp create_translation_struct(msgid, file, line),
+  defp create_translation_struct(msgid, file, line, extracted_comments),
     do: %Translation{
           msgid: [msgid],
           msgstr: [""],
           references: [{Path.relative_to_cwd(file), line}],
+          extracted_comments: extracted_comments,
         }
 
   # Made public for testing.

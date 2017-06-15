@@ -250,6 +250,23 @@ defmodule Gettext.POTest do
     """
   end
 
+  test "dump/1: translation with extracted comments" do
+    po = %PO{headers: [], translations: [
+      %Translation{
+        msgid: ["foo"],
+        msgstr: ["bar"],
+        extracted_comments: ["#. some comment", "#. another comment"],
+      }
+    ]}
+
+    assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+    #. some comment
+    #. another comment
+    msgid "foo"
+    msgstr "bar"
+    """
+  end
+
   test "dump/1: references" do
     po = %PO{translations: [
       %Translation{

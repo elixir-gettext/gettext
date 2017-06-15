@@ -55,6 +55,7 @@ defmodule Gettext.Merger do
       * existing msgstr are preserved (the ones in the POT file are empty anyways)
       * existing translator comments are preserved (there are no translator
         comments in POT files)
+      * existing extracted comments are replaced by new extracted comments
       * existing references are discarded (as they're now outdated) and replaced
         by the references in the POT file
 
@@ -123,6 +124,7 @@ defmodule Gettext.Merger do
       msgid: new.msgid, # they are the same
       msgstr: old.msgstr, # new.msgstr should be empty since it's a POT file
       comments: old.comments, # new has no translator comments
+      extracted_comments: new.extracted_comments,
       references: new.references,
     }
   end
@@ -133,6 +135,7 @@ defmodule Gettext.Merger do
       msgid_plural: new.msgid_plural, # they are the same
       msgstr: old.msgstr, # new.msgstr should be empty since it's a POT file
       comments: old.comments, # new has no translator comments
+      extracted_comments: new.extracted_comments,
       references: new.references,
     }
   end

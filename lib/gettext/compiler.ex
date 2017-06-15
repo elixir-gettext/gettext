@@ -65,7 +65,7 @@ defmodule Gettext.Compiler do
         msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
 
         if Gettext.Extractor.extracting? do
-          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, msgid)
+          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, msgid, Gettext.Compiler.get_and_flush_extracted_comments())
         end
 
         msgid
@@ -83,7 +83,7 @@ defmodule Gettext.Compiler do
         msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __MODULE__, __CALLER__)
 
         if Gettext.Extractor.extracting? do
-          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, {msgid, msgid_plural})
+          Gettext.Extractor.extract(__CALLER__, __MODULE__, domain, {msgid, msgid_plural}, Gettext.Compiler.get_and_flush_extracted_comments())
         end
 
         {msgid, msgid_plural}
@@ -134,6 +134,12 @@ defmodule Gettext.Compiler do
             unquote(bindings)
           )
         end
+      end
+
+      defmacro gettext_comment(comment) do
+        comment = Gettext.Compiler.expand_to_binary(comment, "comment", __MODULE__, __CALLER__)
+        Gettext.Compiler.append_extracted_comment(comment)
+        :ok
       end
     end
   end
@@ -188,7 +194,7 @@ defmodule Gettext.Compiler do
   """
   @spec expand_to_binary(binary, binary, module, Macro.Env.t) ::
     binary | no_return
-  def expand_to_binary(term, what, gettext_module, env) when what in ~w(domain msgid msgid_plural) do
+  def expand_to_binary(term, what, gettext_module, env) when what in ~w(domain msgid msgid_plural comment) do
     raiser = fn ->
       raise ArgumentError, """
       *gettext macros expect translation keys (msgid and msgid_plural) and
@@ -215,6 +221,18 @@ defmodule Gettext.Compiler do
       _ ->
         raiser.()
     end
+  end
+
+  @spec append_extracted_comment(binary) :: :ok
+  def append_extracted_comment(comment) do
+    existing = Process.get(:gettext_comments, [])
+    Process.put(:gettext_comments, ["#. " <> comment | existing])
+    :ok
+  end
+
+  @spec get_and_flush_extracted_comments() :: [binary]
+  def get_and_flush_extracted_comments() do
+    Enum.reverse(Process.delete(:gettext_comments) || [])
   end
 
   @doc """
