@@ -41,7 +41,7 @@ defmodule Gettext.PO.Parser do
   end
 
   defp extract_references(%{__struct__: _, comments: comments} = translation) do
-    {reference_comments, other_comments} = Enum.partition(comments, &match?("#:" <> _, &1))
+    {reference_comments, other_comments} = enum_split_with(comments, &match?("#:" <> _, &1))
     references =
       reference_comments
       |> Enum.reject(fn("#:" <> comm) -> string_trim(comm) == "" end)
@@ -68,13 +68,13 @@ defmodule Gettext.PO.Parser do
   end
 
   defp extract_extracted_comments(%{__struct__: _, comments: comments} = translation) do
-    {extracted_comments, other_comments} = Enum.partition(comments, &match?("#." <> _, &1))
+    {extracted_comments, other_comments} = enum_split_with(comments, &match?("#." <> _, &1))
     extracted_comments = Enum.reject(extracted_comments, fn "#." <> comm -> string_trim(comm) == "" end)
     %{translation | extracted_comments: extracted_comments, comments: other_comments}
   end
 
   defp extract_flags(%{__struct__: _, comments: comments} = translation) do
-    {flag_comments, other_comments} = Enum.partition(comments, &match?("#," <> _, &1))
+    {flag_comments, other_comments} = enum_split_with(comments, &match?("#," <> _, &1))
     %{translation | flags: parse_flags(flag_comments), comments: other_comments}
   end
 
@@ -152,15 +152,15 @@ defmodule Gettext.PO.Parser do
   # TODO: remove when we depend on Elixir 1.3 and on
   Code.ensure_loaded(String)
 
-  if function_exported?(String, :trim, 1) do
-    defp string_trim(string), do: apply(String, :trim, [string])
-  else
-    defp string_trim(string), do: apply(String, :strip, [string])
-  end
+  trim = if function_exported?(String, :trim, 1), do: :trim, else: :strip
+  defp string_trim(string), do: apply(String, unquote(trim), [string])
 
-  if function_exported?(String, :trim_leading, 1) do
-    defp string_trim_leading(string), do: apply(String, :trim_leading, [string])
-  else
-    defp string_trim_leading(string), do: apply(String, :lstrip, [string])
-  end
+  trim_leading = if function_exported?(String, :trim_leading, 1), do: :trim_leading, else: :trim
+  defp string_trim_leading(string), do: apply(String, unquote(trim_leading), [string])
+
+  # TODO: remove once we depend on Elixir 1.4 and on.
+  Code.ensure_loaded(Enum)
+
+  split_with = if function_exported?(Enum, :split_with, 2), do: :split_with, else: :partition
+  defp enum_split_with(enum, fun), do: apply(Enum, unquote(split_with), [enum, fun])
 end

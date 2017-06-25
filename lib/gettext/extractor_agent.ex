@@ -61,7 +61,7 @@ defmodule Gettext.ExtractorAgent do
   def pop_backends(app) do
     Agent.get_and_update(@name, fn state ->
       get_and_update_in(state.backends, fn backends ->
-        Enum.partition(backends, &(&1.__gettext__(:otp_app) == app))
+        enum_split_with(backends, &(&1.__gettext__(:otp_app) == app))
       end)
     end)
   end
@@ -71,4 +71,10 @@ defmodule Gettext.ExtractorAgent do
     |> Map.put(:references, t1.references ++ t2.references)
     |> Map.put(:extracted_comments, t1.extracted_comments ++ t2.extracted_comments)
   end
+
+  # TODO: remove once we depend on Elixir 1.4 and on.
+  Code.ensure_loaded(Enum)
+
+  split_with = if function_exported?(Enum, :split_with, 2), do: :split_with, else: :partition
+  defp enum_split_with(enum, fun), do: apply(Enum, unquote(split_with), [enum, fun])
 end
