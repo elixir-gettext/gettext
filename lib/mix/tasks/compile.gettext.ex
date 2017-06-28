@@ -1,4 +1,6 @@
 defmodule Mix.Tasks.Compile.Gettext do
+  # TODO: use Mix.Task.Compiler once we depend on Elixir 1.6 and on
+
   use Mix.Task
 
   @recursive true
