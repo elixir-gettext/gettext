@@ -12,7 +12,7 @@ defmodule Gettext.PO.Translation do
   `Gettext.PO.Translation` structs, but as `Gettext.PO.PluralTranslation`
   structs.
 
-  This struct contains two fields:
+  This struct contains the following fields:
 
     * `msgid` - the id of the translation.
     * `msgstr` - the translated string.

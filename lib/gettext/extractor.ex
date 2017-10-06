@@ -157,7 +157,7 @@ defmodule Gettext.Extractor do
     Map.merge(pot_files, po_structs, &merge_existing_and_extracted(&1, &2, &3, gettext_config))
     |> Enum.map(&tag_files(&1, gettext_config))
     |> Enum.reject(&match?({_, {_, :unchanged}}, &1))
-    |> Enum.map(&dump_tagged_file/1)
+    |> Enum.map(&dump_tagged_file(&1, gettext_config))
   end
 
   # This function is called by merge_pot_files/2 as the function passed to
@@ -173,7 +173,7 @@ defmodule Gettext.Extractor do
     {existing_contents, existing_po} = read_contents_and_parse(existing_path)
     merged_po = merge_template(existing_po, new_po, gettext_config)
 
-    if IO.iodata_to_binary(PO.dump(merged_po)) == existing_contents do
+    if IO.iodata_to_binary(PO.dump(merged_po, gettext_config)) == existing_contents do
       :unchanged
     else
       merged_po
@@ -216,10 +216,10 @@ defmodule Gettext.Extractor do
   # This function "dumps" merged files and unmerged files without any changes,
   # and dumps new POT files adding an informative comment to them. This doesn't
   # write anything to disk, it just returns `{path, contents}` tuples.
-  defp dump_tagged_file({path, {:new, new_po}}),
-    do: {path, [new_pot_comment(), (new_po |> add_headers_to_new_po() |> PO.dump())]}
-  defp dump_tagged_file({path, {tag, po}}) when tag in [:unmerged, :merged],
-    do: {path, PO.dump(po)}
+  defp dump_tagged_file({path, {:new, new_po}}, gettext_config),
+    do: {path, [new_pot_comment(), (new_po |> add_headers_to_new_po() |> PO.dump(gettext_config))]}
+  defp dump_tagged_file({path, {tag, po}}, gettext_config) when tag in [:unmerged, :merged],
+    do: {path, PO.dump(po, gettext_config)}
 
   defp prune_unmerged(path, gettext_config) do
     merge_or_unchanged(path, %PO{}, gettext_config)
