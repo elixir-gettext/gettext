@@ -46,6 +46,7 @@ defmodule Mix.Tasks.Compile.Gettext do
         [".compile" | Enum.take(parts, index - 1)]
         |> Path.join()
         |> String.replace("/", "_")
+
       Path.join(app_dir, filename)
     else
       :not_in_canonical_dir
@@ -66,14 +67,14 @@ defmodule Mix.Tasks.Compile.Gettext do
   end
 
   defp write_manifest(manifest, pos) do
-    File.mkdir_p! Path.dirname(manifest)
-    File.write! manifest, pos |> Enum.sort |> Enum.map(&[&1, ?\n])
+    File.mkdir_p!(Path.dirname(manifest))
+    File.write!(manifest, pos |> Enum.sort() |> Enum.map(&[&1, ?\n]))
     manifest
   end
 
   defp manifest_stale?(manifest, pos) do
     current = read_manifest(manifest)
-    added   = pos -- current
+    added = pos -- current
     removed = current -- pos
 
     if added == [] and removed == [] do

@@ -15,7 +15,6 @@ defmodule Gettext.PO.Tokenizer do
     {:msgctxt, line} |
     {:comment, line, binary}
 
-
   # In this list of keywords *the order matters* because a function clause is
   # generated for each keyword, and keywords have to be followed by whitespace.
   # `msgid_plural` would cause an error if it didn't come before `msgid`.
@@ -70,7 +69,7 @@ defmodule Gettext.PO.Tokenizer do
 
   # Skip whitespace.
   defp tokenize_line(<<char, rest :: binary>>, line, acc)
-      when char in @whitespace_no_nl do
+       when char in @whitespace_no_nl do
     tokenize_line(rest, line, acc)
   end
 
@@ -84,7 +83,7 @@ defmodule Gettext.PO.Tokenizer do
   # Keywords.
   for kw <- @keywords do
     defp tokenize_line(unquote(kw) <> <<char, rest :: binary>>, line, acc)
-        when char in @whitespace do
+         when char in @whitespace do
       acc = [{unquote(String.to_atom(kw)), line} | acc]
       tokenize_line(rest, line, acc)
     end
@@ -108,7 +107,7 @@ defmodule Gettext.PO.Tokenizer do
   end
 
   defp tokenize_line("msgstr" <> <<char, rest :: binary>>, line, acc)
-      when char in @whitespace do
+       when char in @whitespace do
     acc = [{:msgstr, line} | acc]
     tokenize_line(rest, line, acc)
   end
@@ -134,7 +133,7 @@ defmodule Gettext.PO.Tokenizer do
   # we assume there's an unknown keyword. We parse it with a regex
   # (`next_word/1`) so that the error message is informative.
   defp tokenize_line(<<letter, _ :: binary>> = binary, line, _acc)
-      when letter in ?a..?z or letter in ?A..?Z do
+       when letter in ?a..?z or letter in ?A..?Z do
     {:error, line, "unknown keyword '#{next_word(binary)}'"}
   end
 
@@ -160,7 +159,7 @@ defmodule Gettext.PO.Tokenizer do
   defp tokenize_string(<<?", rest :: binary>>, acc),
     do: {:ok, acc, rest}
   defp tokenize_string(<<?\\, char, rest :: binary>>, acc)
-    when char in @escapable_chars,
+       when char in @escapable_chars,
     do: tokenize_string(rest, <<acc :: binary, escape_char(char)>>)
   defp tokenize_string(<<?\\, _char, _rest :: binary>>, _acc),
     do: {:error, "unsupported escape code"}
@@ -174,13 +173,13 @@ defmodule Gettext.PO.Tokenizer do
   @spec tokenize_plural_form(binary, binary) ::
     {:ok, non_neg_integer, binary} | {:error, binary}
   defp tokenize_plural_form(<<digit, rest :: binary>>, acc)
-    when digit in '0123456789',
+       when digit in '0123456789',
     do: tokenize_plural_form(rest, <<acc :: binary, digit>>)
   defp tokenize_plural_form(<<?], char, rest :: binary>>, acc)
-    when char in @whitespace and acc != <<>>,
+       when char in @whitespace and acc != <<>>,
     do: {:ok, String.to_integer(acc), rest}
   defp tokenize_plural_form(<<?], _rest :: binary>>, acc)
-    when acc != <<>>,
+       when acc != <<>>,
     do: {:error, "missing space after 'msgstr[#{acc}]'"}
   defp tokenize_plural_form(_binary, _acc),
     do: {:error, "invalid plural form"}
@@ -201,5 +200,5 @@ defmodule Gettext.PO.Tokenizer do
     do: to_eol_or_eof(rest, <<acc :: binary, char>>)
 
   @spec next_word(binary) :: binary
-  defp next_word(binary), do: Regex.run(~r/\w+/u, binary) |> List.first
+  defp next_word(binary), do: List.first(Regex.run(~r/\w+/u, binary))
 end

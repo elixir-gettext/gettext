@@ -12,37 +12,39 @@ defmodule Gettext.Extractor do
   # keeping the order from the original file), then adding the translations from
   # the new in-memory POT (sorted by name).
 
-  alias Gettext.ExtractorAgent
-  alias Gettext.PO
-  alias Gettext.PO.Translation
-  alias Gettext.PO.PluralTranslation
-  alias Gettext.Error
+  alias Gettext.{
+    Error,
+    ExtractorAgent,
+    PO,
+    PO.Translation,
+    PO.PluralTranslation,
+  }
 
   @doc """
   Enables translation extraction.
   """
   @spec enable() :: :ok
-  def enable do
-    ExtractorAgent.enable
+  def enable() do
+    ExtractorAgent.enable()
   end
 
   @doc """
   Disables extraction.
   """
   @spec disable() :: :ok
-  def disable do
-    ExtractorAgent.disable
+  def disable() do
+    ExtractorAgent.disable()
   end
 
   @doc """
   Tells whether translations are being extracted.
   """
   @spec extracting?() :: boolean
-  def extracting? do
+  def extracting?() do
     # Because the extractor agent may not be enabled during compilation
     # time (as it requires the optional gettext compiler), we need to
     # check if the agent is up and running before querying it.
-    Process.whereis(ExtractorAgent) && ExtractorAgent.extracting?
+    Process.whereis(ExtractorAgent) && ExtractorAgent.extracting?()
   end
 
   @doc """
@@ -80,11 +82,11 @@ defmodule Gettext.Extractor do
 
   # Returns all the .pot files for each of the given `backends`.
   defp pot_files_for_backends(backends) do
-    Enum.flat_map backends, fn backend ->
+    Enum.flat_map(backends, fn backend ->
       backend.__gettext__(:priv)
       |> Path.join("**/*.pot")
       |> Path.wildcard()
-    end
+    end)
   end
 
   # This returns a list of {absolute_path, %Gettext.PO{}} tuples.
@@ -93,7 +95,7 @@ defmodule Gettext.Extractor do
   #     %{MyBackend => %{"a_domain" => %{"a translation id" => a_translation}}}
   #
   defp create_po_structs_from_extracted_translations(all_translations) do
-    for {backend, domains}     <- all_translations,
+    for {backend, domains} <- all_translations,
         {domain, translations} <- domains do
       create_po_struct(backend, domain, Map.values(translations))
     end
@@ -145,10 +147,10 @@ defmodule Gettext.Extractor do
     # pot_files is a list of paths to existing .pot files while po_structs is a
     # list of {path, struct} for new %Gettext.PO{} structs that we have
     # extracted. If we turn pot_files into a list of {path, whatever} tuples,
-    # then we can take advantage of Dict.merge/3 to find files that we have to
+    # then we can take advantage of Map.merge/3 to find files that we have to
     # update, delete, or add.
-    pot_files  = Enum.into(pot_files, %{}, &{&1, :existing})
-    po_structs = Enum.into(po_structs, %{})
+    pot_files = Map.new(pot_files, &{&1, :existing})
+    po_structs = Map.new(po_structs)
 
     # After Map.merge/3, we have something like:
     #   %{path => {:merged, :unchanged | %PO{}}, path => %PO{}, path => :existing}
@@ -225,7 +227,7 @@ defmodule Gettext.Extractor do
     merge_or_unchanged(path, %PO{}, gettext_config)
   end
 
-  defp new_pot_comment do
+  defp new_pot_comment() do
     """
     ## This file is a PO Template file.
     ##
@@ -277,6 +279,7 @@ defmodule Gettext.Extractor do
   defp merge_translations(%Translation{} = old, %Translation{comments: []} = new) do
     ensure_empty_msgstr!(old)
     ensure_empty_msgstr!(new)
+
     %Translation{
       msgid: old.msgid,
       msgstr: old.msgstr,
@@ -292,6 +295,7 @@ defmodule Gettext.Extractor do
   defp merge_translations(%PluralTranslation{} = old, %PluralTranslation{comments: []} = new) do
     ensure_empty_msgstr!(old)
     ensure_empty_msgstr!(new)
+
     # The logic here is the same as for %Translation{}s.
     %PluralTranslation{
       msgid: old.msgid,

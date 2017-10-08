@@ -184,10 +184,12 @@ defmodule Gettext.PO do
   def dump(po, gettext_config \\ [])
 
   def dump(%PO{headers: hs, translations: ts, top_of_the_file_comments: cs}, gettext_config) do
-    [dump_top_comments(cs),
-     dump_headers(hs),
-     (if hs != [] and ts != [], do: ?\n, else: []),
-     dump_translations(ts, gettext_config)]
+    [
+      dump_top_comments(cs),
+      dump_headers(hs),
+      if(hs != [] and ts != [], do: ?\n, else: []),
+      dump_translations(ts, gettext_config),
+    ]
   end
 
   defp dump_top_comments(top_comments) when is_list(top_comments) do
@@ -208,8 +210,10 @@ defmodule Gettext.PO do
   end
 
   defp dump_headers(headers) do
-    [~s(msgid ""\n),
-      dump_kw_and_strings("msgstr", headers)]
+    [
+      ~s(msgid ""\n),
+      dump_kw_and_strings("msgstr", headers),
+    ]
   end
 
   defp dump_translations(translations, gettext_config) do
@@ -219,22 +223,26 @@ defmodule Gettext.PO do
   end
 
   defp dump_translation(%Translation{} = t, gettext_config) do
-    [dump_comments(t.comments),
-     dump_comments(t.extracted_comments),
-     dump_flags(t.flags),
-     dump_references(t.references, gettext_config),
-     dump_kw_and_strings("msgid", t.msgid),
-     dump_kw_and_strings("msgstr", t.msgstr)]
+    [
+      dump_comments(t.comments),
+      dump_comments(t.extracted_comments),
+      dump_flags(t.flags),
+      dump_references(t.references, gettext_config),
+      dump_kw_and_strings("msgid", t.msgid),
+      dump_kw_and_strings("msgstr", t.msgstr),
+    ]
   end
 
   defp dump_translation(%PluralTranslation{} = t, gettext_config) do
-    [dump_comments(t.comments),
-     dump_comments(t.extracted_comments),
-     dump_flags(t.flags),
-     dump_references(t.references, gettext_config),
-     dump_kw_and_strings("msgid", t.msgid),
-     dump_kw_and_strings("msgid_plural", t.msgid_plural),
-     dump_plural_msgstr(t.msgstr)]
+    [
+      dump_comments(t.comments),
+      dump_comments(t.extracted_comments),
+      dump_flags(t.flags),
+      dump_references(t.references, gettext_config),
+      dump_kw_and_strings("msgid", t.msgid),
+      dump_kw_and_strings("msgid_plural", t.msgid_plural),
+      dump_plural_msgstr(t.msgstr),
+    ]
   end
 
   defp dump_comments(comments) do
@@ -257,15 +265,18 @@ defmodule Gettext.PO do
     # when references wrap, building an iolist. At the end, we need to insert
     # the first comment delimiter and the last newline.
     wrapping_column = @wrapping_column - @reference_comment_length
-    {iolist, _} = Enum.flat_map_reduce references, 0, fn({file, line}, line_length) ->
-      ref = " #{file}:#{line}"
-      ref_length = String.length(ref)
-      if (ref_length + line_length) > wrapping_column do
-        {[?\n, "#:", ref], ref_length}
-      else
-        {[ref], line_length + ref_length}
-      end
-    end
+
+    {iolist, _} =
+      Enum.flat_map_reduce(references, 0, fn {file, line}, line_length ->
+        ref = " #{file}:#{line}"
+        ref_length = String.length(ref)
+
+        if (ref_length + line_length) > wrapping_column do
+          {[?\n, "#:", ref], ref_length}
+        else
+          {[ref], line_length + ref_length}
+        end
+      end)
 
     ["#:", iolist, ?\n]
   end
@@ -278,14 +289,15 @@ defmodule Gettext.PO do
         flags
         |> Enum.sort
         |> Enum.intersperse(", ")
+
       ["#, ", flags, ?\n]
     end
   end
 
   defp dump_plural_msgstr(msgstr) do
-    Enum.map msgstr, fn {plural_form, str} ->
+    Enum.map(msgstr, fn {plural_form, str} ->
       dump_kw_and_strings("msgstr[#{plural_form}]", str)
-    end
+    end)
   end
 
   defp dump_kw_and_strings(keyword, [first | rest]) do
@@ -298,10 +310,10 @@ defmodule Gettext.PO do
     for <<char <- str>>, into: "", do: escape_char(char)
   end
 
-  defp escape_char(?"),   do: ~S(\")
-  defp escape_char(?\n),  do: ~S(\n)
-  defp escape_char(?\t),  do: ~S(\t)
-  defp escape_char(?\r),  do: ~S(\r)
+  defp escape_char(?"), do: ~S(\")
+  defp escape_char(?\n), do: ~S(\n)
+  defp escape_char(?\t), do: ~S(\t)
+  defp escape_char(?\r), do: ~S(\r)
   defp escape_char(char), do: <<char>>
 
   # This function removes a BOM byte sequence from the start of the given string
@@ -322,15 +334,17 @@ defmodule Gettext.PO do
 
   defp prune_bom(@bom <> str, file) do
     file_or_string = if file == "nofile", do: "string", else: "file"
+
     IO.puts :stderr, "#{file}: warning: the #{file_or_string} being parsed starts" <>
-                     " with a BOM byte sequence (#{inspect @bom, binaries: :as_binaries})." <>
+                     " with a BOM byte sequence (#{inspect(@bom, binaries: :as_binaries)})." <>
                      " These bytes are ignored by Gettext but it's recommended to remove" <>
                      " them. To know more about BOM, read" <>
                      " https://en.wikipedia.org/wiki/Byte_order_mark."
+
     str
   end
 
-  defp prune_bom(str, _) when is_binary(str) do
+  defp prune_bom(str, _file) when is_binary(str) do
     str
   end
 end

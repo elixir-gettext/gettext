@@ -6,7 +6,6 @@ defmodule Gettext.Backend do
   `Gettext` module.
   """
 
-
   @doc """
   Default handling for missing bindings.
 
@@ -53,7 +52,7 @@ defmodule Gettext.Backend do
 
   """
   @callback handle_missing_bindings(Gettext.MissingBindingsError.t, binary) ::
-    binary | no_return
+            binary | no_return
 
   @doc """
   Translates the given `msgid` in the given `domain`.
@@ -63,7 +62,7 @@ defmodule Gettext.Backend do
   See also `Gettext.dgettext/4`.
   """
   @macrocallback dgettext(domain :: Macro.t, msgid :: String.t, bindings :: Macro.t) ::
-    Macro.t
+                 Macro.t
 
   @doc """
   Same as `dgettext(domain, msgid, %{})`.

@@ -85,6 +85,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   """
 
   @default_fuzzy_threshold 0.8
+  @switches [locale: :string, fuzzy: :boolean, fuzzy_threshold: :float]
 
   alias Gettext.Merger
 
@@ -92,21 +93,24 @@ defmodule Mix.Tasks.Gettext.Merge do
     _ = Mix.Project.get!
     gettext_config = Mix.Project.config()[:gettext] || []
 
-    parse_switches = [locale: :string, fuzzy: :boolean, fuzzy_threshold: :float]
-    case OptionParser.parse(args, switches: parse_switches) do
+    case OptionParser.parse(args, switches: @switches) do
       {opts, [arg1, arg2], _} ->
         run_with_two_args(arg1, arg2, opts, gettext_config)
       {opts, [arg], _} ->
         run_with_one_arg(arg, opts, gettext_config)
       {_, [], _} ->
-        Mix.raise "gettext.merge requires at least one argument to work. " <>
-                  "Use `mix help gettext.merge` to see the usage of this task"
+        Mix.raise(
+          "gettext.merge requires at least one argument to work. " <>
+          "Use `mix help gettext.merge` to see the usage of this task"
+        )
       {_, _, [_ | _] = errors} ->
-        for {key, _} <- errors, do: Mix.shell.error "#{key} is invalid"
-        Mix.raise "`mix gettext.merge` aborted"
+        for {key, _} <- errors, do: Mix.shell.error("#{key} is invalid")
+        Mix.raise("`mix gettext.merge` aborted")
       {_, _, _} ->
-        Mix.raise "Too many arguments for the gettext.merge task. " <>
-                  "Use `mix help gettext.merge` to see the usage of this task"
+        Mix.raise(
+          "Too many arguments for the gettext.merge task. " <>
+          "Use `mix help gettext.merge` to see the usage of this task"
+        )
     end
 
     Mix.Task.reenable("gettext.merge")
@@ -120,9 +124,9 @@ defmodule Mix.Tasks.Gettext.Merge do
       ensure_file_exists!(arg2)
       {path, contents} = merge_po_with_pot(arg1, arg2, merging_opts, gettext_config)
       File.write!(path, contents)
-      Mix.shell.info "Wrote #{path}"
+      Mix.shell.info("Wrote #{path}")
     else
-      Mix.raise "Arguments must be a PO file and a PO/POT file"
+      Mix.raise("Arguments must be a PO file and a PO/POT file")
     end
   end
 
@@ -149,7 +153,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp merge_all_locale_dirs(pot_dir, opts, gettext_config) do
     pot_dir
-    |> ls_locale_dirs
+    |> ls_locale_dirs()
     |> Enum.each(&merge_dirs(&1, pot_dir, opts, gettext_config))
   end
 
@@ -159,7 +163,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp ls_locale_dirs(dir) do
     dir
-    |> File.ls!
+    |> File.ls!()
     |> Enum.filter(&File.dir?(Path.join(dir, &1)))
     |> Enum.map(&locale_dir(dir, &1))
   end
@@ -169,12 +173,12 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Path.join("*.pot")
     |> Path.wildcard()
     |> Enum.map(fn pot_file ->
-      Task.async fn ->
+      Task.async(fn ->
         pot_file
         |> find_matching_po(po_dir)
         |> merge_or_create(opts, gettext_config)
         |> write_file()
-      end
+      end)
     end)
     |> Enum.map(&Task.await/1)
 
@@ -201,7 +205,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp write_file({path, contents}) do
     File.write!(path, contents)
-    Mix.shell.info "Wrote #{path}"
+    Mix.shell.info("Wrote #{path}")
   end
 
   defp po_has_matching_pot?(po_file, pot_dir) do
@@ -211,7 +215,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp warn_for_missing_pot_file(po_file, pot_dir) do
-    Mix.shell.info "Warning: PO file #{po_file} has no matching POT file in #{pot_dir}"
+    Mix.shell.info("Warning: PO file #{po_file} has no matching POT file in #{pot_dir}")
   end
 
   defp ensure_file_exists!(path) do
@@ -225,7 +229,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   defp create_missing_locale_dir(dir) do
     unless File.dir?(dir) do
       File.mkdir_p!(dir)
-      Mix.shell.info "Created directory #{dir}"
+      Mix.shell.info("Created directory #{dir}")
     end
   end
 
@@ -235,8 +239,9 @@ defmodule Mix.Tasks.Gettext.Merge do
     opts = Keyword.merge(defaults, Keyword.take(opts, [:fuzzy, :fuzzy_threshold]))
 
     threshold = opts[:fuzzy_threshold]
+
     unless threshold >= 0.0 and threshold <= 1.0 do
-      Mix.raise "The :fuzzy_threshold option must be a float >= 0.0 and <= 1.0"
+      Mix.raise("The :fuzzy_threshold option must be a float >= 0.0 and <= 1.0")
     end
 
     opts

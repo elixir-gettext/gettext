@@ -461,6 +461,6 @@ defmodule GettextTest do
     log = capture_log fn ->
       assert Translator.dgettext("sub/dir/domain", "hello") == "hello"
     end
-    assert log =~ ~s(slashes in domains are not supported: "sub/dir/domain")
+    assert log =~ ~s(Slashes in domains are not supported: "sub/dir/domain")
   end
 end

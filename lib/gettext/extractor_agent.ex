@@ -26,7 +26,7 @@ defmodule Gettext.ExtractorAgent do
   end
 
   def extracting?() do
-    Agent.get(@name, &(&1.extracting?))
+    Agent.get(@name, & &1.extracting?)
   end
 
   def add_translation(backend, domain, translation) do
@@ -34,7 +34,7 @@ defmodule Gettext.ExtractorAgent do
 
     Agent.cast(@name, fn state ->
       # Initialize the given backend to an empty map if it wasn't there.
-      state = update_in state.translations, &Map.put_new(&1, backend, %{})
+      state = update_in(state.translations, &Map.put_new(&1, backend, %{}))
 
       update_in(state, [:translations, backend, domain], fn translations ->
         Map.update(translations || %{}, key, translation, &merge_translations(&1, translation))

@@ -78,25 +78,27 @@ defmodule Gettext.Merger do
     # Then, we do a first pass through the list of new translation and we mark
     # all exact matches as {key, translation, exact_match}, taking the exact matches
     # out of `old` at the same time.
-    {new, old} = Enum.map_reduce new, old, fn(t, old) ->
-      key = PO.Translations.key(t)
-      {same, old} = Map.pop(old, key)
-      {{key, t, same}, old}
-    end
+    {new, old} =
+      Enum.map_reduce(new, old, fn t, old ->
+        key = PO.Translations.key(t)
+        {same, old} = Map.pop(old, key)
+        {{key, t, same}, old}
+      end)
 
     # Now, tuples like {key, translation, nil} identify translations with no
     # exact match. For those translations, we look for a fuzzy match. We ditch
     # the obsolete translations altogether.
-    {new, _obsolete} = Enum.map_reduce new, old, fn
-      {key, t, nil}, old ->
-        if Keyword.fetch!(opts, :fuzzy) do
-          find_fuzzy_match(key, t, old, Keyword.fetch!(opts, :fuzzy_threshold))
-        else
-          {t, old}
-        end
-      {_, t, exact_match}, old ->
-        {merge_two_translations(exact_match, t), old}
-    end
+    {new, _obsolete} =
+      Enum.map_reduce(new, old, fn
+        {key, t, nil}, old ->
+          if Keyword.fetch!(opts, :fuzzy) do
+            find_fuzzy_match(key, t, old, Keyword.fetch!(opts, :fuzzy_threshold))
+          else
+            {t, old}
+          end
+        {_, t, exact_match}, old ->
+          {merge_two_translations(exact_match, t), old}
+      end)
 
     new
   end
@@ -157,6 +159,7 @@ defmodule Gettext.Merger do
   @spec new_po_file(Path.t, Path.t, Keyword.t) :: iodata
   def new_po_file(po_file, pot_file, gettext_config \\ []) do
     pot = PO.parse_file!(pot_file)
+
     po = %PO{
       headers: headers_for_new_po_file(po_file),
       file: po_file,
@@ -174,7 +177,7 @@ defmodule Gettext.Merger do
 
   defp locale_from_path(path) do
     parts = Path.split(path)
-    index = Enum.find_index(parts, &(&1 == "LC_MESSAGES"))
+    index = Enum.find_index(parts, & &1 == "LC_MESSAGES")
     Enum.at(parts, index - 1)
   end
 

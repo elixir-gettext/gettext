@@ -66,7 +66,7 @@ defmodule Gettext.Interpolation do
 
   This function takes an interpolatable list (like the ones returned by
   `to_interpolatable/1`) and some bindings and returns an `{:ok,
-  interpolated_strping}` tuple ` if interpolation is successful. If it encounters
+  interpolated_string}` tuple if interpolation is successful. If it encounters
   an atom in `interpolatable` that is missing from `bindings`, it returns
   `{:missing_bindings, incomplete_string, missing_bindings}` where
   `incomplete_string` is the string with only the present bindings interpolated
@@ -94,6 +94,7 @@ defmodule Gettext.Interpolation do
   defp interpolate([string | segments], bindings, strings, missing) when is_binary(string) do
     interpolate(segments, bindings, [string | strings], missing)
   end
+
   defp interpolate([atom | segments], bindings, strings, missing) when is_atom(atom) do
     case bindings do
       %{^atom => value} ->
@@ -102,11 +103,13 @@ defmodule Gettext.Interpolation do
         interpolate(segments, bindings, ["%{" <> Atom.to_string(atom) <> "}" | strings], [atom | missing])
     end
   end
+
   defp interpolate([], _bindings, strings, []) do
     {:ok, IO.iodata_to_binary(Enum.reverse(strings))}
   end
+
   defp interpolate([], _bindings, strings, missing) do
-    missing = missing |> Enum.reverse |> Enum.uniq
+    missing = missing |> Enum.reverse() |> Enum.uniq()
     {:missing_bindings, IO.iodata_to_binary(Enum.reverse(strings)), missing}
   end
 
@@ -139,5 +142,5 @@ defmodule Gettext.Interpolation do
   def keys(string) when is_binary(string),
     do: string |> to_interpolatable() |> keys()
   def keys(interpolatable) when is_list(interpolatable),
-    do: interpolatable |> Enum.filter(&is_atom/1) |> Enum.uniq
+    do: interpolatable |> Enum.filter(&is_atom/1) |> Enum.uniq()
 end

@@ -121,15 +121,18 @@ defmodule Gettext.Plural do
         raise Gettext.Plural.UnknownLocaleError, "en-US"
 
     """
+
     defexception [:message]
 
     def exception(locale) when is_binary(locale) do
-      %__MODULE__{message: """
-      unknown locale #{inspect locale}. If this is a locale you need to handle,
+      message = """
+      unknown locale #{inspect(locale)}. If this is a locale you need to handle,
       consider using a custom pluralizer module instead of the default
       Gettext.Plural. You can read more about this on the Gettext docs at
       https://hexdocs.pm/gettext/Gettext.Plural.html
-      """}
+      """
+
+      %__MODULE__{message: message}
     end
   end
 
@@ -137,6 +140,7 @@ defmodule Gettext.Plural do
 
   defmacrop ends_in(n, digits) do
     digits = List.wrap(digits)
+
     quote do
       rem(unquote(n), 10) in unquote(digits)
     end
