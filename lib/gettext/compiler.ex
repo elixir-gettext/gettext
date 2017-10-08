@@ -187,39 +187,28 @@ defmodule Gettext.Compiler do
   @doc """
   Expands the given `msgid` in the given `env`, raising if it doesn't expand to
   a binary.
-
-  This function doesn't just check that the expansion of `msgid` (via
-  `Macro.expand/2`) is a binary; it also takes care of `{:<<>>, _, binaries}`
-  ASTs (e.g., the `~s` sigil expands to such AST).
   """
   @spec expand_to_binary(binary, binary, module, Macro.Env.t) ::
     binary | no_return
   def expand_to_binary(term, what, gettext_module, env) when what in ~w(domain msgid msgid_plural comment) do
-    raiser = fn ->
-      raise ArgumentError, """
-      *gettext macros expect translation keys (msgid and msgid_plural) and
-      domains to expand to strings at compile-time, but the given #{what}
-      doesn't.
-
-      Dynamic translations should be avoided as they limit gettext's
-      ability to extract translations from your source code. If you are
-      sure you need dynamic lookup, you can use the functions in the Gettext
-      module:
-
-          string = "hello world"
-          Gettext.gettext(#{inspect gettext_module}, string)
-      """
-    end
-
     case Macro.expand(term, env) do
       term when is_binary(term) ->
         term
-      {:<<>>, _, pieces} ->
-        # TODO: Remove this once Elixir will fix ~s to expand to just a binary when
-        # there's no interpolation.
-        if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces, ""), else: raiser.()
-      _ ->
-        raiser.()
+      _other ->
+        raise ArgumentError, """
+        *gettext macros expect translation keys (msgid and msgid_plural) and
+        domains to expand to strings at compile-time, but the given #{what}
+        doesn't.
+
+        Dynamic translations should be avoided as they limit gettext's
+        ability to extract translations from your source code. If you are
+        sure you need dynamic lookup, you can use the functions in the Gettext
+        module:
+
+            string = "hello world"
+            Gettext.gettext(#{inspect gettext_module}, string)
+        """
+      end
     end
   end
 

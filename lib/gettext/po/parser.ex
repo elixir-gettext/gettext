@@ -44,7 +44,7 @@ defmodule Gettext.PO.Parser do
     {reference_comments, other_comments} = enum_split_with(comments, &match?("#:" <> _, &1))
     references =
       reference_comments
-      |> Enum.reject(fn("#:" <> comm) -> string_trim(comm) == "" end)
+      |> Enum.reject(fn("#:" <> comm) -> String.trim(comm) == "" end)
       |> Enum.flat_map(&parse_references/1)
 
     %{translation | references: references, comments: other_comments}
@@ -52,7 +52,7 @@ defmodule Gettext.PO.Parser do
 
   defp parse_references("#:" <> comment) do
     comment
-    |> string_trim()
+    |> String.trim()
     |> String.split(":")                      # we remain with "21 foo.ex"
     |> Enum.flat_map(&parse_reference_part/1) # [file, line, file, line...]
     |> Enum.chunk(2)                          # [[file, line], [file, line], ...]
@@ -62,14 +62,14 @@ defmodule Gettext.PO.Parser do
   defp parse_reference_part(part) do
     case Integer.parse(part) do
       {next_line_no, ""}       -> [next_line_no] # last line number
-      {next_line_no, filename} -> [next_line_no, string_trim_leading(filename)]
+      {next_line_no, filename} -> [next_line_no, String.trim_leading(filename)]
       :error                   -> [part] # first filename
     end
   end
 
   defp extract_extracted_comments(%{__struct__: _, comments: comments} = translation) do
     {extracted_comments, other_comments} = enum_split_with(comments, &match?("#." <> _, &1))
-    extracted_comments = Enum.reject(extracted_comments, fn "#." <> comm -> string_trim(comm) == "" end)
+    extracted_comments = Enum.reject(extracted_comments, fn "#." <> comm -> String.trim(comm) == "" end)
     %{translation | extracted_comments: extracted_comments, comments: other_comments}
   end
 
@@ -148,15 +148,6 @@ defmodule Gettext.PO.Parser do
     do: [prefix, binary_part(rest, 0, byte_size(rest) - 2)]
   defp parse_error_reason(error, token),
     do: [error, token]
-
-  # TODO: remove when we depend on Elixir 1.3 and on
-  Code.ensure_loaded(String)
-
-  trim = if function_exported?(String, :trim, 1), do: :trim, else: :strip
-  defp string_trim(string), do: apply(String, unquote(trim), [string])
-
-  trim_leading = if function_exported?(String, :trim_leading, 1), do: :trim_leading, else: :trim
-  defp string_trim_leading(string), do: apply(String, unquote(trim_leading), [string])
 
   # TODO: remove once we depend on Elixir 1.4 and on.
   Code.ensure_loaded(Enum)

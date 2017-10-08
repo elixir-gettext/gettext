@@ -60,19 +60,11 @@ defmodule Gettext.PO do
   def parse_string(str) do
     str = prune_bom(str, "nofile")
 
-    # TODO: use "with" here once we depend on Elixir 1.3 and on.
-    case Tokenizer.tokenize(str) do
-      {:error, _line, _reason} = error ->
-        error
-      {:ok, tokens} ->
-        case Parser.parse(tokens) do
-          {:error, _line, _reason} = error ->
-            error
-          {:ok, top_comments, headers, translations} ->
-            {:ok, %PO{headers: headers,
-                      translations: translations,
-                      top_of_the_file_comments: top_comments}}
-        end
+    with {:ok, tokens} <- Tokenizer.tokenize(str),
+         {:ok, top_comments, headers, translations} <- Parser.parse(tokens) do
+      {:ok, %PO{headers: headers,
+                translations: translations,
+                top_of_the_file_comments: top_comments}}
     end
   end
 
@@ -124,15 +116,10 @@ defmodule Gettext.PO do
   """
   @spec parse_file(Path.t) :: {:ok, t} | parse_error | {:error, atom}
   def parse_file(path) do
-    # TODO: use "with" here once we depend on Elixir 1.3 and on.
-    case File.read(path) do
-      {:ok, contents} ->
-        case parse_string(prune_bom(contents, path)) do
-          {:ok, po}                        -> {:ok, %{po | file: path}}
-          {:error, _line, _reason} = error -> error
-        end
-      {:error, _reason} = error ->
-        error
+    with {:ok, contents} <- File.read(path),
+         pruned = prune_bom(contents, path),
+         {:ok, po} <- parse_string(pruned) do
+      {:ok, %{po | file: path}}
     end
   end
 
