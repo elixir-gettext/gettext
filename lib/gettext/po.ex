@@ -193,14 +193,14 @@ defmodule Gettext.PO do
       msgstr "bar"
 
   """
-  @spec dump(t) :: iodata
-  def dump(po)
+  @spec dump(t, Keyword.t) :: iodata
+  def dump(po, gettext_config \\ [])
 
-  def dump(%PO{headers: hs, translations: ts, top_of_the_file_comments: cs}) do
+  def dump(%PO{headers: hs, translations: ts, top_of_the_file_comments: cs}, gettext_config) do
     [dump_top_comments(cs),
      dump_headers(hs),
      (if hs != [] and ts != [], do: ?\n, else: []),
-     dump_translations(ts)]
+     dump_translations(ts, gettext_config)]
   end
 
   defp dump_top_comments(top_comments) when is_list(top_comments) do
@@ -225,25 +225,26 @@ defmodule Gettext.PO do
       dump_kw_and_strings("msgstr", headers)]
   end
 
-  defp dump_translations(translations) do
+  defp dump_translations(translations, gettext_config) do
     translations
-    |> Enum.map(&dump_translation/1)
+    |> Enum.map(&dump_translation(&1, gettext_config))
     |> Enum.intersperse(?\n)
   end
 
-  defp dump_translation(%Translation{} = t) do
+  defp dump_translation(%Translation{} = t, gettext_config) do
     [dump_comments(t.comments),
      dump_comments(t.extracted_comments),
-     dump_flags(t.flags), dump_references(t.references),
+     dump_flags(t.flags),
+     dump_references(t.references, gettext_config),
      dump_kw_and_strings("msgid", t.msgid),
      dump_kw_and_strings("msgstr", t.msgstr)]
   end
 
-  defp dump_translation(%PluralTranslation{} = t) do
+  defp dump_translation(%PluralTranslation{} = t, gettext_config) do
     [dump_comments(t.comments),
      dump_comments(t.extracted_comments),
      dump_flags(t.flags),
-     dump_references(t.references),
+     dump_references(t.references, gettext_config),
      dump_kw_and_strings("msgid", t.msgid),
      dump_kw_and_strings("msgid_plural", t.msgid_plural),
      dump_plural_msgstr(t.msgstr)]
@@ -251,6 +252,11 @@ defmodule Gettext.PO do
 
   defp dump_comments(comments) do
     Enum.map(comments, &[&1, ?\n])
+  end
+
+  defp dump_references(references, gettext_config) do
+    references = if Keyword.get(gettext_config, :write_reference_comments, true), do: references, else: []
+    dump_references(references)
   end
 
   defp dump_references([]) do

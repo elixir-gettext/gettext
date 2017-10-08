@@ -118,7 +118,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     if Path.extname(arg1) == ".po" and Path.extname(arg2) in [".po", ".pot"] do
       ensure_file_exists!(arg1)
       ensure_file_exists!(arg2)
-      {path, contents} = merge_po_with_pot(arg1, arg2, merging_opts)
+      {path, contents} = merge_po_with_pot(arg1, arg2, merging_opts, gettext_config)
       File.write!(path, contents)
       Mix.shell.info "Wrote #{path}"
     else
@@ -131,26 +131,26 @@ defmodule Mix.Tasks.Gettext.Merge do
     merging_opts = validate_merging_opts!(opts, gettext_config)
 
     if locale = opts[:locale] do
-      merge_locale_dir(arg, locale, merging_opts)
+      merge_locale_dir(arg, locale, merging_opts, gettext_config)
     else
-      merge_all_locale_dirs(arg, merging_opts)
+      merge_all_locale_dirs(arg, merging_opts, gettext_config)
     end
   end
 
-  defp merge_po_with_pot(po_file, pot_file, opts) do
-    {po_file, Merger.merge_files(po_file, pot_file, opts)}
+  defp merge_po_with_pot(po_file, pot_file, opts, gettext_config) do
+    {po_file, Merger.merge_files(po_file, pot_file, opts, gettext_config)}
   end
 
-  defp merge_locale_dir(pot_dir, locale, opts) do
+  defp merge_locale_dir(pot_dir, locale, opts, gettext_config) do
     locale_dir = locale_dir(pot_dir, locale)
     create_missing_locale_dir(locale_dir)
-    merge_dirs(locale_dir, pot_dir, opts)
+    merge_dirs(locale_dir, pot_dir, opts, gettext_config)
   end
 
-  defp merge_all_locale_dirs(pot_dir, opts) do
+  defp merge_all_locale_dirs(pot_dir, opts, gettext_config) do
     pot_dir
     |> ls_locale_dirs
-    |> Enum.each(&merge_dirs(&1, pot_dir, opts))
+    |> Enum.each(&merge_dirs(&1, pot_dir, opts, gettext_config))
   end
 
   def locale_dir(pot_dir, locale) do
@@ -164,7 +164,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Enum.map(&locale_dir(dir, &1))
   end
 
-  defp merge_dirs(po_dir, pot_dir, opts) do
+  defp merge_dirs(po_dir, pot_dir, opts, gettext_config) do
     pot_dir
     |> Path.join("*.pot")
     |> Path.wildcard()
@@ -172,7 +172,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       Task.async fn ->
         pot_file
         |> find_matching_po(po_dir)
-        |> merge_or_create(opts)
+        |> merge_or_create(opts, gettext_config)
         |> write_file()
       end
     end)
@@ -191,11 +191,11 @@ defmodule Mix.Tasks.Gettext.Merge do
     {pot_file, Path.join(po_dir, "#{domain}.po")}
   end
 
-  defp merge_or_create({pot_file, po_file}, opts) do
+  defp merge_or_create({pot_file, po_file}, opts, gettext_config) do
     if File.regular?(po_file) do
       {po_file, Merger.merge_files(po_file, pot_file, opts)}
     else
-      {po_file, Merger.new_po_file(po_file, pot_file)}
+      {po_file, Merger.new_po_file(po_file, pot_file, gettext_config)}
     end
   end
 

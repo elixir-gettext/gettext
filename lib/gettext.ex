@@ -468,6 +468,11 @@ defmodule Gettext do
       `"priv"` directory of your application. Defaults to
       `"gettext/*/LC_MESSAGES/*.po"`.
 
+    * `:write_reference_comments` - a boolean that specifies whether reference comments should be
+      written when outputting PO(T) files. If this is `false`, reference comments will not be
+      written when extracting translations or merging translations, and the ones already found in
+      files will be discarded.
+
   """
 
   defmodule Error do

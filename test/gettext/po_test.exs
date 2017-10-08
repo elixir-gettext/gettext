@@ -295,6 +295,23 @@ defmodule Gettext.POTest do
     """
   end
 
+  test "dump/1: references can be not dumped through configuration" do
+    po = %PO{translations: [
+      %Translation{
+        msgid: ["foo"],
+        msgstr: ["bar"],
+        comments: ["# comment"],
+        references: [{"foo.ex", 1}, {"lib/bar.ex", 2}],
+      },
+    ]}
+
+    assert IO.iodata_to_binary(PO.dump(po, write_reference_comments: false)) == ~S"""
+    # comment
+    msgid "foo"
+    msgstr "bar"
+    """
+  end
+
   test "dump/1: references are wrapped" do
     po = %PO{translations: [
       %Translation{
@@ -304,7 +321,6 @@ defmodule Gettext.POTest do
                      {String.duplicate("b", 50) <> ".ex", 2}],
       },
     ]}
-
 
     assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
     #: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.ex:1
