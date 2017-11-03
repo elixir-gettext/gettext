@@ -1,9 +1,6 @@
 defmodule Gettext.Backend do
   @moduledoc """
   Behaviour that defines the macros that a Gettext backend has to implement.
-
-  These macros are documented in great detail in the documentation for the
-  `Gettext` module.
   """
 
   @doc """
