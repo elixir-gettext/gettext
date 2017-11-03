@@ -32,8 +32,6 @@ defmodule Gettext.Compiler do
     opts = Keyword.merge(mix_config_opts, compile_time_opts)
 
     priv = Keyword.get(opts, :priv, @default_priv)
-    plural_mod = Keyword.get(opts, :plural_forms, Gettext.Plural)
-
     translations_dir = Application.app_dir(otp_app, priv)
     external_file = String.replace(Path.join(".compile", priv), "/", "_")
     known_locales = known_locales(translations_dir)
@@ -58,7 +56,7 @@ defmodule Gettext.Compiler do
       unquote(catch_all_helpers())
 
       unquote(signatures())
-      unquote(compile_po_files(translations_dir, plural_mod))
+      unquote(compile_po_files(env, translations_dir, opts))
       unquote(catch_all_clauses())
     end
   end
@@ -265,22 +263,37 @@ defmodule Gettext.Compiler do
   Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
   and `lngettext/6` function clauses.
   """
-  @spec compile_po_files(Path.t, module) :: Macro.t
-  def compile_po_files(dir, plural_mod) do
-    Enum.map(po_files_in_dir(dir), &compile_po_file(&1, plural_mod))
+  @spec compile_po_files(Macro.Env.t, Path.t, Keyword.t) :: Macro.t
+  def compile_po_files(env, dir, opts) do
+    plural_mod = Keyword.get(opts, :plural_forms, Gettext.Plural)
+    po_files = po_files_in_dir(dir)
+
+    if Keyword.get(opts, :one_module_per_locale, false) do
+      {quoted, locales} =
+        Enum.map_reduce(po_files, %{}, &compile_parallel_po_file(env, &1, &2, plural_mod))
+
+      locales
+      |> Enum.map(&Kernel.ParallelCompiler.async(fn -> create_locale_module(env, &1) end))
+      |> Enum.each(&Task.await(&1, :infinity))
+
+      quoted
+    else
+      Enum.map(po_files, &compile_serial_po_file(&1, plural_mod))
+    end
   end
 
-  # Compiles a .po file into a list of lgettext/4 (for translations) and
-  # lngettext/6 (for plural translations) clauses.
-  defp compile_po_file(path, plural_mod) do
-    {locale, domain} = locale_and_domain_from_path(path)
-    %PO{translations: translations, file: file} = PO.parse_file!(path)
+  defp create_locale_module(env, {module, translations}) do
+    exprs = [quote(do: @moduledoc false), catch_all_helpers() | translations]
+    Module.create(module, block(exprs), env)
+    :ok
+  end
 
-    singular_fun = :"#{locale}_#{domain}_lgettext"
-    plural_fun = :"#{locale}_#{domain}_lngettext"
-    mapper = &compile_translation(locale, &1, singular_fun, plural_fun, file, plural_mod)
+  defp compile_serial_po_file(path, plural_mod) do
+    {locale, domain, singular_fun, plural_fun, quoted} = compile_po_file(:defp, path, plural_mod)
 
     quote do
+      unquote(quoted)
+
       def lgettext(unquote(locale), unquote(domain), msgid, bindings) do
         unquote(singular_fun)(msgid, bindings)
       end
@@ -288,17 +301,55 @@ defmodule Gettext.Compiler do
       def lngettext(unquote(locale), unquote(domain), msgid, msgid_plural, n, bindings) do
         unquote(plural_fun)(msgid, msgid_plural, n, bindings)
       end
-
-      unquote(Enum.map(translations, mapper))
-
-      defp unquote(singular_fun)(msgid, bindings) do
-        catch_all(unquote(domain), msgid, bindings)
-      end
-
-      defp unquote(plural_fun)(msgid, msgid_plural, n, bindings) do
-        catch_all_n(unquote(domain), msgid, msgid_plural, n, bindings)
-      end
     end
+  end
+
+  defp compile_parallel_po_file(env, path, locales, plural_mod) do
+    {locale, domain, singular_fun, plural_fun, locale_module_quoted} =
+      compile_po_file(:def, path, plural_mod)
+
+    module = :"#{env.module}.T_#{locale}"
+
+    current_module_quoted =
+      quote do
+        def lgettext(unquote(locale), unquote(domain), msgid, bindings) do
+          unquote(module).unquote(singular_fun)(msgid, bindings)
+        end
+
+        def lngettext(unquote(locale), unquote(domain), msgid, msgid_plural, n, bindings) do
+          unquote(module).unquote(plural_fun)(msgid, msgid_plural, n, bindings)
+        end
+      end
+
+    locales = Map.update(locales, module, [locale_module_quoted], &[locale_module_quoted | &1])
+    {current_module_quoted, locales}
+  end
+
+  # Compiles a .po file into a list of lgettext/4 (for translations) and
+  # lngettext/6 (for plural translations) clauses.
+  defp compile_po_file(kind, path, plural_mod) do
+    {locale, domain} = locale_and_domain_from_path(path)
+    %PO{translations: translations, file: file} = PO.parse_file!(path)
+
+    singular_fun = :"#{locale}_#{domain}_lgettext"
+    plural_fun = :"#{locale}_#{domain}_lngettext"
+    mapper = &compile_translation(kind, locale, &1, singular_fun, plural_fun, file, plural_mod)
+    translations = block(Enum.map(translations, mapper))
+
+    quoted =
+      quote do
+        unquote(translations)
+
+        Kernel.unquote(kind)(unquote(singular_fun)(msgid, bindings)) do
+          catch_all(unquote(domain), msgid, bindings)
+        end
+
+        Kernel.unquote(kind)(unquote(plural_fun)(msgid, msgid_plural, n, bindings)) do
+          catch_all_n(unquote(domain), msgid, msgid_plural, n, bindings)
+        end
+      end
+
+    {locale, domain, singular_fun, plural_fun, quoted}
   end
 
   defp locale_and_domain_from_path(path) do
@@ -307,7 +358,7 @@ defmodule Gettext.Compiler do
     {locale, domain}
   end
 
-  defp compile_translation(_locale, %Translation{} = t, singular_fun, _plural_fun, _file, _plural_mod) do
+  defp compile_translation(kind, _locale, %Translation{} = t, singular_fun, _plural_fun, _file, _plural_mod) do
     msgid = IO.iodata_to_binary(t.msgid)
     msgstr = IO.iodata_to_binary(t.msgstr)
 
@@ -317,14 +368,14 @@ defmodule Gettext.Compiler do
     # msgid}` (with interpolation and so on).
     if msgstr != "" do
       quote do
-        defp unquote(singular_fun)(unquote(msgid), var!(bindings)) do
+        Kernel.unquote(kind)(unquote(singular_fun)(unquote(msgid), var!(bindings))) do
           unquote(compile_interpolation(msgstr))
         end
       end
     end
   end
 
-  defp compile_translation(locale, %PluralTranslation{} = t, _singular_fun, plural_fun, file, plural_mod) do
+  defp compile_translation(kind, locale, %PluralTranslation{} = t, _singular_fun, plural_fun, file, plural_mod) do
     warn_if_missing_plural_forms(locale, plural_mod, t, file)
 
     msgid = IO.iodata_to_binary(t.msgid)
@@ -351,7 +402,7 @@ defmodule Gettext.Compiler do
         end
 
       quote do
-        defp unquote(plural_fun)(unquote(msgid), unquote(msgid_plural), n, bindings) do
+        Kernel.unquote(kind)(unquote(plural_fun)(unquote(msgid), unquote(msgid_plural), n, bindings)) do
           plural_form = unquote(plural_mod).plural(unquote(locale), n)
           var!(bindings) = Map.put(bindings, :count, n)
 
@@ -370,6 +421,10 @@ defmodule Gettext.Compiler do
         ])
       end
     end)
+  end
+
+  defp block(contents) when is_list(contents) do
+    {:__block__, [], contents}
   end
 
   # Compiles a string into a full-blown `case` statement which interpolates the

@@ -439,6 +439,11 @@ defmodule Gettext do
     * `:default_locale` - a string which specifies the default locale to use for
       the given backend.
 
+    * `:one_module_per_locale` - instead of bundling all locales into a single
+      module, this option makes Gettext build one internal module per locale.
+      This reduces compilation times and beam file sizes for large projects.
+      This option requires Elixir v1.6.
+
   ### Mix tasks configuration
 
   You can configure Gettext Mix tasks under the `:gettext` key in the
