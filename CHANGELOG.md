@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.14.0-dev
+
+* Introduce a global locale (per-process) for all Gettext backends
+* Warn when compiling and raise at runtime for missing plural forms
+* Separate flags with commas when dumping and parsing .pot files
+* Add support for extracted comments via `gettext_comment/1`
+* Require Elixir v1.3 and fix warnings
+* Improve compilation time of gettext backends in roughtly 20%
+* Add `:one_module_per_locale` for parallel compilation of backends (requires Elixir v1.6)
+
 ## v0.13.1
 
 * Fix a bug with Dialyzer specs for the `Gettext.Backend.ngettext_noop/2` callback
