@@ -133,8 +133,10 @@ defmodule GettextTest do
 
   test "using a custom Gettext.Plural module" do
     alias TranslatorWithCustomPluralForms, as: T
+
     assert T.lngettext("it", "default", "One new email", "%{count} new emails", 1, %{}) ==
            {:ok, "1 nuove email"}
+
     assert T.lngettext("it", "default", "One new email", "%{count} new emails", 2, %{}) ==
            {:ok, "Una nuova email"}
   end
@@ -462,5 +464,40 @@ defmodule GettextTest do
       assert Translator.dgettext("sub/dir/domain", "hello") == "hello"
     end
     assert log =~ ~s(Slashes in domains are not supported: "sub/dir/domain")
+  end
+
+  if function_exported?(Kernel.ParallelCompiler, :async, 1) do
+    defmodule TranslatorWithOneModulePerLocale do
+      use Gettext, otp_app: :test_application, one_module_per_locale: true
+    end
+
+    test "may define one module per locale" do
+      import TranslatorWithOneModulePerLocale, only: [lgettext: 4, lngettext: 6]
+      assert Code.ensure_loaded?(TranslatorWithOneModulePerLocale.T_it)
+
+      # Found on default domain.
+      assert lgettext("it", "default", "Hello world", %{}) ==
+             {:ok, "Ciao mondo"}
+
+      # Found on errors domain.
+      assert lgettext("it", "errors", "Invalid email address", %{}) ==
+             {:ok, "Indirizzo email non valido"}
+
+      # Found with plural form.
+      assert lngettext("it", "errors", "There was an error", "There were %{count} errors", 1, %{}) ==
+             {:ok, "C'è stato un errore"}
+
+      # Unknown msgid.
+      assert lgettext("it", "default", "nonexistent", %{}) ==
+             {:default, "nonexistent"}
+
+      # Unknown domain.
+      assert lgettext("it", "unknown", "Hello world", %{}) ==
+             {:default, "Hello world"}
+
+      # Unknown locale.
+      assert lgettext("pt_BR", "nonexistent", "Hello world", %{}) ==
+             {:default, "Hello world"}
+    end
   end
 end
