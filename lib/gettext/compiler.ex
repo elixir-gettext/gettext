@@ -55,9 +55,11 @@ defmodule Gettext.Compiler do
       end
 
       unquote(macros())
+      unquote(catch_all_helpers())
+
       unquote(signatures())
       unquote(compile_po_files(translations_dir, plural_mod))
-      unquote(dynamic_clauses())
+      unquote(catch_all_clauses())
     end
   end
 
@@ -158,10 +160,26 @@ defmodule Gettext.Compiler do
   Returns the quoted code for the dynamic clauses of `lgettext/4` and
   `lngettext/6`.
   """
-  @spec dynamic_clauses() :: Macro.t
-  def dynamic_clauses() do
+  @spec catch_all_clauses() :: Macro.t
+  def catch_all_clauses() do
     quote do
       def lgettext(_locale, domain, msgid, bindings) do
+        catch_all(domain, msgid, bindings)
+      end
+
+      def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
+        catch_all_n(domain, msgid, msgid_plural, n, bindings)
+      end
+    end
+  end
+
+  @doc """
+  Defines helper functions for handling catch all throughout the backend.
+  """
+  @spec catch_all_helpers() :: Macro.t
+  def catch_all_helpers() do
+    quote do
+      defp catch_all(domain, msgid, bindings) do
         import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
 
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
@@ -171,7 +189,7 @@ defmodule Gettext.Compiler do
         end
       end
 
-      def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
+      defp catch_all_n(domain, msgid, msgid_plural, n, bindings) do
         import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
 
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
@@ -249,7 +267,7 @@ defmodule Gettext.Compiler do
   """
   @spec compile_po_files(Path.t, module) :: Macro.t
   def compile_po_files(dir, plural_mod) do
-    Enum.flat_map(po_files_in_dir(dir), &compile_po_file(&1, plural_mod))
+    Enum.map(po_files_in_dir(dir), &compile_po_file(&1, plural_mod))
   end
 
   # Compiles a .po file into a list of lgettext/4 (for translations) and
@@ -257,7 +275,30 @@ defmodule Gettext.Compiler do
   defp compile_po_file(path, plural_mod) do
     {locale, domain} = locale_and_domain_from_path(path)
     %PO{translations: translations, file: file} = PO.parse_file!(path)
-    Enum.map(translations, &compile_translation(locale, domain, &1, file, plural_mod))
+
+    singular_fun = :"#{locale}_#{domain}_lgettext"
+    plural_fun = :"#{locale}_#{domain}_lngettext"
+    mapper = &compile_translation(locale, &1, singular_fun, plural_fun, file, plural_mod)
+
+    quote do
+      def lgettext(unquote(locale), unquote(domain), msgid, bindings) do
+        unquote(singular_fun)(msgid, bindings)
+      end
+
+      def lngettext(unquote(locale), unquote(domain), msgid, msgid_plural, n, bindings) do
+        unquote(plural_fun)(msgid, msgid_plural, n, bindings)
+      end
+
+      unquote(Enum.map(translations, mapper))
+
+      defp unquote(singular_fun)(msgid, bindings) do
+        catch_all(unquote(domain), msgid, bindings)
+      end
+
+      defp unquote(plural_fun)(msgid, msgid_plural, n, bindings) do
+        catch_all_n(unquote(domain), msgid, msgid_plural, n, bindings)
+      end
+    end
   end
 
   defp locale_and_domain_from_path(path) do
@@ -266,7 +307,7 @@ defmodule Gettext.Compiler do
     {locale, domain}
   end
 
-  defp compile_translation(locale, domain, %Translation{} = t, _file, _plural_mod) do
+  defp compile_translation(_locale, %Translation{} = t, singular_fun, _plural_fun, _file, _plural_mod) do
     msgid = IO.iodata_to_binary(t.msgid)
     msgstr = IO.iodata_to_binary(t.msgstr)
 
@@ -276,19 +317,18 @@ defmodule Gettext.Compiler do
     # msgid}` (with interpolation and so on).
     if msgstr != "" do
       quote do
-        def lgettext(unquote(locale), unquote(domain), unquote(msgid), var!(bindings)) do
+        defp unquote(singular_fun)(unquote(msgid), var!(bindings)) do
           unquote(compile_interpolation(msgstr))
         end
       end
     end
   end
 
-  defp compile_translation(locale, domain, %PluralTranslation{} = t, file, plural_mod) do
+  defp compile_translation(locale, %PluralTranslation{} = t, _singular_fun, plural_fun, file, plural_mod) do
     warn_if_missing_plural_forms(locale, plural_mod, t, file)
 
     msgid = IO.iodata_to_binary(t.msgid)
     msgid_plural = IO.iodata_to_binary(t.msgid_plural)
-
     msgstr = Enum.map(t.msgstr, fn {form, str} -> {form, IO.iodata_to_binary(str)} end)
 
     # If any of the msgstrs is empty, then we skip the generation of this
@@ -311,7 +351,7 @@ defmodule Gettext.Compiler do
         end
 
       quote do
-        def lngettext(unquote(locale), unquote(domain), unquote(msgid), unquote(msgid_plural), n, bindings) do
+        defp unquote(plural_fun)(unquote(msgid), unquote(msgid_plural), n, bindings) do
           plural_form = unquote(plural_mod).plural(unquote(locale), n)
           var!(bindings) = Map.put(bindings, :count, n)
 
