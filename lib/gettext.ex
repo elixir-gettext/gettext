@@ -185,7 +185,7 @@ defmodule Gettext do
   translations in your code with PO files. This, however, imposes a constraint:
   arguments passed to any of these macros have to be strings **at compile
   time**. This means that they have to be string literals or something that
-  expands to a string literal at compile time (e.g., a module attribute like
+  expands to a string literal at compile time (for example, a module attribute like
   `@my_string "foo"`).
 
   These are all valid uses of the gettext macros:
@@ -483,7 +483,7 @@ defmodule Gettext do
   defmodule Error do
     @moduledoc """
     A generic error raised for a variety of possible Gettext-related reasons
-    (e.g., missing interpolation keys).
+    (for example, missing interpolation keys).
     """
     defexception [:message]
   end

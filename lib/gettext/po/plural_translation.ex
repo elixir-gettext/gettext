@@ -17,7 +17,7 @@ defmodule Gettext.PO.PluralTranslation do
     * `msgstr` - a map which maps plural forms as keys to translated strings as
       values. The plural forms mentioned here are the ones described in
       `Gettext.Plural`.
-    * `comments` - a list of comments as they are found in the PO file (e.g.,
+    * `comments` - a list of comments as they are found in the PO file (for example,
       `["# foo"]`).
     * `extracted_comments` - a list of extracted comments (for example,
       `["#. foo", "#. bar"]`).

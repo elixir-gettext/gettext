@@ -204,7 +204,7 @@ defmodule Gettext.Extractor do
   #   * {path, {:merged, _}} - one existed and there's a new one
   #   * {path, {:unmerged, _}} - one existed, no new one
   #   * {path, {:new, _}} - none existed, there's a new one
-  # Note that existing files with no new corresponding file are "pruned", e.g.,
+  # Note that existing files with no new corresponding file are "pruned", for example,
   # merged with an empty %PO{} struct to remove obsolete translations (see
   # prune_unmerged/1), because the user could still have PO translation that
   # they manually inserted in that file.

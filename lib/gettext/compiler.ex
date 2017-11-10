@@ -478,7 +478,7 @@ defmodule Gettext.Compiler do
   end
 
   # Returns all the PO files in `translations_dir` (under "canonical" paths,
-  # i.e., `locale/LC_MESSAGES/domain.po`).
+  # that is, `locale/LC_MESSAGES/domain.po`).
   defp po_files_in_dir(dir) do
     dir
     |> Path.join(@po_wildcard)

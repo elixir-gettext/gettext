@@ -100,7 +100,7 @@ defmodule Gettext.PO do
 
     * `{:ok, po}`
     * `{:error, line, reason}` if there is an error with the contents of the
-      `.po` file (e.g., a syntax error)
+      `.po` file (for example, a syntax error)
     * `{:error, reason}` if there is an error with reading the file (this error
       is one of the errors that can be returned by `File.read/1`)_
 

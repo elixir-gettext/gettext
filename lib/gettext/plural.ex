@@ -74,7 +74,7 @@ defmodule Gettext.Plural do
   forwarding it to `xx` (except for *just Brazilian Portuguese*, `pt_BR`, which
   is not forwarded to `pt` as pluralization rules slightly differ). We treat the
   underscore as a separator according to ISO 15897. Sometimes, a dash `-` is
-  used as a separator (e.g., `en-US`): this is not forwarded to `en` in the
+  used as a separator (for example, `en-US`): this is not forwarded to `en` in the
   default `Gettext.Plural` (and it will raise an `Gettext.Plural.UnknownLocaleError`
   exception).
 

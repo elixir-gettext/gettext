@@ -19,7 +19,7 @@ defmodule Gettext.PO.Tokenizer do
   # generated for each keyword, and keywords have to be followed by whitespace.
   # `msgid_plural` would cause an error if it didn't come before `msgid`.
   # Also note that the `msgstr` keyword is missing here since it can be also
-  # followed by a plural form (e.g., `[1]`).
+  # followed by a plural form (for example, `[1]`).
   @keywords ~w(
     msgid_plural
     msgid

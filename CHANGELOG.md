@@ -80,9 +80,9 @@
 
 * Fix a bug with the `*gettext` macros, which raised an error when given
   compile-time strings in the form of `~s`/`~S` sigils.
-* Create missing locale directories (e.g., `en/LC_MESSAGES`) when running the
+* Create missing locale directories (for example, `en/LC_MESSAGES`) when running the
   `gettext.merge` Mix task.
-* Fallback to default translations (i.e., the `msgid`) when the `msgstr` (or one
+* Fallback to default translations (that is, the `msgid`) when the `msgstr` (or one
   or more `msgstr` strings for plural translations) is empty.
 
 ## v0.7.0
@@ -96,7 +96,7 @@
   of a global one)
 * Remove the `:default_locale` config option for the `:gettext` application in
   favour of configuring the `:default_locale` for backends tied to their
-  `:otp_app` (e.g., `config :my_app, MyApp.Gettext, default_locale: "pt_BR"`)
+  `:otp_app` (for example, `config :my_app, MyApp.Gettext, default_locale: "pt_BR"`)
 
 ## v0.6.1
 

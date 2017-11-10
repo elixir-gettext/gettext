@@ -120,7 +120,7 @@ defmodule Gettext.Interpolation do
   This function returns a list of all the interpolation keys (patterns in the
   form `%{interpolation}`) contained in its argument.
 
-  If the argument is a segment list, i.e., a list of strings and atoms where
+  If the argument is a segment list, that is, a list of strings and atoms where
   atoms represent interpolation keys, then only the atoms in the list are
   returned.
 
