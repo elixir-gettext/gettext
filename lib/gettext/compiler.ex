@@ -15,19 +15,18 @@ defmodule Gettext.Compiler do
 
   @doc false
   defmacro __before_compile__(env) do
-    # Options given to "use Gettext" have higher precedence than options set
-    # throught Mix.Config; :otp_app, however, is only supported in "use
-    # Gettext" (because we need it to get the Mix config).
-
     compile_time_opts = Module.get_attribute(env.module, :gettext_opts)
 
-    # We're using Keyword.fetch!/2 to raise below.
-    {otp_app, compile_time_opts} =
-      case Keyword.pop(compile_time_opts, :otp_app) do
-        {nil, opts} -> Keyword.fetch!(opts, :otp_app)
-        {app, opts} -> {app, opts}
-      end
+    # :otp_app is only supported in "use Gettext" (because we need it to get the Mix config).
+    {otp_app, compile_time_opts} = Keyword.pop(compile_time_opts, :otp_app)
 
+    if is_nil(otp_app) do
+      # We're using Keyword.fetch!/2 to raise below.
+      Keyword.fetch!(compile_time_opts, :otp_app)
+    end
+
+    # Options given to "use Gettext" have higher precedence than options set
+    # throught Mix.Config.
     mix_config_opts = Application.get_env(otp_app, env.module, [])
     opts = Keyword.merge(mix_config_opts, compile_time_opts)
 
@@ -39,6 +38,7 @@ defmodule Gettext.Compiler do
     quote do
       @behaviour Gettext.Backend
 
+      # Info about the Gettext backend.
       @doc false
       def __gettext__(:priv), do: unquote(priv)
       def __gettext__(:otp_app), do: unquote(otp_app)
@@ -53,11 +53,15 @@ defmodule Gettext.Compiler do
       end
 
       unquote(macros())
-      unquote(catch_all_helpers())
 
-      unquote(signatures())
+      # These are the two functions we generated inside the backend. Here we define the bodyless
+      # clauses.
+      def lgettext(locale, domain, msgid, bindings)
+      def lngettext(locale, domain, msgid, msgid_plural, n, bindings)
+
       unquote(compile_po_files(env, translations_dir, opts))
       unquote(catch_all_clauses())
+      unquote(catch_all_helpers())
     end
   end
 
@@ -147,13 +151,6 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp signatures() do
-    quote do
-      def lgettext(locale, domain, msgid, bindings)
-      def lngettext(locale, domain, msgid, msgid_plural, n, bindings)
-    end
-  end
-
   @doc """
   Returns the quoted code for the dynamic clauses of `lgettext/4` and
   `lngettext/6`.
@@ -207,7 +204,8 @@ defmodule Gettext.Compiler do
   """
   @spec expand_to_binary(binary, binary, module, Macro.Env.t) ::
                          binary | no_return
-  def expand_to_binary(term, what, gettext_module, env) when what in ~w(domain msgid msgid_plural comment) do
+  def expand_to_binary(term, what, gettext_module, env)
+      when what in ~w(domain msgid msgid_plural comment) do
     case Macro.expand(term, env) do
       term when is_binary(term) ->
         term
@@ -228,6 +226,9 @@ defmodule Gettext.Compiler do
     end
   end
 
+  @doc """
+  Appends the given comment to the list of extrated comments in the process dictionary.
+  """
   @spec append_extracted_comment(binary) :: :ok
   def append_extracted_comment(comment) do
     existing = Process.get(:gettext_comments, [])
@@ -235,6 +236,10 @@ defmodule Gettext.Compiler do
     :ok
   end
 
+  @doc """
+  Returns all extracted comments in the process dictionary and clears them from the process
+  dictionary.
+  """
   @spec get_and_flush_extracted_comments() :: [binary]
   def get_and_flush_extracted_comments() do
     Enum.reverse(Process.delete(:gettext_comments) || [])

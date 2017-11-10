@@ -335,11 +335,13 @@ defmodule Gettext.PO do
   defp prune_bom(@bom <> str, file) do
     file_or_string = if file == "nofile", do: "string", else: "file"
 
-    IO.puts :stderr, "#{file}: warning: the #{file_or_string} being parsed starts" <>
-                     " with a BOM byte sequence (#{inspect(@bom, binaries: :as_binaries)})." <>
-                     " These bytes are ignored by Gettext but it's recommended to remove" <>
-                     " them. To know more about BOM, read" <>
-                     " https://en.wikipedia.org/wiki/Byte_order_mark."
+    warning =
+      "#{file}: warning: the #{file_or_string} being parsed starts " <>
+      "with a BOM byte sequence (#{inspect(@bom, binaries: :as_binaries)}). " <>
+      "These bytes are ignored by Gettext but it's recommended to remove " <>
+      "them. To know more about BOM, read https://en.wikipedia.org/wiki/Byte_order_mark."
+
+    IO.puts(:stderr, warning)
 
     str
   end

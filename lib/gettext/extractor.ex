@@ -42,7 +42,7 @@ defmodule Gettext.Extractor do
   @spec extracting?() :: boolean
   def extracting?() do
     # Because the extractor agent may not be enabled during compilation
-    # time (as it requires the optional gettext compiler), we need to
+    # time (as it requires the optional Gettext compiler), we need to
     # check if the agent is up and running before querying it.
     Process.whereis(ExtractorAgent) && ExtractorAgent.extracting?()
   end
@@ -97,13 +97,9 @@ defmodule Gettext.Extractor do
   defp create_po_structs_from_extracted_translations(all_translations) do
     for {backend, domains} <- all_translations,
         {domain, translations} <- domains do
-      create_po_struct(backend, domain, Map.values(translations))
+      translations = Map.values(translations)
+      {pot_path(backend, domain), po_struct_from_translations(translations)}
     end
-  end
-
-  # Returns a {path, %Gettext.PO{}} tuple.
-  defp create_po_struct(backend, domain, translations) do
-    {pot_path(backend, domain), po_struct_from_translations(translations)}
   end
 
   defp pot_path(backend, domain) do
