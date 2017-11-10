@@ -10,7 +10,7 @@ defmodule Gettext.PO.Parser do
   """
   @spec parse([Gettext.PO.Tokenizer.token]) ::
     {:ok, [binary], [Gettext.PO.translation]} | Gettext.PO.parse_error
-  def parse(tokens) do
+  def parse(tokens) when is_list(tokens) do
     case :gettext_po_parser.parse(tokens) do
       {:ok, translations} ->
         parse_yecc_result(translations)

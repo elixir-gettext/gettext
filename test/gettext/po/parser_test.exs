@@ -6,32 +6,33 @@ defmodule Gettext.PO.ParserTest do
   alias Gettext.PO.PluralTranslation
 
   test "parse/1 with single strings" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "hello"},
-      {:msgstr, 2}, {:str, 2, "ciao"}
-    ])
+    parsed =
+      parse("""
+      msgid "hello"
+      msgstr "ciao"
+      """)
 
     assert {:ok, [], [], [%Translation{msgid: ["hello"], msgstr: ["ciao"]}]} = parsed
   end
 
   test "parse/1 with multiple concatenated strings" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "hello"}, {:str, 1, " world"},
-      {:msgstr, 2}, {:str, 2, "ciao"}, {:str, 3, " mondo"}
-    ])
+    parsed =
+      parse("""
+      msgid "hello" " world"
+      msgstr "ciao" " mondo"
+      """)
 
-    assert {:ok, [], [], [
-      %Translation{msgid: ["hello", " world"], msgstr: ["ciao", " mondo"]}
-    ]} = parsed
+    assert {:ok, [], [], [translation]} = parsed
+    assert %Translation{msgid: ["hello", " world"], msgstr: ["ciao", " mondo"]} = translation
   end
 
   test "parse/1 with multiple translations" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "hello"},
-      {:msgstr, 2}, {:str, 2, "ciao"},
-      {:msgid, 3}, {:str, 3, "word"},
-      {:msgstr, 4}, {:str, 4, "parola"},
-    ])
+    parsed = parse("""
+    msgid "hello"
+    msgstr "ciao"
+    msgid "word"
+    msgstr "parola"
+    """)
 
     assert {:ok, [], [], [
       %Translation{msgid: ["hello"], msgstr: ["ciao"]},
@@ -40,22 +41,22 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "parse/1 with unicode characters in the strings" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "føø"},
-      {:msgstr, 2}, {:str, 2, "bårπ"},
-    ])
+    parsed = parse("""
+    msgid "føø"
+    msgstr "bårπ"
+    """)
 
     assert {:ok, [], [], [%Translation{msgid: ["føø"], msgstr: ["bårπ"]}]} = parsed
   end
 
   test "parse/1 with a pluralized string" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "foo"},
-      {:msgid_plural, 1}, {:str, 1, "foos"},
-      {:msgstr, 1}, {:plural_form, 1, 0}, {:str, 1, "bar"},
-      {:msgstr, 1}, {:plural_form, 1, 1}, {:str, 1, "bars"},
-      {:msgstr, 1}, {:plural_form, 1, 2}, {:str, 1, "barres"},
-    ])
+    parsed = parse("""
+    msgid "foo"
+    msgid_plural "foos"
+    msgstr[0] "bar"
+    msgstr[1] "bars"
+    msgstr[2] "barres"
+    """)
 
     assert {:ok, [], [], [%PluralTranslation{
       msgid: ["foo"],
@@ -69,14 +70,14 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "comments are associated with translations" do
-    parsed = Parser.parse([
-      {:comment, 1, "# This is a translation"},
-      {:comment, 2, "#: lib/foo.ex:32"},
-      {:comment, 3, "# Ah, another comment!"},
-      {:comment, 4, "#. An extracted comment"},
-      {:msgid, 5}, {:str, 5, "foo"},
-      {:msgstr, 6}, {:str, 6, "bar"},
-    ])
+    parsed = parse("""
+    # This is a translation
+    #: lib/foo.ex:32
+    # Ah, another comment!
+    #. An extracted comment
+    msgid "foo"
+    msgstr "bar"
+    """)
 
     assert {:ok, [], [], [%Translation{
       msgid: ["foo"],
@@ -91,13 +92,13 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "comments always belong to the next translation" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "a"},
-      {:msgstr, 3}, {:str, 3, "b"},
-      {:comment, 2, "# Comment"},
-      {:msgid, 1}, {:str, 1, "c"},
-      {:msgstr, 3}, {:str, 3, "d"},
-    ])
+    parsed = parse("""
+    msgid "a"
+    msgstr "b"
+    # Comment
+    msgid "c"
+    msgstr "d"
+    """)
 
     assert {:ok, [], [], [
       %Translation{msgid: ["a"], msgstr: ["b"]},
@@ -106,64 +107,64 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "syntax error when there is no 'msgid'" do
-    parsed = Parser.parse [{:msgstr, 1}, {:str, 1, "foo"}]
+    parsed = parse("msgstr \"foo\"")
     assert {:error, 1, _} = parsed
 
-    parsed = Parser.parse [{:str, 1, "foo"}]
+    parsed = parse("\"foo\"")
     assert {:error, 1, _} = parsed
   end
 
   test "if there's a msgid_plural, then plural forms must follow" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "foo"},
-      {:msgid_plural, 1}, {:str, 1, "foos"},
-      {:msgstr, 1}, {:str, 1, "bar"},
-    ])
+    parsed = parse("""
+    msgid "foo"
+    msgid_plural "foos"
+    msgstr "bar"
+    """)
 
-    assert parsed == {:error, 1, "syntax error before: \"bar\""}
+    assert parsed == {:error, 3, "syntax error before: \"bar\""}
   end
 
   test "'msgid_plural' must come after 'msgid'" do
-    parsed = Parser.parse([{:msgid_plural, 1}])
+    parsed = parse("msgid_plural ")
     assert parsed == {:error, 1, "syntax error before: msgid_plural"}
   end
 
   test "comments can't be placed between 'msgid' and 'msgstr'" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "foo"},
-      {:comment, 2, "# Comment"},
-      {:msgstr, 3}, {:str, 3, "bar"},
-    ])
-    assert {:error, 2, _} = parsed
+    parsed = parse("""
+    msgid "foo"
+    # Comment
+    msgstr "bar"
+    """)
+    assert parsed == {:error, 2, "syntax error before: \"# Comment\""}
 
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "foo"},
-      {:msgid_plural, 2}, {:str, 1, "foo"},
-      {:comment, 3, "# Comment"},
-      {:msgstr, 4}, {:plural_form, 4, 0}, {:str, 4, "bar"},
-    ])
-    assert {:error, 3, _} = parsed
+    parsed = parse("""
+    msgid "foo"
+    msgid_plural "foo"
+    # Comment
+    msgstr[0] "bar"
+    """)
+    assert parsed == {:error, 3, "syntax error before: \"# Comment\""}
   end
 
   test "files with just comments are ok (the comments are discarded)" do
-    parsed = Parser.parse([
-      {:comment, 1, "# A comment"},
-      {:comment, 2, "# Another comment"},
-    ])
+    parsed = parse("""
+    # A comment
+    # Another comment
+    """)
 
-    assert {:ok, [], [], []} = parsed
+    assert parsed == {:ok, [], [], []}
   end
 
   test "reference are extracted into the :reference field of a translation" do
-    parsed = Parser.parse([
-      {:comment, 1, "#: foo.ex:1 "},
-      {:comment, 1, "#: filename with spaces.ex:12"},
-      {:comment, 1, "# Not a reference comment"},
-      {:comment, 1, "# : Not a reference comment either"},
-      {:comment, 1, "#: another/ref/comment.ex:83"},
-      {:msgid, 1}, {:str, 1, "foo"},
-      {:msgstr, 1}, {:str, 3, "bar"},
-    ])
+    parsed = parse("""
+    #: foo.ex:1
+    #: filename with spaces.ex:12
+    # Not a reference comment
+    # : Not a reference comment either
+    #: another/ref/comment.ex:83
+    msgid "foo"
+    msgstr "bar"
+    """)
 
     assert {:ok, [], [], [%Translation{} = t]} = parsed
     assert t.references == [
@@ -179,13 +180,13 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "extracted comments are extracted into the :extracted_comments field of a translation" do
-    parsed = Parser.parse([
-      {:comment, 1, "#. Extracted comment"},
-      {:comment, 1, "# Not an extracted comment"},
-      {:comment, 1, "#.Another extracted comment"},
-      {:msgid, 1}, {:str, 1, "foo"},
-      {:msgstr, 1}, {:str, 1, "bar"},
-    ])
+    parsed = parse("""
+    #. Extracted comment
+    # Not an extracted comment
+    #.Another extracted comment
+    msgid "foo"
+    msgstr "bar"
+    """)
 
     assert {:ok, [], [], [%Translation{} = t]} = parsed
     assert t.extracted_comments == [
@@ -199,13 +200,13 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "flags are extracted in to the :flags field of a translation" do
-    parsed = Parser.parse([
-      {:comment, 1, "#, flag,a-flag b-flag, c-flag"},
-      {:comment, 2, "# comment"},
-      {:comment, 3, "#, flag,  ,d-flag ,, e-flag"},
-      {:msgid, 4}, {:str, 4, "foo"},
-      {:msgstr, 5}, {:str, 5, "bar"},
-    ])
+    parsed = parse("""
+    #, flag,a-flag b-flag, c-flag
+    # comment
+    #, flag,  ,d-flag ,, e-flag
+    msgid "foo"
+    msgstr "bar"
+    """)
 
     assert {:ok, [], [], [%Translation{} = t]} = parsed
     assert Enum.sort(t.flags) == ~w(a-flag b-flag c-flag d-flag e-flag flag)
@@ -213,33 +214,36 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "the line of a translation is the line of its msgid" do
-    parsed = Parser.parse([
-      {:msgid, 10}, {:str, 10, "foo"},
-      {:msgstr, 11}, {:str, 11, "bar"},
-    ])
+    parsed = parse("""
+
+
+    msgid "foo"
+    msgstr "bar"
+    """)
 
     {:ok, [], [], [%Translation{} = translation]} = parsed
-    assert translation.po_source_line == 10
+    assert translation.po_source_line == 3
   end
 
   test "the line of a plural translation is the line of its msgid" do
-    parsed = Parser.parse([
-      {:msgid, 10}, {:str, 10, "foo"},
-      {:msgid_plural, 11}, {:str, 11, "foos"},
-      {:msgstr, 12}, {:plural_form, 12, 0}, {:str, 12, "bar"},
-    ])
+    parsed = parse("""
+
+
+    msgid "foo"
+    msgid_plural "foos"
+    msgstr[0] "bar"
+    """)
 
     {:ok, [], [], [%PluralTranslation{} = translation]} = parsed
-    assert translation.po_source_line == 10
+    assert translation.po_source_line == 3
   end
 
   test "headers are parsed when present" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, ""},
-      {:msgstr, 1},
-        {:str, 1, "Language: en_US\n"},
-        {:str, 1, "Last-Translator: Jane Doe <jane@doe.com>\n"}
-    ])
+    parsed = parse(~S"""
+    msgid ""
+    msgstr "Language: en_US\n"
+           "Last-Translator: Jane Doe <jane@doe.com>\n"
+    """)
 
     assert parsed == {
       :ok,
@@ -250,47 +254,57 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "duplicated translations cause a parse error" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "foo"}, {:msgstr, 1}, {:str, 1, "bar"},
-      {:msgid, 2}, {:str, 2, "foo"}, {:msgstr, 2}, {:str, 2, "baz"},
-      {:msgid, 3}, {:str, 3, "foo"}, {:msgstr, 3}, {:str, 3, "bong"},
-    ])
+    parsed = parse("""
+    msgid "foo"
+    msgstr "bar"
 
-    msg = "found duplicate on line 1 for msgid: 'foo'"
-    assert parsed == {:error, 2, msg}
+    msgid "foo"
+    msgstr "baz"
+
+    msgid "foo"
+    msgstr "bong"
+    """)
+
+    assert parsed == {:error, 4, "found duplicate on line 1 for msgid: 'foo'"}
 
     # Works if the msgid is split differently as well
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "foo"}, {:str, 1, ""}, {:msgstr, 1}, {:str, 1, "bar"},
-      {:msgid, 2}, {:str, 2, ""}, {:str, 2, "foo"}, {:msgstr, 2}, {:str, 2, "baz"},
-    ])
+    parsed = parse("""
+    msgid "foo" ""
+    msgstr "bar"
 
-    msg = "found duplicate on line 1 for msgid: 'foo'"
-    assert parsed == {:error, 2, msg}
+    msgid "" "foo"
+    msgstr "baz"
+    """)
+
+    assert parsed == {:error, 4, "found duplicate on line 1 for msgid: 'foo'"}
   end
 
   test "duplicated plural translations cause a parse error" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "foo"}, {:msgid_plural, 1}, {:str, 1, "foos"},
-        {:msgstr, 1}, {:plural_form, 1, 0}, {:str, 1, "bar"},
-      {:msgid, 2}, {:str, 2, "foo"}, {:msgid_plural, 2}, {:str, 2, "foos"},
-        {:msgstr, 2}, {:plural_form, 2, 0}, {:str, 2, "baz"},
-    ])
+    parsed = parse("""
+    msgid "foo"
+    msgid_plural "foos"
+    msgstr[0] "bar"
 
-    msg = "found duplicate on line 1 for msgid: 'foo' and msgid_plural: 'foos'"
-    assert parsed == {:error, 2, msg}
+    msgid "foo"
+    msgid_plural "foos"
+    msgstr[0] "baz"
+    """)
+
+    message = "found duplicate on line 1 for msgid: 'foo' and msgid_plural: 'foos'"
+    assert parsed == {:error, 5, message}
   end
 
   test "an empty list of tokens is parsed as an empty list of translations" do
-    assert Parser.parse([]) == {:ok, [], [], []}
+    assert parse("") == {:ok, [], [], []}
   end
 
   test "multiple references on the same line are parsed correctly" do
-    parsed = Parser.parse([
-      {:comment, 1, "#: foo.ex:1 bar.ex:2 with spaces.ex:3"},
-      {:comment, 2, "#: baz.ex:3"},
-      {:msgid, 3}, {:str, 3, "foo"}, {:msgstr, 3}, {:str, 3, "bar"},
-    ])
+    parsed = parse("""
+    #: foo.ex:1 bar.ex:2 with spaces.ex:3
+    #: baz.ex:3
+    msgid "foo"
+    msgstr "bar"
+    """)
 
     assert {:ok, [], [], [%Translation{} = t]} = parsed
     assert t.references == [{"foo.ex", 1},
@@ -300,13 +314,12 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "top-of-the-file comments are extracted correctly" do
-    parsed = Parser.parse([
-      {:comment, 1, "# Top of the file"},
-      {:comment, 1, "## Top of the file with two hashes"},
-      {:msgid, 1}, {:str, 1, ""},
-      {:msgstr, 1},
-        {:str, 1, "Language: en_US\n"},
-    ])
+    parsed = parse("""
+    # Top of the file
+    ## Top of the file with two hashes
+    msgid ""
+    msgstr "Language: en_US\\n"
+    """)
 
     assert {
       :ok,
@@ -317,33 +330,38 @@ defmodule Gettext.PO.ParserTest do
   end
 
   test "msgctxt is parsed correctly but ignored" do
-    parsed = Parser.parse([
-      {:msgctxt, 1}, {:str, 1, "my_"}, {:str, 1, "context"},
-      {:msgid, 2}, {:str, 2, "my_msgid"},
-      {:msgstr, 3}, {:str, 3, "my_msgstr"},
-    ])
+    parsed = parse("""
+    msgctxt "my_" "context"
+    msgid "my_msgid"
+    msgstr "my_msgstr"
+    """)
 
     assert {:ok, [], [], [%Translation{} = translation]} = parsed
     assert translation.msgid == ["my_msgid"]
     assert translation.msgstr == ["my_msgstr"]
 
     # Badly placed msgctxt still causes a syntax error
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, "my_msgid"},
-      {:msgctxt, 2}, {:str, 2, "my_context"},
-      {:msgstr, 3}, {:str, 3, "my_msgstr"},
-    ])
+    parsed = parse("""
+    msgid "my_msgid"
+    msgctxt "my_context"
+    msgstr "my_msgstr"
+    """)
 
     assert parsed == {:error, 2, "syntax error before: msgctxt"}
   end
 
   test "tokens are printed as Elixir terms, not Erlang terms" do
-    parsed = Parser.parse([
-      {:msgid, 1}, {:str, 1, ""},
-      {:comment, 1, "# comment"},
-    ])
+    parsed = parse("""
+    msgid ""
+    # comment
+    """)
 
     assert {:error, _line, msg} = parsed
     assert msg == "syntax error before: \"# comment\""
+  end
+
+  defp parse(string) do
+    {:ok, tokens} = Gettext.PO.Tokenizer.tokenize(string)
+    Parser.parse(tokens)
   end
 end
