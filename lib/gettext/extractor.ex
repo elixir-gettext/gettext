@@ -250,7 +250,7 @@ defmodule Gettext.Extractor do
 
     # We go over the existing translations in order so as to keep the existing
     # order as much as possible.
-    old_and_merged = Enum.flat_map existing.translations, fn(t) ->
+    old_and_merged = Enum.flat_map(existing.translations, fn t ->
       cond do
         same = PO.Translations.find(new.translations, t) ->
           [merge_translations(t, same)]
@@ -261,7 +261,7 @@ defmodule Gettext.Extractor do
         true ->
           [t]
       end
-    end
+    end)
 
     # We reject all translations that appear in `existing` so that we're left
     # with the translations that only appear in `new`.

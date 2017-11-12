@@ -71,9 +71,9 @@ defmodule Gettext.Merger do
   end
 
   defp merge_translations(old, new, opts) do
-    # First, we convert the list of old translations into a dict for
+    # First, we convert the list of old translations into a map for
     # constant-time lookup.
-    old = for t <- old, into: %{}, do: {PO.Translations.key(t), t}
+    old = Map.new(old, &{PO.Translations.key(&1), &1})
 
     # Then, we do a first pass through the list of new translation and we mark
     # all exact matches as {key, translation, exact_match}, taking the exact matches
