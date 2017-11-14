@@ -127,6 +127,7 @@ defmodule Gettext.Merger do
       msgstr: old.msgstr, # new.msgstr should be empty since it's a POT file
       comments: old.comments, # new has no translator comments
       extracted_comments: new.extracted_comments,
+      flags: new.flags,
       references: new.references,
     }
   end
@@ -138,6 +139,7 @@ defmodule Gettext.Merger do
       msgstr: old.msgstr, # new.msgstr should be empty since it's a POT file
       comments: old.comments, # new has no translator comments
       extracted_comments: new.extracted_comments,
+      flags: new.flags,
       references: new.references,
     }
   end

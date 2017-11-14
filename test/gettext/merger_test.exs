@@ -18,8 +18,8 @@ defmodule Gettext.MergerTest do
   test "merge/2: obsolete translations are discarded (even the manually entered ones)" do
     old_po = %PO{
       translations: [
-        %Translation{msgid: "obs_auto", msgstr: "foo", references: [{"foo.ex", 1}]},
-        %Translation{msgid: "obs_manual", msgstr: "foo", references: []},
+        %Translation{msgid: "obs_auto", msgstr: "foo", flags: MapSet.new(["elixir-format"])},
+        %Translation{msgid: "obs_manual", msgstr: "foo"},
         %Translation{msgid: "tomerge", msgstr: "foo"},
       ],
     }
@@ -66,6 +66,14 @@ defmodule Gettext.MergerTest do
 
     assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
     assert t.references == [{"bar.ex", 1}]
+  end
+
+  test "merge/2: when translations match, existing flags are replaced by new ones" do
+    old_po = %PO{translations: [%Translation{msgid: "foo"}]}
+    new_pot = %PO{translations: [%Translation{msgid: "foo", flags: MapSet.new(["elixir-format"])}]}
+
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert t.flags == MapSet.new(["elixir-format"])
   end
 
   test "merge/2: new translations are fuzzy matched against obsolete translations" do
