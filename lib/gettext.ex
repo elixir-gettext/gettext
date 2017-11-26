@@ -505,12 +505,16 @@ defmodule Gettext do
   @type backend :: module
   @type bindings :: %{} | Keyword.t
 
+  @default_domain "default"
+
   @doc false
   defmacro __using__(opts) do
     quote do
       require Logger
 
       @gettext_opts unquote(opts)
+      @default_domain "default"
+
       @before_compile Gettext.Compiler
 
       def handle_missing_bindings(exception, incomplete) do
@@ -677,7 +681,7 @@ defmodule Gettext do
   """
   @spec gettext(module, binary, bindings) :: binary
   def gettext(backend, msgid, bindings \\ %{}) do
-    dgettext(backend, "default", msgid, bindings)
+    dgettext(backend, @default_domain, msgid, bindings)
   end
 
   @doc """
@@ -732,7 +736,7 @@ defmodule Gettext do
   """
   @spec ngettext(module, binary, binary, non_neg_integer, bindings) :: binary
   def ngettext(backend, msgid, msgid_plural, n, bindings \\ %{}) do
-    dngettext(backend, "default", msgid, msgid_plural, n, bindings)
+    dngettext(backend, @default_domain, msgid, msgid_plural, n, bindings)
   end
 
   @doc """
