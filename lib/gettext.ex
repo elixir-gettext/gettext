@@ -244,6 +244,24 @@ defmodule Gettext do
 
   When `gettext` or `ngettext` are used, the `"default"` domain is used.
 
+  ### Domain prefix
+
+  You can specify domain prefix for your module, for example:
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app, domain_prefix: "admin."
+      end
+
+  Then all translations will be taken from files with prefix `adimin.`:
+
+      MyApp.Gettext.gettext "Hello admin"
+      #=> "Hello admin"
+      # from it/LC_MESSAGES/admin.default.po
+
+      MyApp.Gettext.dgettext "errors", "Error!"
+      #=> "Error!"
+      # from it/LC_MESSAGES/admin.errors.po
+
   ## Interpolation
 
   All `*gettext` functions and macros provided by gettext support interpolation.
@@ -505,12 +523,18 @@ defmodule Gettext do
   @type backend :: module
   @type bindings :: %{} | Keyword.t
 
+  @default_domain "default"
+
   @doc false
   defmacro __using__(opts) do
     quote do
       require Logger
 
       @gettext_opts unquote(opts)
+      @default_domain "default"
+
+      def domain_prefix, do: unquote(opts[:domain_prefix] || "")
+
       @before_compile Gettext.Compiler
 
       def handle_missing_bindings(exception, incomplete) do
@@ -663,6 +687,7 @@ defmodule Gettext do
   def dgettext(backend, domain, msgid, bindings)
       when is_atom(backend) and is_binary(domain) and is_binary(msgid) and is_map(bindings) do
     locale = get_locale(backend)
+    domain = "#{backend.domain_prefix()}#{domain}"
     result = backend.lgettext(locale, domain, msgid, bindings)
     handle_backend_result(result, backend, locale, domain, msgid)
   end
@@ -677,7 +702,7 @@ defmodule Gettext do
   """
   @spec gettext(module, binary, bindings) :: binary
   def gettext(backend, msgid, bindings \\ %{}) do
-    dgettext(backend, "default", msgid, bindings)
+    dgettext(backend, @default_domain, msgid, bindings)
   end
 
   @doc """
@@ -717,6 +742,7 @@ defmodule Gettext do
            is_binary(msgid_plural) and is_integer(n) and n >= 0 and
            is_map(bindings) do
     locale = get_locale(backend)
+    domain = "#{backend.domain_prefix()}#{domain}"
     result = backend.lngettext(locale, domain, msgid, msgid_plural, n, bindings)
     handle_backend_result(result, backend, locale, domain, msgid)
   end
@@ -732,7 +758,7 @@ defmodule Gettext do
   """
   @spec ngettext(module, binary, binary, non_neg_integer, bindings) :: binary
   def ngettext(backend, msgid, msgid_plural, n, bindings \\ %{}) do
-    dngettext(backend, "default", msgid, msgid_plural, n, bindings)
+    dngettext(backend, @default_domain, msgid, msgid_plural, n, bindings)
   end
 
   @doc """

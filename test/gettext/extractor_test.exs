@@ -186,6 +186,21 @@ defmodule Gettext.ExtractorTest do
         Gettext.ExtractorTest.MyOtherGettext.dgettext "greetings", "hi"
       end
     end
+
+    defmodule Gettext.ExtractorTest.MyAdminGettext do
+      use Gettext, otp_app: :test_application, domain_prefix: "admin."
+    end
+
+    defmodule Foo.Admin do
+      import Gettext.ExtractorTest.MyAdminGettext
+
+      def bar do
+        gettext "User"
+        ngettext "user", "%{count} users", 2
+        dgettext "errors", "Error occured"
+        dngettext "errors", "one error", "%{count} errors", 2
+      end
+    end
     """
 
     Code.compile_string(code, Path.join(File.cwd!, "foo.ex"))
@@ -226,6 +241,42 @@ defmodule Gettext.ExtractorTest do
           #, elixir-format
           #: foo.ex:20
           msgid "hi"
+          msgstr ""
+          """},
+
+      {"priv/gettext/admin.default.pot",
+          ~S"""
+          msgid ""
+          msgstr ""
+
+          #, elixir-format
+          #: foo.ex:33
+          msgid "user"
+          msgid_plural "%{count} users"
+          msgstr[0] ""
+          msgstr[1] ""
+
+          #, elixir-format
+          #: foo.ex:32
+          msgid "User"
+          msgstr ""
+          """},
+
+      {"priv/gettext/admin.errors.pot",
+          ~S"""
+          msgid ""
+          msgstr ""
+
+          #, elixir-format
+          #: foo.ex:35
+          msgid "one error"
+          msgid_plural "%{count} errors"
+          msgstr[0] ""
+          msgstr[1] ""
+
+          #, elixir-format
+          #: foo.ex:34
+          msgid "Error occured"
           msgstr ""
           """}
     ]
