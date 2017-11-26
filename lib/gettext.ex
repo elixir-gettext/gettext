@@ -244,6 +244,24 @@ defmodule Gettext do
 
   When `gettext` or `ngettext` are used, the `"default"` domain is used.
 
+  ### Domain prefix
+
+  You can specify domain prefix for your module, for example:
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app, domain_prefix: "admin."
+      end
+
+  Then all translations will be taken from files with prefix `adimin.`:
+
+      MyApp.Gettext.gettext "Hello admin"
+      #=> "Hello admin"
+      # from it/LC_MESSAGES/admin.default.po
+
+      MyApp.Gettext.dgettext "errors", "Error!"
+      #=> "Error!"
+      # from it/LC_MESSAGES/admin.errors.po
+
   ## Interpolation
 
   All `*gettext` functions and macros provided by gettext support interpolation.
