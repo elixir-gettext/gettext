@@ -75,29 +75,24 @@ defmodule Gettext.Merger do
     # constant-time lookup.
     old = Map.new(old, &{PO.Translations.key(&1), &1})
 
-    # Then, we do a first pass through the list of new translation and we mark
-    # all exact matches as {key, translation, exact_match}, taking the exact matches
-    # out of `old` at the same time.
-    {new, old} =
-      Enum.map_reduce(new, old, fn t, old ->
-        key = PO.Translations.key(t)
-        {same, old} = Map.pop(old, key)
-        {{key, t, same}, old}
-      end)
-
-    # Now, tuples like {key, translation, nil} identify translations with no
-    # exact match. For those translations, we look for a fuzzy match. We ditch
-    # the obsolete translations altogether.
+    # Then, we go through the list of new translations and fill them in
+    # from exact matches, the best fuzzy match, or leave them blank.
+    # At the same time, we build a set of now obsolete translations
+    # from `old` by taking the exact matches out.
     {new, _obsolete} =
-      Enum.map_reduce(new, old, fn
-        {key, t, nil}, old ->
-          if Keyword.fetch!(opts, :fuzzy) do
-            find_fuzzy_match(key, t, old, Keyword.fetch!(opts, :fuzzy_threshold))
-          else
-            {t, old}
-          end
-        {_, t, exact_match}, old ->
-          {merge_two_translations(exact_match, t), old}
+      Enum.map_reduce(new, old, fn(t, obsolete) ->
+        key = PO.Translations.key(t)
+        case Map.pop(obsolete, key) do
+          {nil, obsolete} ->      # no exact match
+            t = if Keyword.fetch!(opts, :fuzzy) do
+              find_fuzzy_match(key, t, old, Keyword.fetch!(opts, :fuzzy_threshold))
+            else
+              t
+            end
+            {t, obsolete}
+          {same, obsolete} ->
+            {merge_two_translations(t, same), obsolete}
+        end
       end)
 
     new
@@ -110,20 +105,19 @@ defmodule Gettext.Merger do
 
     candidates =
       old_translations
-      |> Enum.map(fn {k, t} -> {k, t, matcher.(k, key)} end)
-      |> Enum.reject(&match?({_, _, :nomatch}, &1))
+      |> Enum.map(fn {k, t} -> {t, matcher.(k, key)} end)
+      |> Enum.reject(&match?({_, :nomatch}, &1))
 
     if candidates == [] do
-      {target, old_translations}
+      target
     else
-      {k, t, _} = Enum.max_by(candidates, fn {_, _, {:match, distance}} -> distance end)
-      {Fuzzy.merge(target, t), Map.delete(old_translations, k)}
+      {t, _} = Enum.max_by(candidates, fn {_, {:match, distance}} -> distance end)
+      Fuzzy.merge(target, t)
     end
   end
 
-  defp merge_two_translations(%Translation{} = old, %Translation{} = new) do
-    %Translation{
-      msgid: new.msgid, # they are the same
+  defp merge_two_translations(%Translation{} = new, %Translation{} = old) do
+    %Translation{ new |
       msgstr: old.msgstr, # new.msgstr should be empty since it's a POT file
       comments: old.comments, # new has no translator comments
       extracted_comments: new.extracted_comments,
@@ -132,10 +126,8 @@ defmodule Gettext.Merger do
     }
   end
 
-  defp merge_two_translations(%PluralTranslation{} = old, %PluralTranslation{} = new) do
-    %PluralTranslation{
-      msgid: new.msgid, # they are the same
-      msgid_plural: new.msgid_plural, # they are the same
+  defp merge_two_translations(%PluralTranslation{} = new, %PluralTranslation{} = old) do
+    %PluralTranslation{ new |
       msgstr: old.msgstr, # new.msgstr should be empty since it's a POT file
       comments: old.comments, # new has no translator comments
       extracted_comments: new.extracted_comments,

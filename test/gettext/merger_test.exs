@@ -4,6 +4,7 @@ defmodule Gettext.MergerTest do
   alias Gettext.Merger
   alias Gettext.PO
   alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
 
   @opts fuzzy: true, fuzzy_threshold: 0.8
   @pot_path "../../tmp/" |> Path.expand(__DIR__) |> Path.relative_to_cwd
@@ -77,26 +78,76 @@ defmodule Gettext.MergerTest do
   end
 
   test "merge/2: new translations are fuzzy matched against obsolete translations" do
-    old_po = %PO{translations: [%Translation{msgid: "hello world!", msgstr: ["foo"]}]}
-    new_pot = %PO{translations: [%Translation{msgid: "hello worlds!"}]}
+    old_po = %PO{translations: [%Translation{msgid: ["hello world!"], msgstr: ["foo"]}]}
+    new_pot = %PO{translations: [%Translation{msgid: ["hello worlds!"]}]}
 
     assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
     assert MapSet.member?(t.flags, "fuzzy")
-    assert t.msgid == "hello worlds!"
+    assert t.msgid == ["hello worlds!"]
     assert t.msgstr == ["foo"]
   end
 
   test "merge/2: exact matches have precedence over fuzzy matches" do
-    old_po = %PO{translations: [%Translation{msgid: "hello world!", msgstr: ["foo"]},
-                                %Translation{msgid: "hello worlds!", msgstr: ["bar"]}]}
-    new_pot = %PO{translations: [%Translation{msgid: "hello world!"}]}
+    old_po = %PO{translations: [%Translation{msgid: ["hello world!"], msgstr: ["foo"]},
+                                %Translation{msgid: ["hello worlds!"], msgstr: ["bar"]}]}
+    new_pot = %PO{translations: [%Translation{msgid: ["hello world!"]}]}
 
     # Let's check that the "hello worlds!" translation is discarded even if it's
     # a fuzzy match for "hello world!".
     assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
     refute MapSet.member?(t.flags, "fuzzy")
-    assert t.msgid == "hello world!"
+    assert t.msgid == ["hello world!"]
     assert t.msgstr == ["foo"]
+  end
+
+  test "merge/2: exact matches do not prevent fuzzy matches" do
+    old_po = %PO{translations: [%Translation{msgid: ["hello world!"], msgstr: ["foo"]}]}
+    new_pot = %PO{translations: [%Translation{msgid: ["hello world!"]},
+                                 %Translation{msgid: ["hello worlds!"]}]}
+
+    # "hello world!" will match exactly.
+    # "hello worlds!" should still get a fuzzy match.
+    assert %PO{translations: [t, t2]} = Merger.merge(old_po, new_pot, @opts)
+    refute MapSet.member?(t.flags, "fuzzy")
+    assert t.msgid == ["hello world!"]
+    assert t.msgstr == ["foo"]
+    assert MapSet.member?(t2.flags, "fuzzy")
+    assert t2.msgid == ["hello worlds!"]
+    assert t2.msgstr == ["foo"]
+  end
+
+  test "merge/2: filling in a fuzzy translation preserves references" do
+    old_po = %PO{translations: [%Translation{msgid: ["hello world!"],
+					     msgstr: ["foo"],
+					     comments: ["# old comment"],
+					     references: [{"old_file.txt", 1}]}]}
+    new_pot = %PO{translations: [%Translation{msgid: ["hello worlds!"],
+					     references: [{"new_file.txt", 2}]}]}
+
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert MapSet.member?(t.flags, "fuzzy")
+    assert t.msgid == ["hello worlds!"]
+    assert t.msgstr == ["foo"]
+    assert t.comments == ["# old comment"]
+    assert t.references == [{"new_file.txt", 2}]
+  end
+
+  test "merge/2: simple translations can be a fuzzy match for plurals" do
+    old_po = %PO{translations: [%Translation{msgid: ["Here are {count} cocoa balls."],
+					     msgstr: ["Hier sind {count} Kakaokugeln."],
+					     comments: ["# Guyanese Cocoballs"],
+					     references: [{"old_file.txt", 1}]}]}
+    new_pot = %PO{translations: [%PluralTranslation{msgid: ["Here is a cocoa ball."],
+						    msgid_plural: ["Here are {count} cocoa balls."],
+						    references: [{"new_file.txt", 2}]}]}
+
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert MapSet.member?(t.flags, "fuzzy")
+    assert t.msgid == ["Here is a cocoa ball."]
+    assert t.msgid_plural == ["Here are {count} cocoa balls."]
+    assert t.msgstr[0] == ["Hier sind {count} Kakaokugeln."]
+    assert t.comments == ["# Guyanese Cocoballs"]
+    assert t.references == [{"new_file.txt", 2}]
   end
 
   test "new_po_file/2" do
