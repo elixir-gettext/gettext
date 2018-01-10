@@ -5,23 +5,29 @@ defmodule Gettext.PO.TokenizerTest do
 
   test "keywords" do
     str = "msgid msgstr "
-    assert tokenize(str) == {:ok, [
-      {:msgid, 1},
-      {:msgstr, 1},
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:msgid, 1},
+               {:msgstr, 1}
+             ]}
 
     str = "    msgid  msgid_plural    msgstr  "
-    assert tokenize(str) == {:ok, [
-      {:msgid, 1},
-      {:msgid_plural, 1},
-      {:msgstr, 1},
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:msgid, 1},
+               {:msgid_plural, 1},
+               {:msgstr, 1}
+             ]}
 
     str = "msgctxt msgid "
-    assert tokenize(str) == {:ok, [
-      {:msgctxt, 1},
-      {:msgid, 1},
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:msgctxt, 1},
+               {:msgid, 1}
+             ]}
   end
 
   test "keywords must be followed by a space" do
@@ -39,7 +45,7 @@ defmodule Gettext.PO.TokenizerTest do
 
   test "unexpected tokens are printed nicely (with byte codepoints)" do
     # Just to know this, but bom is "" when inspected.
-    bom = <<0xef, 0xbb, 0xbf>>
+    bom = <<0xEF, 0xBB, 0xBF>>
     msg = ~s[unexpected token: "#{bom}" (codepoint U+FEFF)]
     assert tokenize(bom <> ~s(msgid "foo")) == {:error, 1, msg}
 
@@ -69,11 +75,12 @@ defmodule Gettext.PO.TokenizerTest do
           "bong"
     """
 
-    assert tokenize(str) == {:ok, [
-      {:str, 1, "foo"},
-      {:str, 2, "bar with \"quotes\""},
-      {:str, 3, "bong"},
-    ]}
+    assert tokenize(str) ==
+             {:ok, [
+               {:str, 1, "foo"},
+               {:str, 2, "bar with \"quotes\""},
+               {:str, 3, "bong"}
+             ]}
   end
 
   test "no newlines are allowed in strings" do
@@ -96,34 +103,43 @@ defmodule Gettext.PO.TokenizerTest do
     msgstr "bar"
     """
 
-    assert tokenize(str) == {:ok, [
-      {:msgid, 1},
-      {:str, 1, "foo"},
-      {:msgstr, 2},
-      {:str, 2, "bar"},
-    ]}
+    assert tokenize(str) ==
+             {:ok, [
+               {:msgid, 1},
+               {:str, 1, "foo"},
+               {:msgstr, 2},
+               {:str, 2, "bar"}
+             ]}
   end
 
   test "comments are not ignored, but tokenized" do
     str = "# Single-line comment"
-    assert tokenize(str) == {:ok, [
-      {:comment, 1, "# Single-line comment"}
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:comment, 1, "# Single-line comment"}
+             ]}
 
     str = "\t\t  # A comment after whitespace"
-    assert tokenize(str) == {:ok, [
-      {:comment, 1, "# A comment after whitespace"}
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:comment, 1, "# A comment after whitespace"}
+             ]}
 
     str = "#: Single-line reference comment"
-    assert tokenize(str) == {:ok, [
-      {:comment, 1, "#: Single-line reference comment"}
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:comment, 1, "#: Single-line reference comment"}
+             ]}
 
     str = "#, Flags comment"
-    assert tokenize(str) == {:ok, [
-      {:comment, 1, "#, Flags comment"}
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:comment, 1, "#, Flags comment"}
+             ]}
   end
 
   test "multi-line comments are supported" do
@@ -133,11 +149,12 @@ defmodule Gettext.PO.TokenizerTest do
       #: lib/and-refs.ex:32
     """
 
-    assert tokenize(str) == {:ok, [
-      {:comment, 1, "# Multiline comment"},
-      {:comment, 2, "# with weird chåracters"},
-      {:comment, 3, "#: lib/and-refs.ex:32"},
-    ]}
+    assert tokenize(str) ==
+             {:ok, [
+               {:comment, 1, "# Multiline comment"},
+               {:comment, 2, "# with weird chåracters"},
+               {:comment, 3, "#: lib/and-refs.ex:32"}
+             ]}
   end
 
   test "comments are tokenized correctly when between other stuff" do
@@ -149,25 +166,31 @@ defmodule Gettext.PO.TokenizerTest do
     # in it.
     """
 
-    assert tokenize(str) == {:ok, [
-      {:comment, 1, "# Multiline comment with"},
-      {:msgid, 2}, {:str, 2, "a string"},
-      {:comment, 3, "# in it."},
-    ]}
+    assert tokenize(str) ==
+             {:ok, [
+               {:comment, 1, "# Multiline comment with"},
+               {:msgid, 2},
+               {:str, 2, "a string"},
+               {:comment, 3, "# in it."}
+             ]}
   end
 
   test "plural forms in msgstr" do
     str = ~s(msgstr[0] )
-    assert tokenize(str) == {:ok, [
-      {:msgstr, 1},
-      {:plural_form, 1, 0},
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:msgstr, 1},
+               {:plural_form, 1, 0}
+             ]}
 
     str = ~s(msgstr[42] )
-    assert tokenize(str) == {:ok, [
-      {:msgstr, 1},
-      {:plural_form, 1, 42},
-    ]}
+
+    assert tokenize(str) ==
+             {:ok, [
+               {:msgstr, 1},
+               {:plural_form, 1, 42}
+             ]}
   end
 
   test "the integer inside a plural form must be, well, an integer" do

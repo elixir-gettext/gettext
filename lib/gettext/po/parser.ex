@@ -8,12 +8,13 @@ defmodule Gettext.PO.Parser do
   @doc """
   Parses a list of tokens into a list of translations.
   """
-  @spec parse([Gettext.PO.Tokenizer.token]) ::
-    {:ok, [binary], [Gettext.PO.translation]} | Gettext.PO.parse_error
+  @spec parse([Gettext.PO.Tokenizer.token()]) ::
+          {:ok, [binary], [Gettext.PO.translation()]} | Gettext.PO.parse_error()
   def parse(tokens) when is_list(tokens) do
     case :gettext_po_parser.parse(tokens) do
       {:ok, translations} ->
         parse_yecc_result(translations)
+
       {:error, _reason} = error ->
         parse_error(error)
     end
@@ -28,10 +29,19 @@ defmodule Gettext.PO.Parser do
     end
   end
 
-  defp to_struct({:translation, translation}),
-    do: struct(Translation, translation) |> extract_references() |> extract_extracted_comments() |> extract_flags()
-  defp to_struct({:plural_translation, translation}),
-    do: struct(PluralTranslation, translation) |> extract_references() |> extract_extracted_comments() |> extract_flags()
+  defp to_struct({:translation, translation}) do
+    struct(Translation, translation)
+    |> extract_references()
+    |> extract_extracted_comments()
+    |> extract_flags()
+  end
+
+  defp to_struct({:plural_translation, translation}) do
+    struct(PluralTranslation, translation)
+    |> extract_references()
+    |> extract_extracted_comments()
+    |> extract_flags()
+  end
 
   defp parse_error({:error, {line, _module, reason}}) do
     {:error, line, parse_error_reason(reason)}
@@ -49,28 +59,40 @@ defmodule Gettext.PO.Parser do
   end
 
   defp parse_references("#:" <> comment) do
+    # Steps:
+    #   * after trimming, we remain with "21 foo.ex"
+    #   * [file, line, file, line...]
+    #   * [[file, line], [file, line], ...]
+    #   * [{file, line}, {file, line}, ...]
     comment
     |> String.trim()
-    |> String.split(":")                      # we remain with "21 foo.ex"
-    |> Enum.flat_map(&parse_reference_part/1) # [file, line, file, line...]
-    |> Enum.chunk(2)                          # [[file, line], [file, line], ...]
-    |> Enum.map(&List.to_tuple/1)             # [{file, line}, {file, line}, ...]
+    |> String.split(":")
+    |> Enum.flat_map(&parse_reference_part/1)
+    |> Enum.chunk(2)
+    |> Enum.map(&List.to_tuple/1)
   end
 
   defp parse_reference_part(part) do
     case Integer.parse(part) do
       {next_line_no, ""} ->
-        [next_line_no] # last line number
+        # last line number
+        [next_line_no]
+
       {next_line_no, filename} ->
         [next_line_no, String.trim_leading(filename)]
+
       :error ->
-        [part] # first filename
+        # first filename
+        [part]
     end
   end
 
   defp extract_extracted_comments(%{__struct__: _, comments: comments} = translation) do
     {extracted_comments, other_comments} = enum_split_with(comments, &match?("#." <> _, &1))
-    extracted_comments = Enum.reject(extracted_comments, fn "#." <> comm -> String.trim(comm) == "" end)
+
+    extracted_comments =
+      Enum.reject(extracted_comments, fn "#." <> comm -> String.trim(comm) == "" end)
+
     %{translation | extracted_comments: extracted_comments, comments: other_comments}
   end
 
@@ -90,9 +112,9 @@ defmodule Gettext.PO.Parser do
   # headers. Headers will be in the msgstr of this "fake" translation, one on
   # each line. For now, we'll just separate those lines in order to get a list
   # of headers.
-  defp extract_top_comments_and_headers([%Translation{msgid: id, msgstr: headers, comments: comments} | rest])
+  defp extract_top_comments_and_headers([%Translation{msgid: id, msgstr: headers} = t | rest])
        when id == "" or id == [""] do
-    {comments, headers, rest}
+    {t.comments, headers, rest}
   end
 
   defp extract_top_comments_and_headers(translations) do
@@ -112,10 +134,8 @@ defmodule Gettext.PO.Parser do
       end)
 
     case duplicate do
-      {t, old_line} ->
-        build_duplicated_error(t, old_line)
-      _other ->
-        :ok
+      {t, old_line} -> build_duplicated_error(t, old_line)
+      _other -> :ok
     end
   end
 
@@ -148,8 +168,8 @@ defmodule Gettext.PO.Parser do
 
   defp parse_error_reason('syntax error before: ' = prefix, "<<" <> rest),
     do: [prefix, binary_part(rest, 0, byte_size(rest) - 2)]
-  defp parse_error_reason(error, token),
-    do: [error, token]
+
+  defp parse_error_reason(error, token), do: [error, token]
 
   # TODO: remove once we depend on Elixir 1.4 and on.
   Code.ensure_loaded(Enum)

@@ -10,7 +10,7 @@ defmodule Gettext.ExtractorAgent do
   @initial_state %{
     translations: %{},
     backends: [],
-    extracting?: false,
+    extracting?: false
   }
 
   def start_link() do

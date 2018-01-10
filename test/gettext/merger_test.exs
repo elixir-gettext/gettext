@@ -6,7 +6,7 @@ defmodule Gettext.MergerTest do
   alias Gettext.PO.Translation
 
   @opts fuzzy: true, fuzzy_threshold: 0.8
-  @pot_path "../../tmp/" |> Path.expand(__DIR__) |> Path.relative_to_cwd
+  @pot_path "../../tmp/" |> Path.expand(__DIR__) |> Path.relative_to_cwd()
 
   test "merge/2: headers from the old file are kept" do
     old_po = %PO{headers: [~S(Language: it\n)]}
@@ -20,8 +20,8 @@ defmodule Gettext.MergerTest do
       translations: [
         %Translation{msgid: "obs_auto", msgstr: "foo", flags: MapSet.new(["elixir-format"])},
         %Translation{msgid: "obs_manual", msgstr: "foo"},
-        %Translation{msgid: "tomerge", msgstr: "foo"},
-      ],
+        %Translation{msgid: "tomerge", msgstr: "foo"}
+      ]
     }
 
     new_pot = %PO{translations: [%Translation{msgid: "tomerge", msgstr: ""}]}
@@ -53,8 +53,18 @@ defmodule Gettext.MergerTest do
   end
 
   test "merge/2: when translations match, existing extracted comments are replaced by new ones" do
-    old_po = %PO{translations: [%Translation{msgid: "foo", extracted_comments: ["#. existing comment", "#. other existing comment"]}]}
-    new_pot = %PO{translations: [%Translation{msgid: "foo", extracted_comments: ["#. new comment"]}]}
+    old_po = %PO{
+      translations: [
+        %Translation{
+          msgid: "foo",
+          extracted_comments: ["#. existing comment", "#. other existing comment"]
+        }
+      ]
+    }
+
+    new_pot = %PO{
+      translations: [%Translation{msgid: "foo", extracted_comments: ["#. new comment"]}]
+    }
 
     assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
     assert t.extracted_comments == ["#. new comment"]
@@ -70,7 +80,10 @@ defmodule Gettext.MergerTest do
 
   test "merge/2: when translations match, existing flags are replaced by new ones" do
     old_po = %PO{translations: [%Translation{msgid: "foo"}]}
-    new_pot = %PO{translations: [%Translation{msgid: "foo", flags: MapSet.new(["elixir-format"])}]}
+
+    new_pot = %PO{
+      translations: [%Translation{msgid: "foo", flags: MapSet.new(["elixir-format"])}]
+    }
 
     assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
     assert t.flags == MapSet.new(["elixir-format"])
@@ -87,8 +100,13 @@ defmodule Gettext.MergerTest do
   end
 
   test "merge/2: exact matches have precedence over fuzzy matches" do
-    old_po = %PO{translations: [%Translation{msgid: "hello world!", msgstr: ["foo"]},
-                                %Translation{msgid: "hello worlds!", msgstr: ["bar"]}]}
+    old_po = %PO{
+      translations: [
+        %Translation{msgid: "hello world!", msgstr: ["foo"]},
+        %Translation{msgid: "hello worlds!", msgstr: ["bar"]}
+      ]
+    }
+
     new_pot = %PO{translations: [%Translation{msgid: "hello world!"}]}
 
     # Let's check that the "hello worlds!" translation is discarded even if it's
@@ -103,28 +121,30 @@ defmodule Gettext.MergerTest do
     pot_path = Path.join(@pot_path, "new_po_file.pot")
     new_po_path = Path.join(@pot_path, "it/LC_MESSAGES/new_po_file.po")
 
-    write_file pot_path, """
+    write_file(pot_path, """
     ## Stripme!
     # A comment
     msgid "foo"
     msgstr "bar"
-    """
+    """)
 
     merged = Merger.new_po_file(new_po_path, pot_path) |> IO.iodata_to_binary()
-    assert String.ends_with?(merged, ~S"""
-    msgid ""
-    msgstr ""
-    "Language: it\n"
 
-    # A comment
-    msgid "foo"
-    msgstr "bar"
-    """)
+    assert String.ends_with?(merged, ~S"""
+           msgid ""
+           msgstr ""
+           "Language: it\n"
+
+           # A comment
+           msgid "foo"
+           msgstr "bar"
+           """)
+
     assert String.starts_with?(merged, "## `msgid`s in this file come from POT")
   end
 
   defp write_file(path, contents) do
-    path |> Path.dirname |> File.mkdir_p!
+    path |> Path.dirname() |> File.mkdir_p!()
     File.write!(path, contents)
   end
 end

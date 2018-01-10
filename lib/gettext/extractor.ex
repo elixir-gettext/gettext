@@ -17,7 +17,7 @@ defmodule Gettext.Extractor do
     ExtractorAgent,
     PO,
     PO.Translation,
-    PO.PluralTranslation,
+    PO.PluralTranslation
   }
 
   @extracted_translations_flag "elixir-format"
@@ -54,9 +54,10 @@ defmodule Gettext.Extractor do
 
   Note that this function doesn't perform any operation on the filesystem.
   """
-  @spec extract(Macro.Env.t, module, binary, binary | {binary, binary}, [binary]) :: :ok
-  def extract(%Macro.Env{file: file, line: line} = _caller, backend, domain, id, extracted_comments) do
-    ExtractorAgent.add_translation(backend, domain, create_translation_struct(id, file, line, extracted_comments))
+  @spec extract(Macro.Env.t(), module, binary, binary | {binary, binary}, [binary]) :: :ok
+  def extract(%Macro.Env{} = caller, backend, domain, id, extracted_comments) do
+    translation = create_translation_struct(id, caller.file, caller.line, extracted_comments)
+    ExtractorAgent.add_translation(backend, domain, translation)
   end
 
   @doc """
@@ -71,7 +72,7 @@ defmodule Gettext.Extractor do
   This is a stateful operation. Once pot_files are generated, their information
   is permanently removed from the extractor.
   """
-  @spec pot_files(app :: atom, config :: Keyword.t) :: [{path :: String.t, contents :: iodata}]
+  @spec pot_files(atom, Keyword.t()) :: [{path :: String.t(), contents :: iodata}]
   def pot_files(app, gettext_config) do
     backends = ExtractorAgent.pop_backends(app)
     existing_pot_files = pot_files_for_backends(backends)
@@ -123,23 +124,26 @@ defmodule Gettext.Extractor do
     update_in(translation.references, &Enum.sort/1)
   end
 
-  defp create_translation_struct({msgid, msgid_plural}, file, line, extracted_comments),
-    do: %PluralTranslation{
-          msgid: [msgid],
-          msgid_plural: [msgid_plural],
-          msgstr: %{0 => [""], 1 => [""]},
-          flags: MapSet.new([@extracted_translations_flag]),
-          references: [{Path.relative_to_cwd(file), line}],
-          extracted_comments: extracted_comments,
-        }
-  defp create_translation_struct(msgid, file, line, extracted_comments),
-    do: %Translation{
-          msgid: [msgid],
-          msgstr: [""],
-          flags: MapSet.new([@extracted_translations_flag]),
-          references: [{Path.relative_to_cwd(file), line}],
-          extracted_comments: extracted_comments,
-        }
+  defp create_translation_struct({msgid, msgid_plural}, file, line, extracted_comments) do
+    %PluralTranslation{
+      msgid: [msgid],
+      msgid_plural: [msgid_plural],
+      msgstr: %{0 => [""], 1 => [""]},
+      flags: MapSet.new([@extracted_translations_flag]),
+      references: [{Path.relative_to_cwd(file), line}],
+      extracted_comments: extracted_comments
+    }
+  end
+
+  defp create_translation_struct(msgid, file, line, extracted_comments) do
+    %Translation{
+      msgid: [msgid],
+      msgstr: [""],
+      flags: MapSet.new([@extracted_translations_flag]),
+      references: [{Path.relative_to_cwd(file), line}],
+      extracted_comments: extracted_comments
+    }
+  end
 
   # Made public for testing.
   @doc false
@@ -191,6 +195,7 @@ defmodule Gettext.Extractor do
     case PO.parse_string(contents) do
       {:ok, po} ->
         {contents, po}
+
       {:error, line, reason} ->
         raise PO.SyntaxError, line: line, file: path, reason: reason
     end
@@ -208,18 +213,19 @@ defmodule Gettext.Extractor do
   # merged with an empty %PO{} struct to remove obsolete translations (see
   # prune_unmerged/1), because the user could still have PO translation that
   # they manually inserted in that file.
-  defp tag_files({_path, {:merged, _}} = entry, _gettext_config),
-    do: entry
+  defp tag_files({_path, {:merged, _}} = entry, _gettext_config), do: entry
+
   defp tag_files({path, :existing}, gettext_config),
     do: {path, {:unmerged, prune_unmerged(path, gettext_config)}}
-  defp tag_files({path, new_po}, _gettext_config),
-    do: {path, {:new, new_po}}
+
+  defp tag_files({path, new_po}, _gettext_config), do: {path, {:new, new_po}}
 
   # This function "dumps" merged files and unmerged files without any changes,
   # and dumps new POT files adding an informative comment to them. This doesn't
   # write anything to disk, it just returns `{path, contents}` tuples.
   defp dump_tagged_file({path, {:new, new_po}}, gettext_config),
-    do: {path, [new_pot_comment(), (new_po |> add_headers_to_new_po() |> PO.dump(gettext_config))]}
+    do: {path, [new_pot_comment(), new_po |> add_headers_to_new_po() |> PO.dump(gettext_config)]}
+
   defp dump_tagged_file({path, {tag, po}}, gettext_config) when tag in [:unmerged, :merged],
     do: {path, PO.dump(po, gettext_config)}
 
@@ -254,26 +260,25 @@ defmodule Gettext.Extractor do
 
     # We go over the existing translations in order so as to keep the existing
     # order as much as possible.
-    old_and_merged = Enum.flat_map(existing.translations, fn t ->
-      cond do
-        same = PO.Translations.find(new.translations, t) ->
-          [merge_translations(t, same)]
-        PO.Translations.protected?(t, protected_pattern) ->
-          [t]
-        PO.Translations.autogenerated?(t) ->
-          []
-        true ->
-          [t]
-      end
-    end)
+    old_and_merged =
+      Enum.flat_map(existing.translations, fn t ->
+        cond do
+          same = PO.Translations.find(new.translations, t) -> [merge_translations(t, same)]
+          PO.Translations.protected?(t, protected_pattern) -> [t]
+          PO.Translations.autogenerated?(t) -> []
+          true -> [t]
+        end
+      end)
 
     # We reject all translations that appear in `existing` so that we're left
     # with the translations that only appear in `new`.
     unique_new = Enum.reject(new.translations, &PO.Translations.find(existing.translations, &1))
 
-    %PO{translations: old_and_merged ++ unique_new,
-        headers: existing.headers,
-        top_of_the_file_comments: existing.top_of_the_file_comments}
+    %PO{
+      translations: old_and_merged ++ unique_new,
+      headers: existing.headers,
+      top_of_the_file_comments: existing.top_of_the_file_comments
+    }
   end
 
   defp merge_translations(%Translation{} = old, %Translation{comments: []} = new) do
@@ -288,7 +293,7 @@ defmodule Gettext.Extractor do
       comments: old.comments,
       # We don't care about the references of the old translation since the new
       # in-memory translation has all the actual and current references.
-      references: new.references,
+      references: new.references
     }
   end
 
@@ -302,26 +307,27 @@ defmodule Gettext.Extractor do
       msgid_plural: old.msgid_plural,
       msgstr: old.msgstr,
       comments: old.comments,
-      references: new.references,
+      references: new.references
     }
   end
 
   defp ensure_empty_msgstr!(%Translation{msgstr: msgstr} = t) do
     unless blank?(msgstr) do
-      raise Error, "translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+      raise Error,
+            "translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
     end
   end
 
   defp ensure_empty_msgstr!(%PluralTranslation{msgstr: %{0 => str0, 1 => str1}} = t) do
     if not blank?(str0) or not blank?(str1) do
       raise Error,
-        "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+            "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
     end
   end
 
   defp ensure_empty_msgstr!(%PluralTranslation{} = t) do
     raise Error,
-      "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+          "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
   end
 
   defp blank?(nil), do: true

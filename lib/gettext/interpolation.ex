@@ -1,7 +1,7 @@
 defmodule Gettext.Interpolation do
   @moduledoc false
 
-  @type interpolatable :: [String.t | atom]
+  @type interpolatable :: [String.t() | atom]
 
   @doc """
   Extracts interpolations from a given string.
@@ -20,7 +20,7 @@ defmodule Gettext.Interpolation do
       ["Empties %{} stay empty"]
 
   """
-  @spec to_interpolatable(String.t) :: interpolatable
+  @spec to_interpolatable(String.t()) :: interpolatable
   def to_interpolatable(string) do
     start_pattern = :binary.compile_pattern("%{")
     end_pattern = :binary.compile_pattern("}")
@@ -36,11 +36,13 @@ defmodule Gettext.Interpolation do
       # string.
       [rest] ->
         prepend_if_not_empty(current <> rest, acc)
+
       # If we found a %{ but it's followed by an immediate }, then we just
       # append %{} to the current string and keep going.
       [before, "}" <> rest] ->
         new_current = current <> before <> "%{}"
         to_interpolatable(rest, new_current, acc, start_pattern, end_pattern)
+
       # Otherwise, we found the start of a binding.
       [before, binding_and_rest] ->
         case :binary.split(binding_and_rest, end_pattern) do
@@ -49,6 +51,7 @@ defmodule Gettext.Interpolation do
           # there.
           [_] ->
             [current <> string | acc]
+
           # This is the case where we found a binding, so we put it in the acc
           # and keep going.
           [binding, rest] ->
@@ -85,7 +88,7 @@ defmodule Gettext.Interpolation do
 
   """
   @spec interpolate(interpolatable, map) ::
-        {:ok, String.t} | {:missing_bindings, String.t, [atom]}
+          {:ok, String.t()} | {:missing_bindings, String.t(), [atom]}
   def interpolate(interpolatable, bindings)
       when is_list(interpolatable) and is_map(bindings) do
     interpolate(interpolatable, bindings, [], [])
@@ -99,8 +102,10 @@ defmodule Gettext.Interpolation do
     case bindings do
       %{^atom => value} ->
         interpolate(segments, bindings, [to_string(value) | strings], missing)
+
       %{} ->
-        interpolate(segments, bindings, ["%{" <> Atom.to_string(atom) <> "}" | strings], [atom | missing])
+        strings = ["%{" <> Atom.to_string(atom) <> "}" | strings]
+        interpolate(segments, bindings, strings, [atom | missing])
     end
   end
 
@@ -136,11 +141,11 @@ defmodule Gettext.Interpolation do
       [:name]
 
   """
-  @spec keys(String.t | interpolatable) :: [atom]
+  @spec keys(String.t() | interpolatable) :: [atom]
   def keys(string_or_interpolatable)
 
-  def keys(string) when is_binary(string),
-    do: string |> to_interpolatable() |> keys()
+  def keys(string) when is_binary(string), do: string |> to_interpolatable() |> keys()
+
   def keys(interpolatable) when is_list(interpolatable),
     do: interpolatable |> Enum.filter(&is_atom/1) |> Enum.uniq()
 end

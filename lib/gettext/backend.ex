@@ -48,8 +48,8 @@ defmodule Gettext.Backend do
       end
 
   """
-  @callback handle_missing_bindings(Gettext.MissingBindingsError.t, binary) ::
-            binary | no_return
+  @callback handle_missing_bindings(Gettext.MissingBindingsError.t(), binary) ::
+              binary | no_return
 
   @doc """
   Translates the given `msgid` in the given `domain`.
@@ -58,29 +58,29 @@ defmodule Gettext.Backend do
 
   See also `Gettext.dgettext/4`.
   """
-  @macrocallback dgettext(domain :: Macro.t, msgid :: String.t, bindings :: Macro.t) ::
-                 Macro.t
+  @macrocallback dgettext(domain :: Macro.t(), msgid :: String.t(), bindings :: Macro.t()) ::
+                   Macro.t()
 
   @doc """
   Same as `dgettext(domain, msgid, %{})`.
 
   See also `Gettext.dgettext/4`.
   """
-  @macrocallback dgettext(domain :: Macro.t, msgid :: String.t) :: Macro.t
+  @macrocallback dgettext(domain :: Macro.t(), msgid :: String.t()) :: Macro.t()
 
   @doc """
   Same as `dgettext("default", msgid, %{})`.
 
   See also `Gettext.gettext/3`.
   """
-  @macrocallback gettext(msgid :: String.t, bindings :: Macro.t) :: Macro.t
+  @macrocallback gettext(msgid :: String.t(), bindings :: Macro.t()) :: Macro.t()
 
   @doc """
   Same as `gettext(msgid, %{})`.
 
   See also `Gettext.gettext/3`.
   """
-  @macrocallback gettext(msgid :: String.t) :: Macro.t
+  @macrocallback gettext(msgid :: String.t()) :: Macro.t()
 
   @doc """
   Translates the given plural translation (`msgid` + `msgid_plural`) in the
@@ -91,40 +91,45 @@ defmodule Gettext.Backend do
 
   See also `Gettext.dngettext/6`.
   """
-  @macrocallback dngettext(domain :: Macro.t,
-                           msgid :: String.t,
-                           msgid_plural :: String.t,
-                           n :: Macro.t,
-                           bindings :: Macro.t) :: Macro.t
+  @macrocallback dngettext(
+                   domain :: Macro.t(),
+                   msgid :: String.t(),
+                   msgid_plural :: String.t(),
+                   n :: Macro.t(),
+                   bindings :: Macro.t()
+                 ) :: Macro.t()
 
   @doc """
   Same as `dngettext(domain, msgid, msgid_plural, n, %{})`.
 
   See also `Gettext.dngettext/6`.
   """
-  @macrocallback dngettext(domain :: Macro.t,
-                           msgid :: String.t,
-                           msgid_plural :: String.t,
-                           n :: Macro.t) :: Macro.t
+  @macrocallback dngettext(
+                   domain :: Macro.t(),
+                   msgid :: String.t(),
+                   msgid_plural :: String.t(),
+                   n :: Macro.t()
+                 ) :: Macro.t()
 
   @doc """
   Same as `dngettext("default", msgid, msgid_plural, n, bindings)`.
 
   See also `Gettext.ngettext/5`.
   """
-  @macrocallback ngettext(msgid :: String.t,
-                          msgid_plural :: String.t,
-                          n :: Macro.t,
-                          bindings :: Macro.t) :: Macro.t
+  @macrocallback ngettext(
+                   msgid :: String.t(),
+                   msgid_plural :: String.t(),
+                   n :: Macro.t(),
+                   bindings :: Macro.t()
+                 ) :: Macro.t()
 
   @doc """
   Same as `ngettext(msgid, msgid_plural, n, %{})`.
 
   See also `Gettext.ngettext/5`.
   """
-  @macrocallback ngettext(msgid :: String.t,
-                          msgid_plural :: String.t,
-                          n :: Macro.t) :: Macro.t
+  @macrocallback ngettext(msgid :: String.t(), msgid_plural :: String.t(), n :: Macro.t()) ::
+                   Macro.t()
 
   @doc """
   Marks the given translation for extraction and returns it unchanged.
@@ -139,12 +144,12 @@ defmodule Gettext.Backend do
       #=> "Error found!"
 
   """
-  @macrocallback dgettext_noop(domain :: String.t, msgid :: String.t) :: Macro.t
+  @macrocallback dgettext_noop(domain :: String.t(), msgid :: String.t()) :: Macro.t()
 
   @doc """
   Same as `dgettext_noop("default", msgid)`.
   """
-  @macrocallback gettext_noop(msgid :: String.t) :: Macro.t
+  @macrocallback gettext_noop(msgid :: String.t()) :: Macro.t()
 
   @doc """
   Marks the given translation for extraction and returns
@@ -163,14 +168,16 @@ defmodule Gettext.Backend do
       my_fun.(MyApp.Gettext.dngettext_noop("errors", "One error", "%{count} errors"))
 
   """
-  @macrocallback dngettext_noop(domain :: Macro.t,
-                                msgid :: String.t,
-                                msgid_plural :: String.t) :: Macro.t
+  @macrocallback dngettext_noop(
+                   domain :: Macro.t(),
+                   msgid :: String.t(),
+                   msgid_plural :: String.t()
+                 ) :: Macro.t()
 
   @doc """
   Same as `dngettext_noop("default", msgid, mgsid_plural)`.
   """
-  @macrocallback ngettext_noop(msgid :: String.t, msgid_plural :: String.t) :: Macro.t
+  @macrocallback ngettext_noop(msgid :: String.t(), msgid_plural :: String.t()) :: Macro.t()
 
   @doc """
   Stores an "extracted comment" for the next translation.
@@ -194,5 +201,5 @@ defmodule Gettext.Backend do
       MyApp.Gettext.gettext("The awesome translation")
 
   """
-  @macrocallback gettext_comment(comment :: String.t) :: :ok
+  @macrocallback gettext_comment(comment :: String.t()) :: :ok
 end

@@ -28,20 +28,22 @@ defmodule Mix.Tasks.Gettext.Extract do
   """
   def run(args) do
     Application.ensure_all_started(:gettext)
-    _ = Mix.Project.get!
+    _ = Mix.Project.get!()
     config = Mix.Project.config()
     pot_files = extract(config[:app], config[:gettext] || [])
 
     case args do
       [] ->
         write_extracted_files(pot_files)
+
       ["--merge"] ->
         write_extracted_files(pot_files)
         run_merge(pot_files, args)
+
       _ ->
         Mix.raise(
           "The gettext.extract task only supports the --merge option. " <>
-          "See `mix help gettext.extract` for more information"
+            "See `mix help gettext.extract` for more information"
         )
     end
 
@@ -54,7 +56,7 @@ defmodule Mix.Tasks.Gettext.Extract do
         Task.async(fn ->
           File.mkdir_p!(Path.dirname(path))
           File.write!(path, contents)
-          Mix.shell.info "Extracted #{Path.relative_to_cwd(path)}"
+          Mix.shell().info("Extracted #{Path.relative_to_cwd(path)}")
         end)
       end
 

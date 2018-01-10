@@ -13,7 +13,7 @@ defmodule Gettext.PO do
 
   @type line :: pos_integer
   @type parse_error :: {:error, line, binary}
-  @type translation :: Translation.t | PluralTranslation.t
+  @type translation :: Translation.t() | PluralTranslation.t()
 
   defstruct headers: [],
             translations: [],
@@ -21,15 +21,15 @@ defmodule Gettext.PO do
             top_of_the_file_comments: []
 
   @type t :: %__MODULE__{
-    top_of_the_file_comments: [binary],
-    headers: [binary],
-    translations: [translation],
-    file: nil | Path.t,
-  }
+          top_of_the_file_comments: [binary],
+          headers: [binary],
+          translations: [translation],
+          file: nil | Path.t()
+        }
 
   @wrapping_column 80
   @reference_comment_length String.length("#:")
-  @bom <<0xef, 0xbb, 0xbf>> # (see prune_bom/2)
+  @bom <<0xEF, 0xBB, 0xBF>>
 
   @doc """
   Parses a string into a `Gettext.PO` struct.
@@ -62,9 +62,13 @@ defmodule Gettext.PO do
 
     with {:ok, tokens} <- Tokenizer.tokenize(str),
          {:ok, top_comments, headers, translations} <- Parser.parse(tokens) do
-      {:ok, %PO{headers: headers,
-                translations: translations,
-                top_of_the_file_comments: top_comments}}
+      po = %PO{
+        headers: headers,
+        translations: translations,
+        top_of_the_file_comments: top_comments
+      }
+
+      {:ok, po}
     end
   end
 
@@ -87,6 +91,7 @@ defmodule Gettext.PO do
     case parse_string(str) do
       {:ok, parsed} ->
         parsed
+
       {:error, line, reason} ->
         raise SyntaxError, line: line, reason: reason
     end
@@ -114,7 +119,7 @@ defmodule Gettext.PO do
       #=> {:error, :enoent}
 
   """
-  @spec parse_file(Path.t) :: {:ok, t} | parse_error | {:error, atom}
+  @spec parse_file(Path.t()) :: {:ok, t} | parse_error | {:error, atom}
   def parse_file(path) do
     with {:ok, contents} <- File.read(path),
          pruned = prune_bom(contents, path),
@@ -137,13 +142,15 @@ defmodule Gettext.PO do
       #=> ** (File.Error) could not parse "nonexistent.po": no such file or directory
 
   """
-  @spec parse_file!(Path.t) :: t | no_return
+  @spec parse_file!(Path.t()) :: t | no_return
   def parse_file!(path) do
     case parse_file(path) do
       {:ok, parsed} ->
         parsed
+
       {:error, reason} ->
         raise File.Error, reason: reason, action: "parse", path: path
+
       {:error, line, reason} ->
         raise SyntaxError, file: path, line: line, reason: reason
     end
@@ -180,7 +187,7 @@ defmodule Gettext.PO do
       msgstr "bar"
 
   """
-  @spec dump(t, Keyword.t) :: iodata
+  @spec dump(t, Keyword.t()) :: iodata
   def dump(po, gettext_config \\ [])
 
   def dump(%PO{headers: hs, translations: ts, top_of_the_file_comments: cs}, gettext_config) do
@@ -188,7 +195,7 @@ defmodule Gettext.PO do
       dump_top_comments(cs),
       dump_headers(hs),
       if(hs != [] and ts != [], do: ?\n, else: []),
-      dump_translations(ts, gettext_config),
+      dump_translations(ts, gettext_config)
     ]
   end
 
@@ -212,7 +219,7 @@ defmodule Gettext.PO do
   defp dump_headers(headers) do
     [
       ~s(msgid ""\n),
-      dump_kw_and_strings("msgstr", headers),
+      dump_kw_and_strings("msgstr", headers)
     ]
   end
 
@@ -229,7 +236,7 @@ defmodule Gettext.PO do
       dump_flags(t.flags),
       dump_references(t.references, gettext_config),
       dump_kw_and_strings("msgid", t.msgid),
-      dump_kw_and_strings("msgstr", t.msgstr),
+      dump_kw_and_strings("msgstr", t.msgstr)
     ]
   end
 
@@ -241,7 +248,7 @@ defmodule Gettext.PO do
       dump_references(t.references, gettext_config),
       dump_kw_and_strings("msgid", t.msgid),
       dump_kw_and_strings("msgid_plural", t.msgid_plural),
-      dump_plural_msgstr(t.msgstr),
+      dump_plural_msgstr(t.msgstr)
     ]
   end
 
@@ -250,8 +257,11 @@ defmodule Gettext.PO do
   end
 
   defp dump_references(references, gettext_config) do
-    references = if Keyword.get(gettext_config, :write_reference_comments, true), do: references, else: []
-    dump_references(references)
+    if Keyword.get(gettext_config, :write_reference_comments, true) do
+      dump_references(references)
+    else
+      dump_references([])
+    end
   end
 
   defp dump_references([]) do
@@ -271,7 +281,7 @@ defmodule Gettext.PO do
         ref = " #{file}:#{line}"
         ref_length = String.length(ref)
 
-        if (ref_length + line_length) > wrapping_column do
+        if ref_length + line_length > wrapping_column do
           {[?\n, "#:", ref], ref_length}
         else
           {[ref], line_length + ref_length}
@@ -287,7 +297,7 @@ defmodule Gettext.PO do
     else
       flags =
         flags
-        |> Enum.sort
+        |> Enum.sort()
         |> Enum.intersperse(", ")
 
       ["#, ", flags, ?\n]
@@ -337,9 +347,9 @@ defmodule Gettext.PO do
 
     warning =
       "#{file}: warning: the #{file_or_string} being parsed starts " <>
-      "with a BOM byte sequence (#{inspect(@bom, binaries: :as_binaries)}). " <>
-      "These bytes are ignored by Gettext but it's recommended to remove " <>
-      "them. To know more about BOM, read https://en.wikipedia.org/wiki/Byte_order_mark."
+        "with a BOM byte sequence (#{inspect(@bom, binaries: :as_binaries)}). " <>
+        "These bytes are ignored by Gettext but it's recommended to remove " <>
+        "them. To know more about BOM, read https://en.wikipedia.org/wiki/Byte_order_mark."
 
     IO.puts(:stderr, warning)
 

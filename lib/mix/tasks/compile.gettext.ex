@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Compile.Gettext do
 
   def run(_, priv_dir \\ "priv") do
     Application.ensure_all_started(:gettext)
-    _ = Mix.Project.get!
+    _ = Mix.Project.get!()
     app_dir = Mix.Project.app_path()
     gettext_config = Mix.Project.config()[:gettext] || []
 
@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Compile.Gettext do
   defp priv_prefix(path, app_dir) do
     parts = Path.split(path)
 
-    if index = Enum.find_index(parts, & &1 == "LC_MESSAGES") do
+    if index = Enum.find_index(parts, &(&1 == "LC_MESSAGES")) do
       filename =
         [".compile" | Enum.take(parts, index - 1)]
         |> Path.join()

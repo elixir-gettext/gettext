@@ -29,20 +29,20 @@ defmodule Gettext.PO.Translation do
   """
 
   @type t :: %__MODULE__{
-    msgid: [binary],
-    msgstr: [binary],
-    comments: [binary],
-    extracted_comments: [binary],
-    references: [{binary, pos_integer}],
-    flags: MapSet.t,
-    po_source_line: pos_integer,
-  }
+          msgid: [binary],
+          msgstr: [binary],
+          comments: [binary],
+          extracted_comments: [binary],
+          references: [{binary, pos_integer}],
+          flags: MapSet.t(),
+          po_source_line: pos_integer
+        }
 
   defstruct msgid: nil,
             msgstr: nil,
             comments: [],
             extracted_comments: [],
             references: [],
-            flags: MapSet.new,
+            flags: MapSet.new(),
             po_source_line: nil
 end

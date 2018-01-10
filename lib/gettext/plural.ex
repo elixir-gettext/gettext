@@ -104,13 +104,13 @@ defmodule Gettext.Plural do
   @doc """
   Returns the number of possible plural forms in the given `locale`.
   """
-  @callback nplurals(locale :: String.t) :: pos_integer
+  @callback nplurals(locale :: String.t()) :: pos_integer
 
   @doc """
   Returns the plural form in the given `locale` for the given `count` of
   elements.
   """
-  @callback plural(locale :: String.t, count :: integer) :: (plural_form :: non_neg_integer)
+  @callback plural(locale :: String.t(), count :: integer) :: plural_form :: non_neg_integer
 
   defmodule UnknownLocaleError do
     @moduledoc """
@@ -147,143 +147,268 @@ defmodule Gettext.Plural do
   end
 
   @one_form [
-    "ay",  # Aymará
-    "bo",  # Tibetan
-    "cgg", # Chiga
-    "dz",  # Dzongkha
-    "fa",  # Persian
-    "id",  # Indonesian
-    "ja",  # Japanese
-    "jbo", # Lojban
-    "ka",  # Georgian
-    "kk",  # Kazakh
-    "km",  # Khmer
-    "ko",  # Korean
-    "ky",  # Kyrgyz
-    "lo",  # Lao
-    "ms",  # Malay
-    "my",  # Burmese
-    "sah", # Yakut
-    "su",  # Sundanese
-    "th",  # Thai
-    "tt",  # Tatar
-    "ug",  # Uyghur
-    "vi",  # Vietnamese
-    "wo",  # Wolof
-    "zh",  # Chinese [2]
+    # Aymará
+    "ay",
+    # Tibetan
+    "bo",
+    # Chiga
+    "cgg",
+    # Dzongkha
+    "dz",
+    # Persian
+    "fa",
+    # Indonesian
+    "id",
+    # Japanese
+    "ja",
+    # Lojban
+    "jbo",
+    # Georgian
+    "ka",
+    # Kazakh
+    "kk",
+    # Khmer
+    "km",
+    # Korean
+    "ko",
+    # Kyrgyz
+    "ky",
+    # Lao
+    "lo",
+    # Malay
+    "ms",
+    # Burmese
+    "my",
+    # Yakut
+    "sah",
+    # Sundanese
+    "su",
+    # Thai
+    "th",
+    # Tatar
+    "tt",
+    # Uyghur
+    "ug",
+    # Vietnamese
+    "vi",
+    # Wolof
+    "wo",
+    # Chinese [2]
+    "zh"
   ]
 
   @two_forms_1 [
-    "af",    # Afrikaans
-    "an",    # Aragonese
-    "anp",   # Angika
-    "as",    # Assamese
-    "ast",   # Asturian
-    "az",    # Azerbaijani
-    "bg",    # Bulgarian
-    "bn",    # Bengali
-    "brx",   # Bodo
-    "ca",    # Catalan
-    "da",    # Danish
-    "de",    # German
-    "doi",   # Dogri
-    "el",    # Greek
-    "en",    # English
-    "eo",    # Esperanto
-    "es",    # Spanish
-    "et",    # Estonian
-    "eu",    # Basque
-    "ff",    # Fulah
-    "fi",    # Finnish
-    "fo",    # Faroese
-    "fur",   # Friulian
-    "fy",    # Frisian
-    "gl",    # Galician
-    "gu",    # Gujarati
-    "ha",    # Hausa
-    "he",    # Hebrew
-    "hi",    # Hindi
-    "hne",   # Chhattisgarhi
-    "hy",    # Armenian
-    "hu",    # Hungarian
-    "ia",    # Interlingua
-    "it",    # Italian
-    "kl",    # Greenlandic
-    "kn",    # Kannada
-    "ku",    # Kurdish
-    "lb",    # Letzeburgesch
-    "mai",   # Maithili
-    "ml",    # Malayalam
-    "mn",    # Mongolian
-    "mni",   # Manipuri
-    "mr",    # Marathi
-    "nah",   # Nahuatl
-    "nap",   # Neapolitan
-    "nb",    # Norwegian Bokmal
-    "ne",    # Nepali
-    "nl",    # Dutch
-    "se",    # Northern Sami
-    "nn",    # Norwegian Nynorsk
-    "no",    # Norwegian (old code)
-    "nso",   # Northern Sotho
-    "or",    # Oriya
-    "ps",    # Pashto
-    "pa",    # Punjabi
-    "pap",   # Papiamento
-    "pms",   # Piemontese
-    "pt",    # Portuguese
-    "rm",    # Romansh
-    "rw",    # Kinyarwanda
-    "sat",   # Santali
-    "sco",   # Scots
-    "sd",    # Sindhi
-    "si",    # Sinhala
-    "so",    # Somali
-    "son",   # Songhay
-    "sq",    # Albanian
-    "sw",    # Swahili
-    "sv",    # Swedish
-    "ta",    # Tamil
-    "te",    # Telugu
-    "tk",    # Turkmen
-    "ur",    # Urdu
-    "yo",    # Yoruba
+    # Afrikaans
+    "af",
+    # Aragonese
+    "an",
+    # Angika
+    "anp",
+    # Assamese
+    "as",
+    # Asturian
+    "ast",
+    # Azerbaijani
+    "az",
+    # Bulgarian
+    "bg",
+    # Bengali
+    "bn",
+    # Bodo
+    "brx",
+    # Catalan
+    "ca",
+    # Danish
+    "da",
+    # German
+    "de",
+    # Dogri
+    "doi",
+    # Greek
+    "el",
+    # English
+    "en",
+    # Esperanto
+    "eo",
+    # Spanish
+    "es",
+    # Estonian
+    "et",
+    # Basque
+    "eu",
+    # Fulah
+    "ff",
+    # Finnish
+    "fi",
+    # Faroese
+    "fo",
+    # Friulian
+    "fur",
+    # Frisian
+    "fy",
+    # Galician
+    "gl",
+    # Gujarati
+    "gu",
+    # Hausa
+    "ha",
+    # Hebrew
+    "he",
+    # Hindi
+    "hi",
+    # Chhattisgarhi
+    "hne",
+    # Armenian
+    "hy",
+    # Hungarian
+    "hu",
+    # Interlingua
+    "ia",
+    # Italian
+    "it",
+    # Greenlandic
+    "kl",
+    # Kannada
+    "kn",
+    # Kurdish
+    "ku",
+    # Letzeburgesch
+    "lb",
+    # Maithili
+    "mai",
+    # Malayalam
+    "ml",
+    # Mongolian
+    "mn",
+    # Manipuri
+    "mni",
+    # Marathi
+    "mr",
+    # Nahuatl
+    "nah",
+    # Neapolitan
+    "nap",
+    # Norwegian Bokmal
+    "nb",
+    # Nepali
+    "ne",
+    # Dutch
+    "nl",
+    # Northern Sami
+    "se",
+    # Norwegian Nynorsk
+    "nn",
+    # Norwegian (old code)
+    "no",
+    # Northern Sotho
+    "nso",
+    # Oriya
+    "or",
+    # Pashto
+    "ps",
+    # Punjabi
+    "pa",
+    # Papiamento
+    "pap",
+    # Piemontese
+    "pms",
+    # Portuguese
+    "pt",
+    # Romansh
+    "rm",
+    # Kinyarwanda
+    "rw",
+    # Santali
+    "sat",
+    # Scots
+    "sco",
+    # Sindhi
+    "sd",
+    # Sinhala
+    "si",
+    # Somali
+    "so",
+    # Songhay
+    "son",
+    # Albanian
+    "sq",
+    # Swahili
+    "sw",
+    # Swedish
+    "sv",
+    # Tamil
+    "ta",
+    # Telugu
+    "te",
+    # Turkmen
+    "tk",
+    # Urdu
+    "ur",
+    # Yoruba
+    "yo"
   ]
 
   @two_forms_2 [
-    "ach",   # Acholi
-    "ak",    # Akan
-    "am",    # Amharic
-    "arn",   # Mapudungun
-    "br",    # Breton
-    "fil",   # Filipino
-    "fr",    # French
-    "gun",   # Gun
-    "ln",    # Lingala
-    "mfe",   # Mauritian Creole
-    "mg",    # Malagasy
-    "mi",    # Maori
-    "oc",    # Occitan
-    "tg",    # Tajik
-    "ti",    # Tigrinya
-    "tl",    # Tagalog
-    "tr",    # Turkish
-    "uz",    # Uzbek
-    "wa",    # Walloon
+    # Acholi
+    "ach",
+    # Akan
+    "ak",
+    # Amharic
+    "am",
+    # Mapudungun
+    "arn",
+    # Breton
+    "br",
+    # Filipino
+    "fil",
+    # French
+    "fr",
+    # Gun
+    "gun",
+    # Lingala
+    "ln",
+    # Mauritian Creole
+    "mfe",
+    # Malagasy
+    "mg",
+    # Maori
+    "mi",
+    # Occitan
+    "oc",
+    # Tajik
+    "tg",
+    # Tigrinya
+    "ti",
+    # Tagalog
+    "tl",
+    # Turkish
+    "tr",
+    # Uzbek
+    "uz",
+    # Walloon
+    "wa"
   ]
 
   @three_forms_slavic [
-    "be", # Belarusian
-    "bs", # Bosnian
-    "hr", # Croatian
-    "sr", # Serbian
-    "ru", # Russian
-    "uk", # Ukrainian
+    # Belarusian
+    "be",
+    # Bosnian
+    "bs",
+    # Croatian
+    "hr",
+    # Serbian
+    "sr",
+    # Russian
+    "ru",
+    # Ukrainian
+    "uk"
   ]
 
   @three_forms_slavic_alt [
-    "cs", # Czech
-    "sk", # Slovak
+    # Czech
+    "cs",
+    # Slovak
+    "sk"
   ]
 
   # Number of plural forms.
@@ -386,13 +511,14 @@ defmodule Gettext.Plural do
 
   for l <- @three_forms_slavic do
     def plural(unquote(l), n)
-      when ends_in(n, 1) and rem(n, 100) != 11,
-      do: 0
+        when ends_in(n, 1) and rem(n, 100) != 11,
+        do: 0
+
     def plural(unquote(l), n)
-      when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
-      do: 1
-    def plural(unquote(l), _n),
-      do: 2
+        when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
+        do: 1
+
+    def plural(unquote(l), _n), do: 2
   end
 
   for l <- @three_forms_slavic_alt do
@@ -414,13 +540,13 @@ defmodule Gettext.Plural do
 
   # Kashubian
   # (n==1) ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;
-  def plural("csb", 1),
-    do: 0
+  def plural("csb", 1), do: 0
+
   def plural("csb", n)
-    when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
-    do: 1
-  def plural("csb", _n),
-    do: 2
+      when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
+      do: 1
+
+  def plural("csb", _n), do: 2
 
   # Welsh
   # (n==1) ? 0 : (n==2) ? 1 : (n != 8 && n != 11) ? 2 : 3
@@ -464,13 +590,14 @@ defmodule Gettext.Plural do
   # Lithuanian
   # n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2
   def plural("lt", n)
-    when ends_in(n, 1) and rem(n, 100) != 11,
-    do: 0
+      when ends_in(n, 1) and rem(n, 100) != 11,
+      do: 0
+
   def plural("lt", n)
-    when rem(n, 10) >= 2 and (rem(n, 100) < 10 or rem(n, 100) >= 20),
-    do: 1
-  def plural("lt", _),
-    do: 2
+      when rem(n, 10) >= 2 and (rem(n, 100) < 10 or rem(n, 100) >= 20),
+      do: 1
+
+  def plural("lt", _), do: 2
 
   # Latvian
   # n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2
@@ -499,13 +626,13 @@ defmodule Gettext.Plural do
 
   # Polish
   # n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2
-  def plural("pl", 1),
-    do: 0
+  def plural("pl", 1), do: 0
+
   def plural("pl", n)
-    when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
-    do: 1
-  def plural("pl", _),
-    do: 2
+      when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
+      do: 1
+
+  def plural("pl", _), do: 2
 
   # Romanian
   # n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2
@@ -528,7 +655,7 @@ defmodule Gettext.Plural do
   defp recall_if_country_or_raise(locale, fun) do
     case String.split(locale, "_", parts: 2, trim: true) do
       [lang, _country] -> fun.(lang)
-      _other           -> raise UnknownLocaleError, locale
+      _other -> raise UnknownLocaleError, locale
     end
   end
 end

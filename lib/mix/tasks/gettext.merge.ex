@@ -90,26 +90,30 @@ defmodule Mix.Tasks.Gettext.Merge do
   alias Gettext.Merger
 
   def run(args) do
-    _ = Mix.Project.get!
+    _ = Mix.Project.get!()
     gettext_config = Mix.Project.config()[:gettext] || []
 
     case OptionParser.parse(args, switches: @switches) do
       {opts, [arg1, arg2], _} ->
         run_with_two_args(arg1, arg2, opts, gettext_config)
+
       {opts, [arg], _} ->
         run_with_one_arg(arg, opts, gettext_config)
+
       {_, [], _} ->
         Mix.raise(
           "gettext.merge requires at least one argument to work. " <>
-          "Use `mix help gettext.merge` to see the usage of this task"
+            "Use `mix help gettext.merge` to see the usage of this task"
         )
+
       {_, _, [_ | _] = errors} ->
-        for {key, _} <- errors, do: Mix.shell.error("#{key} is invalid")
+        for {key, _} <- errors, do: Mix.shell().error("#{key} is invalid")
         Mix.raise("`mix gettext.merge` aborted")
+
       {_, _, _} ->
         Mix.raise(
           "Too many arguments for the gettext.merge task. " <>
-          "Use `mix help gettext.merge` to see the usage of this task"
+            "Use `mix help gettext.merge` to see the usage of this task"
         )
     end
 
@@ -124,7 +128,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       ensure_file_exists!(arg2)
       {path, contents} = merge_po_with_pot(arg1, arg2, merging_opts, gettext_config)
       File.write!(path, contents)
-      Mix.shell.info("Wrote #{path}")
+      Mix.shell().info("Wrote #{path}")
     else
       Mix.raise("Arguments must be a PO file and a PO/POT file")
     end
@@ -205,7 +209,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp write_file({path, contents}) do
     File.write!(path, contents)
-    Mix.shell.info("Wrote #{path}")
+    Mix.shell().info("Wrote #{path}")
   end
 
   defp po_has_matching_pot?(po_file, pot_dir) do
@@ -215,7 +219,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp warn_for_missing_pot_file(po_file, pot_dir) do
-    Mix.shell.info("Warning: PO file #{po_file} has no matching POT file in #{pot_dir}")
+    Mix.shell().info("Warning: PO file #{po_file} has no matching POT file in #{pot_dir}")
   end
 
   defp ensure_file_exists!(path) do
@@ -229,7 +233,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   defp create_missing_locale_dir(dir) do
     unless File.dir?(dir) do
       File.mkdir_p!(dir)
-      Mix.shell.info("Created directory #{dir}")
+      Mix.shell().info("Created directory #{dir}")
     end
   end
 

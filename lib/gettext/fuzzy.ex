@@ -39,12 +39,10 @@ defmodule Gettext.Fuzzy do
   # msgids but very different msgid_plurals, they'll still fuzzy match.
   def jaro_distance(key1, key2) when is_binary(key1) and is_binary(key2),
     do: String.jaro_distance(key1, key2)
-  def jaro_distance({key1, _}, key2) when is_binary(key2),
-    do: String.jaro_distance(key1, key2)
-  def jaro_distance(key1, {key2, _}) when is_binary(key1),
-    do: String.jaro_distance(key1, key2)
-  def jaro_distance({key1, _}, {key2, _}),
-    do: String.jaro_distance(key1, key2)
+
+  def jaro_distance({key1, _}, key2) when is_binary(key2), do: String.jaro_distance(key1, key2)
+  def jaro_distance(key1, {key2, _}) when is_binary(key1), do: String.jaro_distance(key1, key2)
+  def jaro_distance({key1, _}, {key2, _}), do: String.jaro_distance(key1, key2)
 
   @doc """
   Merges a translation with the corresponding fuzzy match.
@@ -56,7 +54,7 @@ defmodule Gettext.Fuzzy do
   translation; if `new` is a plural translation, then the result will be a
   plural translation.
   """
-  @spec merge(PO.translation, PO.translation) :: PO.translation
+  @spec merge(PO.translation(), PO.translation()) :: PO.translation()
   def merge(new, existing) do
     new
     |> merge_fuzzy(existing)
@@ -65,10 +63,13 @@ defmodule Gettext.Fuzzy do
 
   defp merge_fuzzy(%Translation{} = new, %Translation{} = existing),
     do: %{new | msgstr: existing.msgstr}
+
   defp merge_fuzzy(%Translation{} = new, %PluralTranslation{} = existing),
     do: %{new | msgstr: existing.msgstr[0]}
+
   defp merge_fuzzy(%PluralTranslation{} = new, %Translation{} = existing),
     do: %{new | msgstr: Map.new(new.msgstr, fn {i, _} -> {i, existing.msgstr} end)}
+
   defp merge_fuzzy(%PluralTranslation{} = new, %PluralTranslation{} = existing),
     do: %{new | msgstr: existing.msgstr}
 end
