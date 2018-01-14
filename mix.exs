@@ -13,6 +13,7 @@ defmodule Gettext.Mixfile do
       elixir: "~> 1.3",
       build_embedded: Mix.env() == :prod,
       deps: deps(),
+      xref: [exclude: [{Kernel.ParallelCompiler, :async, 1}]],
 
       # Hex
       package: hex_package(),
