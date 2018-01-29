@@ -25,7 +25,6 @@ defmodule Gettext.InterpolationTest do
     assert Interpolation.to_interpolatable("%{solo}") == [:solo]
     assert Interpolation.to_interpolatable("%{foo}%{bar} %{baz}") == [:foo, :bar, " ", :baz]
     assert Interpolation.to_interpolatable("%{Your name} is cool!") == [:"Your name", " is cool!"]
-    assert Interpolation.to_interpolatable("%{Héllø} there") == [:Héllø, " there"]
     assert Interpolation.to_interpolatable("foo %{} bar") == ["foo %{} bar"]
     assert Interpolation.to_interpolatable("%{") == ["%{"]
     assert Interpolation.to_interpolatable("abrupt ending %{") == ["abrupt ending %{"]
@@ -37,6 +36,13 @@ defmodule Gettext.InterpolationTest do
              ["first empty %{} then %{ incomplete"]
 
     assert Interpolation.to_interpolatable("") == []
+  end
+
+  if :erlang.system_info(:otp_release) >= '20' do
+    test "to_interpolatable/1 with Unicode" do
+      assert Interpolation.to_interpolatable("%{Héllø} there") ==
+             [String.to_atom("Héllø"), " there"]
+    end
   end
 
   test "keys/1" do
