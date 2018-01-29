@@ -93,7 +93,7 @@ defmodule Gettext do
   backends.
 
   Similarly, `Gettext.get_locale/0` gets the locale for all backends in the
-  current process. `Gettext.get_locale/`1 gets the locale of a specific backend
+  current process. `Gettext.get_locale/1` gets the locale of a specific backend
   for the current process. Check their documentation for more information.
 
   Locales are expressed as strings (like `"en"` or `"fr"`); they can be
