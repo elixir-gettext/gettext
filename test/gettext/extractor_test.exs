@@ -216,38 +216,41 @@ defmodule Gettext.ExtractorTest do
     Code.compile_string(code, Path.join(File.cwd!(), "foo.ex"))
 
     expected = [
-      {"priv/gettext/default.pot", ~S"""
-      msgid ""
-      msgstr ""
+      {"priv/gettext/default.pot",
+       ~S"""
+       msgid ""
+       msgstr ""
 
-      #. some comment
-      #. some other comment
-      #. one more comment
-      #, elixir-format
-      #: foo.ex:16 foo.ex:19
-      msgid "foo"
-      msgstr ""
-      """},
-      {"priv/gettext/errors.pot", ~S"""
-      msgid ""
-      msgstr ""
+       #. some comment
+       #. some other comment
+       #. one more comment
+       #, elixir-format
+       #: foo.ex:16 foo.ex:19
+       msgid "foo"
+       msgstr ""
+       """},
+      {"priv/gettext/errors.pot",
+       ~S"""
+       msgid ""
+       msgstr ""
 
-      #, elixir-format
-      #: foo.ex:17
-      msgid "one error"
-      msgid_plural "%{count} errors"
-      msgstr[0] ""
-      msgstr[1] ""
-      """},
-      {"translations/greetings.pot", ~S"""
-      msgid ""
-      msgstr ""
+       #, elixir-format
+       #: foo.ex:17
+       msgid "one error"
+       msgid_plural "%{count} errors"
+       msgstr[0] ""
+       msgstr[1] ""
+       """},
+      {"translations/greetings.pot",
+       ~S"""
+       msgid ""
+       msgstr ""
 
-      #, elixir-format
-      #: foo.ex:20
-      msgid "hi"
-      msgstr ""
-      """}
+       #, elixir-format
+       #: foo.ex:20
+       msgid "hi"
+       msgstr ""
+       """}
     ]
 
     # No backends for the unknown app

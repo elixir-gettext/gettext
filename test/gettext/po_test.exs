@@ -21,16 +21,17 @@ defmodule Gettext.POTest do
       msgstr "indentazione " "e stringhe"
     """
 
-    assert {:ok, %PO{
-             headers: [],
-             translations: [
-               %Translation{msgid: ["hello there"], msgstr: ["ciao"]},
-               %Translation{
-                 msgid: ["indenting and ", "strings"],
-                 msgstr: ["indentazione ", "e stringhe"]
-               }
-             ]
-           }} = PO.parse_string(str)
+    assert {:ok,
+            %PO{
+              headers: [],
+              translations: [
+                %Translation{msgid: ["hello there"], msgstr: ["ciao"]},
+                %Translation{
+                  msgid: ["indenting and ", "strings"],
+                  msgstr: ["indentazione ", "e stringhe"]
+                }
+              ]
+            }} = PO.parse_string(str)
   end
 
   test "parse_string/1: invalid strings" do
@@ -110,30 +111,32 @@ defmodule Gettext.POTest do
     msgstr "bar"
     """
 
-    assert {:ok, %PO{
-             translations: [%Translation{msgid: ["foo"], msgstr: ["bar"]}],
-             headers: [
-               "",
-               "Project-Id-Version: xxx\n",
-               "Report-Msgid-Bugs-To: \n",
-               "POT-Creation-Date: 2010-07-06 12:31-0500\n"
-             ]
-           }} = PO.parse_string(str)
+    assert {:ok,
+            %PO{
+              translations: [%Translation{msgid: ["foo"], msgstr: ["bar"]}],
+              headers: [
+                "",
+                "Project-Id-Version: xxx\n",
+                "Report-Msgid-Bugs-To: \n",
+                "POT-Creation-Date: 2010-07-06 12:31-0500\n"
+              ]
+            }} = PO.parse_string(str)
   end
 
   test "parse_file/1: valid file contents" do
     fixture_path = Path.expand("../fixtures/valid.po", __DIR__)
 
-    assert {:ok, %PO{
-             headers: [],
-             translations: [
-               %Translation{msgid: ["hello"], msgstr: ["ciao"]},
-               %Translation{
-                 msgid: ["how are you,", " friend?"],
-                 msgstr: ["come stai,", " amico?"]
-               }
-             ]
-           }} = PO.parse_file(fixture_path)
+    assert {:ok,
+            %PO{
+              headers: [],
+              translations: [
+                %Translation{msgid: ["hello"], msgstr: ["ciao"]},
+                %Translation{
+                  msgid: ["how are you,", " friend?"],
+                  msgstr: ["come stai,", " amico?"]
+                }
+              ]
+            }} = PO.parse_file(fixture_path)
   end
 
   test "parse_file/1: invalid file contents" do
