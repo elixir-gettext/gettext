@@ -93,24 +93,20 @@ defmodule Mix.Tasks.Gettext.Merge do
     _ = Mix.Project.get!()
     gettext_config = Mix.Project.config()[:gettext] || []
 
-    case OptionParser.parse(args, switches: @switches) do
-      {opts, [arg1, arg2], _} ->
+    case OptionParser.parse!(args, switches: @switches) do
+      {opts, [arg1, arg2]} ->
         run_with_two_args(arg1, arg2, opts, gettext_config)
 
-      {opts, [arg], _} ->
+      {opts, [arg]} ->
         run_with_one_arg(arg, opts, gettext_config)
 
-      {_, [], _} ->
+      {_opts, []} ->
         Mix.raise(
           "gettext.merge requires at least one argument to work. " <>
             "Use `mix help gettext.merge` to see the usage of this task"
         )
 
-      {_, _, [_ | _] = errors} ->
-        for {key, _} <- errors, do: Mix.shell().error("#{key} is invalid")
-        Mix.raise("`mix gettext.merge` aborted")
-
-      {_, _, _} ->
+      {_opts, _args} ->
         Mix.raise(
           "Too many arguments for the gettext.merge task. " <>
             "Use `mix help gettext.merge` to see the usage of this task"
