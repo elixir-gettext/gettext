@@ -68,7 +68,7 @@ defmodule Gettext.PO.Parser do
     |> String.trim()
     |> String.split(":")
     |> Enum.flat_map(&parse_reference_part/1)
-    |> Enum.chunk(2)
+    |> enum_chunk_every(2)
     |> Enum.map(&List.to_tuple/1)
   end
 
@@ -173,7 +173,10 @@ defmodule Gettext.PO.Parser do
 
   # TODO: remove once we depend on Elixir 1.4 and on.
   Code.ensure_loaded(Enum)
-
   split_with = if function_exported?(Enum, :split_with, 2), do: :split_with, else: :partition
   defp enum_split_with(enum, fun), do: apply(Enum, unquote(split_with), [enum, fun])
+
+  # TODO: remove once we depend on Elixir 1.5 and on.
+  chunk_every = if function_exported?(Enum, :chunk_every, 2), do: :chunk_every, else: :chunk
+  defp enum_chunk_every(enum, n), do: apply(Enum, unquote(chunk_every), [enum, n])
 end
