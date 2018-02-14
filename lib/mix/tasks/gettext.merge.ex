@@ -173,6 +173,8 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp merge_dirs(po_dir, pot_dir, opts, gettext_config) do
+    # TODO: replace Task.async/1 + Task.await/1 with Task.async_stream/2 when we depend on
+    # Elixir 1.4 and on.
     pot_dir
     |> Path.join("*.pot")
     |> Path.wildcard()
