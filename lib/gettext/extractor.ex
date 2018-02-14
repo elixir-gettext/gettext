@@ -288,6 +288,8 @@ defmodule Gettext.Extractor do
     %Translation{
       msgid: old.msgid,
       msgstr: old.msgstr,
+      # The new in-memory translation has no new flags.
+      flags: old.flags,
       # The new in-memory translation has no comments since it was extracted
       # from the source code.
       comments: old.comments,
@@ -306,6 +308,7 @@ defmodule Gettext.Extractor do
       msgid: old.msgid,
       msgid_plural: old.msgid_plural,
       msgstr: old.msgstr,
+      flags: old.flags,
       comments: old.comments,
       references: new.references
     }
