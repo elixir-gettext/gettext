@@ -122,21 +122,23 @@ defmodule Gettext.PO.Parser do
   end
 
   defp check_for_duplicates(translations) do
-    duplicate =
-      Enum.reduce_while(translations, %{}, fn t, acc ->
-        key = Translations.key(t)
+    check_for_duplicates(translations, %{})
+  end
 
-        if old_line = acc[key] do
-          {:halt, {t, old_line}}
-        else
-          {:cont, Map.put(acc, key, t.po_source_line)}
-        end
-      end)
+  defp check_for_duplicates([t | translations], existing) do
+    key = Translations.key(t)
 
-    case duplicate do
-      {t, old_line} -> build_duplicated_error(t, old_line)
-      _other -> :ok
+    case Map.fetch(existing, key) do
+      {:ok, old_line} ->
+        build_duplicated_error(t, old_line)
+
+      :error ->
+        check_for_duplicates(translations, Map.put(existing, key, t.po_source_line))
     end
+  end
+
+  defp check_for_duplicates([], _existing) do
+    :ok
   end
 
   defp build_duplicated_error(%Translation{} = t, old_line) do
