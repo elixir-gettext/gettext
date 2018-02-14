@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.14.1
+
+* Copy flags from existing translations when merging translations
+
 ## v0.14.0
 
 * Introduce a global locale (per-process) for all Gettext backends
