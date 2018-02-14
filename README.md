@@ -2,32 +2,25 @@
 
 [![Build Status](https://travis-ci.org/elixir-lang/gettext.svg)](https://travis-ci.org/elixir-lang/gettext)
 
-`gettext` is an internationalization (i18n) and localization (l10n) system commonly used for writing multilingual programs. Gettext is a standard for i18n in different communities, meaning there is a great set of tooling for developers and translators.
+Gettext is an **internationalization** (i18n) and **localization** (l10n) system commonly used for writing multilingual programs. Gettext is a standard for i18n in different communities, meaning there is a great set of tooling for developers and translators. This project is an implementation of the Gettext system in Elixir.
 
 ## Installation
 
-  1. Add `:gettext` to your list of dependencies in mix.exs:
+  1. Add `:gettext` to your list of dependencies in `mix.exs` (use `$ mix hex.info gettext` to find the latest version):
 
      ```elixir
      def deps do
-       [{:gettext, "~> 0.13"}]
+       [{:gettext, ">= 0.0.0"}]
      end
      ```
 
-  2. Ensure `:gettext` is started before your application:
+  2. Optionally add the `:gettext` application to your `:applications` key if you're not using `:extra_applications`.
 
-     ```elixir
-     def application do
-       [applications: [:gettext, :logger]]
-     end
-     ```
-
-  3. Optional: add the `:gettext` compiler so your backends
-     are recompiled when `.po` files change:
+  3. Optionally add the `:gettext` compiler to your Mix compilers so your backends are recompiled when `.po` files change:
 
      ```elixir
      def project do
-       [compilers: [:gettext] ++ Mix.compilers]
+       [compilers: [:gettext] ++ Mix.compilers()]
      end
      ```
 
@@ -43,26 +36,23 @@ defmodule MyApp.Gettext do
 end
 ```
 
-And invoke the Gettext API, based on the `*gettext` functions:
+And invoke the Gettext API, which consists of the `*gettext` macros:
 
 ```elixir
 import MyApp.Gettext
 
 # Simple translation
-gettext "Here is one string to translate"
+gettext("Here is one string to translate")
 
 # Plural translation
 number_of_apples = 4
-ngettext "The apple is ripe",
-         "The apples are ripe",
-         number_of_apples
-#=> "The apples are ripe"
+ngettext("The apple is ripe", "The apples are ripe", number_of_apples)
 
 # Domain-based translation
-dgettext "errors", "Here is an error message to translate"
+dgettext("errors", "Here is an error message to translate")
 ```
 
-Translations in Gettext are stored in Portable Object files (`.po`). Such files must be placed at `priv/gettext/en/LC_MESSAGES/domain.po`, where `en` is the locale and `domain` is the domain (the default domain is called `default`).
+Translations in Gettext are stored in Portable Object files (`.po`). Such files must be placed at `priv/gettext/LOCALE/LC_MESSAGES/DOMAIN.po`, where `LOCALE` is the locale and `DOMAIN` is the domain (the default domain is called `default`).
 
 For example, the translation to `pt_BR` of the first two `*gettext` calls in the snippet above must be placed in the `priv/gettext/pt_BR/LC_MESSAGES/default.po` file with contents:
 
@@ -76,11 +66,11 @@ msgstr[0] "Aqui está o texto para traduzir"
 msgstr[1] "Aqui estão os textos para traduzir"
 ```
 
-`.po` are text based and can be edited directly by translators. Some may even use existing tools for managing them, such as [Poedit][poedit] or [poeditor.com][poeditor.com].
+`.po` are text-based files and can be edited directly by translators. Some may even use existing tools for managing them, such as [Poedit][poedit] or [poeditor.com][poeditor.com].
 
 Finally, because translations are based on strings, your source code does not lose readability as you still see literal strings, like `gettext "here is an example"`, instead of paths like `translate "some.path.convention"`.
 
-Read the [documentation for the `Gettext` module][docs-gettext-module] for more information on locales, interpolation, pluralization and other features.
+Read the [documentation for the `Gettext` module][docs-gettext-module] for more information on locales, interpolation, pluralization, and other features.
 
 ## Workflow
 
@@ -94,13 +84,17 @@ In other words, the typical workflow looks like this:
      at this point as Gettext will return the given string if no translation is
      available:
 
-        gettext "Welcome back!"
+     ```elixir
+     gettext("Welcome back!")
+     ```
 
-  2. Once changes to the source are complete, run `mix gettext.extract` to automatically sync all existing entries to `.pot` (template files) in `priv/gettext`:
+  2. Once changes to the source are complete, automatically sync all existing entries to `.pot` (template files) in `priv/gettext` by running:
 
-        mix gettext.extract
+     ```bash
+     mix gettext.extract
+     ```
 
-  3. `.pot` files can then be merged into locale-specific `.po` files with `mix gettext.merge`:
+  3. `.pot` files can then be merged into locale-specific `.po` files:
 
      ```bash
      # Merge .pot into all locales
@@ -110,7 +104,7 @@ In other words, the typical workflow looks like this:
      mix gettext.merge priv/gettext --locale en
      ```
 
-It is also possible to execute both the extract and merge operations in one step with `mix gettext.extract --merge`.
+It is also possible to both extract and merge translations in one step with `mix gettext.extract --merge`.
 
 ## License
 
