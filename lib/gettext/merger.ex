@@ -76,7 +76,7 @@ defmodule Gettext.Merger do
     old = Map.new(old, &{PO.Translations.key(&1), &1})
 
     # Then, we do a first pass through the list of new translation and we mark
-    # all exact matches as {key, translation, exact_match}, taking the exact matches
+    # all exact matches as {key, translation, exact_match | nil}, taking the exact matches
     # out of `old` at the same time.
     {new, old} =
       Enum.map_reduce(new, old, fn t, old ->
