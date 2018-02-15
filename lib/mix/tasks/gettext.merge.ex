@@ -179,28 +179,22 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Path.wildcard()
     |> Enum.map(fn pot_file ->
       Task.async(fn ->
-        pot_file
-        |> find_matching_po(po_dir)
-        |> merge_or_create(opts, gettext_config)
-        |> write_file()
+        po_file = find_matching_po(pot_file, po_dir)
+        {path, contents} = merge_or_create(pot_file, po_file, opts, gettext_config)
+        write_file(path, contents)
       end)
     end)
-    |> Enum.map(&Task.await/1)
+    |> Enum.each(&Task.await/1)
 
-    # Now warn for every PO file that has no matching POT file.
-    po_dir
-    |> Path.join("*.po")
-    |> Path.wildcard()
-    |> Enum.reject(&po_has_matching_pot?(&1, pot_dir))
-    |> Enum.each(&warn_for_missing_pot_file(&1, pot_dir))
+    warn_for_po_without_pot(po_dir, pot_dir)
   end
 
   defp find_matching_po(pot_file, po_dir) do
     domain = Path.basename(pot_file, ".pot")
-    {pot_file, Path.join(po_dir, "#{domain}.po")}
+    Path.join(po_dir, "#{domain}.po")
   end
 
-  defp merge_or_create({pot_file, po_file}, opts, gettext_config) do
+  defp merge_or_create(pot_file, po_file, opts, gettext_config) do
     if File.regular?(po_file) do
       {po_file, Merger.merge_files(po_file, pot_file, opts)}
     else
@@ -208,19 +202,26 @@ defmodule Mix.Tasks.Gettext.Merge do
     end
   end
 
-  defp write_file({path, contents}) do
+  defp write_file(path, contents) do
     File.write!(path, contents)
     Mix.shell().info("Wrote #{path}")
+  end
+
+  # Warns for every PO file that has no matching POT file.
+  defp warn_for_po_without_pot(po_dir, pot_dir) do
+    po_dir
+    |> Path.join("*.po")
+    |> Path.wildcard()
+    |> Enum.reject(&po_has_matching_pot?(&1, pot_dir))
+    |> Enum.each(fn po_file ->
+      Mix.shell().info("Warning: PO file #{po_file} has no matching POT file in #{pot_dir}")
+    end)
   end
 
   defp po_has_matching_pot?(po_file, pot_dir) do
     domain = Path.basename(po_file, ".po")
     pot_path = Path.join(pot_dir, "#{domain}.pot")
     File.exists?(pot_path)
-  end
-
-  defp warn_for_missing_pot_file(po_file, pot_dir) do
-    Mix.shell().info("Warning: PO file #{po_file} has no matching POT file in #{pot_dir}")
   end
 
   defp ensure_file_exists!(path) do
