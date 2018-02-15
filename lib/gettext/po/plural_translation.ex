@@ -40,6 +40,8 @@ defmodule Gettext.PO.PluralTranslation do
           po_source_line: pos_integer
         }
 
+  @enforce_keys [:msgid, :msgid_plural]
+
   defstruct msgid: nil,
             msgid_plural: nil,
             msgstr: nil,

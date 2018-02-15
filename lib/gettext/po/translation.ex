@@ -38,6 +38,8 @@ defmodule Gettext.PO.Translation do
           po_source_line: pos_integer
         }
 
+  @enforce_keys [:msgid]
+
   defstruct msgid: nil,
             msgstr: nil,
             comments: [],
