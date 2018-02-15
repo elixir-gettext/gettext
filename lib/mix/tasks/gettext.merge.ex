@@ -72,11 +72,14 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   ## Options
 
-  The `--locale` option can only be given when there's only one argument (a
-  directory). These options can always be passed to `gettext.merge`:
+    * `--locale` - a string representing a locale. If this is provided, then only the PO
+      files in `DIR/LOCALE/LC_MESSAGES` will be merged with the POT files in `DIR`. This
+      option can only be given when a single argument is passed to the task
+      (a directory).
 
     * `--no-fuzzy` - stops fuzzy matching from being performed when merging
       files.
+
     * `--fuzzy-threshold` - a float between `0` and `1` which represents the
       miminum Jaro distance needed for two translations to be considered a fuzzy
       match. Overrides the global `:fuzzy_threshold` option (see the docs for
