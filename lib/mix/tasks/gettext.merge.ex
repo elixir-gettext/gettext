@@ -85,10 +85,19 @@ defmodule Mix.Tasks.Gettext.Merge do
       match. Overrides the global `:fuzzy_threshold` option (see the docs for
       `Gettext` for more information on this option).
 
+    * `--plural-forms` - a integer strictly greater than `0`. If this is passed,
+      new translations in the target PO files will have this number of empty
+      plural forms.
+
   """
 
   @default_fuzzy_threshold 0.8
-  @switches [locale: :string, fuzzy: :boolean, fuzzy_threshold: :float]
+  @switches [
+    locale: :string,
+    fuzzy: :boolean,
+    fuzzy_threshold: :float,
+    plural_forms: :integer
+  ]
 
   alias Gettext.Merger
 
@@ -125,9 +134,9 @@ defmodule Mix.Tasks.Gettext.Merge do
     if Path.extname(arg1) == ".po" and Path.extname(arg2) in [".po", ".pot"] do
       ensure_file_exists!(arg1)
       ensure_file_exists!(arg2)
-      {path, contents} = merge_po_with_pot(arg1, arg2, merging_opts, gettext_config)
-      File.write!(path, contents)
-      Mix.shell().info("Wrote #{path}")
+      contents = merge_po_with_pot(arg1, arg2, merging_opts, gettext_config)
+      File.write!(arg1, contents)
+      Mix.shell().info("Wrote #{arg1}")
     else
       Mix.raise("Arguments must be a PO file and a PO/POT file")
     end
@@ -145,33 +154,27 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp merge_po_with_pot(po_file, pot_file, opts, gettext_config) do
-    {po_file, Merger.merge_files(po_file, pot_file, opts, gettext_config)}
+    locale = locale_from_path(po_file)
+    Merger.merge_files(po_file, pot_file, locale, opts, gettext_config)
   end
 
   defp merge_locale_dir(pot_dir, locale, opts, gettext_config) do
     locale_dir = locale_dir(pot_dir, locale)
     create_missing_locale_dir(locale_dir)
-    merge_dirs(locale_dir, pot_dir, opts, gettext_config)
+    merge_dirs(locale_dir, pot_dir, locale, opts, gettext_config)
   end
 
   defp merge_all_locale_dirs(pot_dir, opts, gettext_config) do
-    pot_dir
-    |> ls_locale_dirs()
-    |> Enum.each(&merge_dirs(&1, pot_dir, opts, gettext_config))
+    for locale <- File.ls!(pot_dir), File.dir?(Path.join(pot_dir, locale)) do
+      merge_dirs(locale_dir(pot_dir, locale), pot_dir, locale, opts, gettext_config)
+    end
   end
 
   def locale_dir(pot_dir, locale) do
     Path.join([pot_dir, locale, "LC_MESSAGES"])
   end
 
-  defp ls_locale_dirs(dir) do
-    dir
-    |> File.ls!()
-    |> Enum.filter(&File.dir?(Path.join(dir, &1)))
-    |> Enum.map(&locale_dir(dir, &1))
-  end
-
-  defp merge_dirs(po_dir, pot_dir, opts, gettext_config) do
+  defp merge_dirs(po_dir, pot_dir, locale, opts, gettext_config) do
     # TODO: replace Task.async/1 + Task.await/1 with Task.async_stream/2 when we depend on
     # Elixir 1.4 and on.
     pot_dir
@@ -180,8 +183,8 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Enum.map(fn pot_file ->
       Task.async(fn ->
         po_file = find_matching_po(pot_file, po_dir)
-        {path, contents} = merge_or_create(pot_file, po_file, opts, gettext_config)
-        write_file(path, contents)
+        contents = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
+        write_file(po_file, contents)
       end)
     end)
     |> Enum.each(&Task.await/1)
@@ -194,11 +197,11 @@ defmodule Mix.Tasks.Gettext.Merge do
     Path.join(po_dir, "#{domain}.po")
   end
 
-  defp merge_or_create(pot_file, po_file, opts, gettext_config) do
+  defp merge_or_create(pot_file, po_file, locale, opts, gettext_config) do
     if File.regular?(po_file) do
-      {po_file, Merger.merge_files(po_file, pot_file, opts)}
+      Merger.merge_files(po_file, pot_file, locale, opts, gettext_config)
     else
-      {po_file, Merger.new_po_file(po_file, pot_file, gettext_config)}
+      Merger.new_po_file(po_file, pot_file, locale, gettext_config)
     end
   end
 
@@ -251,5 +254,11 @@ defmodule Mix.Tasks.Gettext.Merge do
     end
 
     opts
+  end
+
+  defp locale_from_path(path) do
+    parts = Path.split(path)
+    index = Enum.find_index(parts, &(&1 == "LC_MESSAGES"))
+    Enum.at(parts, index - 1)
   end
 end
