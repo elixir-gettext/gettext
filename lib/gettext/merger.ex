@@ -88,9 +88,14 @@ defmodule Gettext.Merger do
         t = adjust_number_of_plural_forms(t, plural_forms)
 
         case maybe_exact_match do
-          nil when fuzzy? -> find_fuzzy_match(key, t, old, fuzzy_threshold)
-          nil -> {t, old}
-          exact_match -> {merge_two_translations(exact_match, t), old}
+          nil when fuzzy? ->
+            maybe_merge_fuzzy(key, t, old, fuzzy_threshold)
+
+          nil ->
+            {t, old}
+
+          exact_match ->
+            {merge_two_translations(exact_match, t), old}
         end
       end)
 
@@ -107,21 +112,24 @@ defmodule Gettext.Merger do
     t
   end
 
-  # Returns {fuzzy_matched_translation, updated_old_translations} if a match is
-  # found, otherwise {original_translation, old_translations}.
-  defp find_fuzzy_match(key, target, old_translations, threshold) do
+  defp maybe_merge_fuzzy(key, target, old_translations, threshold) do
+    case find_fuzzy_match(old_translations, key, threshold) do
+      {k, t} -> {Fuzzy.merge(target, t), Map.delete(old_translations, k)}
+      nil -> {target, old_translations}
+    end
+  end
+
+  defp find_fuzzy_match(translations, key, threshold) do
     matcher = Fuzzy.matcher(threshold)
 
     candidates =
-      old_translations
-      |> Enum.map(fn {k, t} -> {k, t, matcher.(k, key)} end)
-      |> Enum.reject(&match?({_, _, :nomatch}, &1))
+      for {k, t} <- translations, match = matcher.(k, key), match != :nomatch, do: {k, t, match}
 
     if candidates == [] do
-      {target, old_translations}
+      nil
     else
-      {k, t, _} = Enum.max_by(candidates, fn {_, _, {:match, distance}} -> distance end)
-      {Fuzzy.merge(target, t), Map.delete(old_translations, k)}
+      {k, t, _match} = Enum.max_by(candidates, fn {_k, _t, {:match, distance}} -> distance end)
+      {k, t}
     end
   end
 
