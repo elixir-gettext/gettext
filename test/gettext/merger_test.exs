@@ -4,6 +4,7 @@ defmodule Gettext.MergerTest do
   alias Gettext.Merger
   alias Gettext.PO
   alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
 
   @opts fuzzy: true, fuzzy_threshold: 0.8
   @pot_path "../../tmp/" |> Path.expand(__DIR__) |> Path.relative_to_cwd()
@@ -12,7 +13,7 @@ defmodule Gettext.MergerTest do
     old_po = %PO{headers: [~S(Language: it\n)]}
     new_pot = %PO{headers: ["foo"]}
 
-    assert Merger.merge(old_po, new_pot, @opts).headers == old_po.headers
+    assert Merger.merge(old_po, new_pot, "en", @opts).headers == old_po.headers
   end
 
   test "merge/2: obsolete translations are discarded (even the manually entered ones)" do
@@ -26,7 +27,7 @@ defmodule Gettext.MergerTest do
 
     new_pot = %PO{translations: [%Translation{msgid: "tomerge", msgstr: ""}]}
 
-    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
     assert %Translation{msgid: "tomerge", msgstr: "foo"} = t
   end
 
@@ -37,7 +38,7 @@ defmodule Gettext.MergerTest do
     old_po = %PO{translations: [%Translation{msgid: "foo", msgstr: "bar"}]}
     new_pot = %PO{translations: [%Translation{msgid: "foo", msgstr: ""}]}
 
-    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
     assert t.msgstr == "bar"
   end
 
@@ -48,7 +49,7 @@ defmodule Gettext.MergerTest do
     old_po = %PO{translations: [%Translation{msgid: "foo", comments: ["# existing comment"]}]}
     new_pot = %PO{translations: [%Translation{msgid: "foo", comments: ["# new comment"]}]}
 
-    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
     assert t.comments == ["# existing comment"]
   end
 
@@ -66,7 +67,7 @@ defmodule Gettext.MergerTest do
       translations: [%Translation{msgid: "foo", extracted_comments: ["#. new comment"]}]
     }
 
-    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
     assert t.extracted_comments == ["#. new comment"]
   end
 
@@ -74,7 +75,7 @@ defmodule Gettext.MergerTest do
     old_po = %PO{translations: [%Translation{msgid: "foo", references: [{"foo.ex", 1}]}]}
     new_pot = %PO{translations: [%Translation{msgid: "foo", references: [{"bar.ex", 1}]}]}
 
-    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
     assert t.references == [{"bar.ex", 1}]
   end
 
@@ -85,7 +86,7 @@ defmodule Gettext.MergerTest do
       translations: [%Translation{msgid: "foo", flags: MapSet.new(["elixir-format"])}]
     }
 
-    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
     assert t.flags == MapSet.new(["elixir-format"])
   end
 
@@ -93,7 +94,7 @@ defmodule Gettext.MergerTest do
     old_po = %PO{translations: [%Translation{msgid: "hello world!", msgstr: ["foo"]}]}
     new_pot = %PO{translations: [%Translation{msgid: "hello worlds!"}]}
 
-    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
     assert MapSet.member?(t.flags, "fuzzy")
     assert t.msgid == "hello worlds!"
     assert t.msgstr == ["foo"]
@@ -111,10 +112,40 @@ defmodule Gettext.MergerTest do
 
     # Let's check that the "hello worlds!" translation is discarded even if it's
     # a fuzzy match for "hello world!".
-    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, @opts)
+    assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
     refute MapSet.member?(t.flags, "fuzzy")
     assert t.msgid == "hello world!"
     assert t.msgstr == ["foo"]
+  end
+
+  test "merge/2: if there's a Plural-Forms header, it's used to determine number of plural forms" do
+    old_po = %PO{
+      headers: [~s(Plural-Forms:  nplurals=3)],
+      translations: []
+    }
+
+    new_pot = %PO{
+      translations: [%Translation{msgid: "a"}, %PluralTranslation{msgid: "b", msgid_plural: "bs"}]
+    }
+
+    assert %PO{translations: [t, pt]} = Merger.merge(old_po, new_pot, "en", @opts)
+    assert %Translation{msgid: "a"} = t
+    assert %PluralTranslation{msgid: "b", msgstr: %{0 => [""], 1 => [""], 2 => [""]}} = pt
+  end
+
+  test "merge/2: plural forms can be specified as an option" do
+    old_po = %PO{translations: []}
+
+    new_pot = %PO{
+      translations: [%Translation{msgid: "a"}, %PluralTranslation{msgid: "b", msgid_plural: "bs"}]
+    }
+
+    assert %PO{translations: [t, pt]} =
+             Merger.merge(old_po, new_pot, "en", [plural_forms: 1] ++ @opts)
+
+    assert %Translation{msgid: "a"} = t
+    assert %PluralTranslation{msgid: "b", msgid_plural: "bs", msgstr: msgstr} = pt
+    assert msgstr == %{0 => [""]}
   end
 
   test "new_po_file/2" do
@@ -126,18 +157,29 @@ defmodule Gettext.MergerTest do
     # A comment
     msgid "foo"
     msgstr "bar"
+
+    msgid "plural"
+    msgid_plural "plurals"
+    msgstr[0] ""
+    msgstr[1] ""
     """)
 
-    merged = Merger.new_po_file(new_po_path, pot_path) |> IO.iodata_to_binary()
+    merged = Merger.new_po_file(new_po_path, pot_path, "it", [plural_forms: 1] ++ @opts)
+    merged = IO.iodata_to_binary(merged)
 
     assert String.ends_with?(merged, ~S"""
            msgid ""
            msgstr ""
            "Language: it\n"
+           "Plural-Forms: nplurals=1\n"
 
            # A comment
            msgid "foo"
            msgstr "bar"
+
+           msgid "plural"
+           msgid_plural "plurals"
+           msgstr[0] ""
            """)
 
     assert String.starts_with?(merged, "## `msgid`s in this file come from POT")

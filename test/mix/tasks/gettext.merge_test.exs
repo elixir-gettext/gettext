@@ -77,6 +77,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
            msgid ""
            msgstr ""
            "Language: it\n"
+           "Plural-Forms: nplurals=2\n"
 
            msgid "new"
            msgstr ""
