@@ -125,13 +125,17 @@ defmodule Gettext.Merger do
     end
   end
 
+  # msgid (and msgid_plural): they're the same
+  # msgstr: new.msgstr should be empty since it comes from a POT file
+  # comments: new has no translator comments as it comes from POT
+  # extracted_comments: we should take the new most recent ones
+  # flags: we should take the new flags
+  # references: new contains the updated and most recent references
+
   defp merge_two_translations(%Translation{} = old, %Translation{} = new) do
     %Translation{
-      # they are the same
       msgid: new.msgid,
-      # new.msgstr should be empty since it's a POT file
       msgstr: old.msgstr,
-      # new has no translator comments
       comments: old.comments,
       extracted_comments: new.extracted_comments,
       flags: new.flags,
@@ -141,13 +145,9 @@ defmodule Gettext.Merger do
 
   defp merge_two_translations(%PluralTranslation{} = old, %PluralTranslation{} = new) do
     %PluralTranslation{
-      # they are the same
       msgid: new.msgid,
-      # they are the same
       msgid_plural: new.msgid_plural,
-      # new.msgstr should be empty since it's a POT file
       msgstr: old.msgstr,
-      # new has no translator comments
       comments: old.comments,
       extracted_comments: new.extracted_comments,
       flags: new.flags,
