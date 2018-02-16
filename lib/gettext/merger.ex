@@ -18,19 +18,6 @@ defmodule Gettext.Merger do
   """
 
   @doc """
-  Merges a PO file with a POT file given their paths.
-
-  This function returns the contents (as iodata) of the merged file, which will
-  be written to a PO file.
-  """
-  @spec merge_files(Path.t(), Path.t(), String.t(), Keyword.t(), Keyword.t()) :: iodata
-  def merge_files(po_file, pot_file, locale, opts, gettext_config)
-      when is_binary(locale) and is_list(opts) and is_list(gettext_config) do
-    merged = merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
-    PO.dump(merged, gettext_config)
-  end
-
-  @doc """
   Merges two `Gettext.PO` structs representing a PO file and an updated POT (or
   PO) file into a new `Gettext.PO` struct.
 

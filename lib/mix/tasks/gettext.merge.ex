@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     plural_forms: :integer
   ]
 
-  alias Gettext.Merger
+  alias Gettext.{Merger, PO}
 
   def run(args) do
     _ = Mix.Project.get!()
@@ -135,7 +135,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       ensure_file_exists!(po_file)
       ensure_file_exists!(reference_file)
       locale = locale_from_path(po_file)
-      contents = Merger.merge_files(po_file, reference_file, locale, merging_opts, gettext_config)
+      contents = merge_files(po_file, reference_file, locale, merging_opts, gettext_config)
       write_file(po_file, contents)
     else
       Mix.raise("Arguments must be a PO file and a PO/POT file")
@@ -189,10 +189,15 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp merge_or_create(pot_file, po_file, locale, opts, gettext_config) do
     if File.regular?(po_file) do
-      Merger.merge_files(po_file, pot_file, locale, opts, gettext_config)
+      merge_files(po_file, pot_file, locale, opts, gettext_config)
     else
       Merger.new_po_file(po_file, pot_file, locale, opts, gettext_config)
     end
+  end
+
+  defp merge_files(po_file, pot_file, locale, opts, gettext_config) do
+    merged = Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
+    PO.dump(merged, gettext_config)
   end
 
   defp write_file(path, contents) do
