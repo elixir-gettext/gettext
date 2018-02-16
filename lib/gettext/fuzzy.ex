@@ -56,20 +56,22 @@ defmodule Gettext.Fuzzy do
   """
   @spec merge(PO.translation(), PO.translation()) :: PO.translation()
   def merge(new, existing) do
+    # Everything comes from "new", except for the msgstr and the comments.
     new
-    |> merge_fuzzy(existing)
+    |> Map.put(:comments, existing.comments)
+    |> merge_msgstr(existing)
     |> PO.Translations.mark_as_fuzzy()
   end
 
-  defp merge_fuzzy(%Translation{} = new, %Translation{} = existing),
+  defp merge_msgstr(%Translation{} = new, %Translation{} = existing),
     do: %{new | msgstr: existing.msgstr}
 
-  defp merge_fuzzy(%Translation{} = new, %PluralTranslation{} = existing),
+  defp merge_msgstr(%Translation{} = new, %PluralTranslation{} = existing),
     do: %{new | msgstr: existing.msgstr[0]}
 
-  defp merge_fuzzy(%PluralTranslation{} = new, %Translation{} = existing),
+  defp merge_msgstr(%PluralTranslation{} = new, %Translation{} = existing),
     do: %{new | msgstr: Map.new(new.msgstr, fn {i, _} -> {i, existing.msgstr} end)}
 
-  defp merge_fuzzy(%PluralTranslation{} = new, %PluralTranslation{} = existing),
+  defp merge_msgstr(%PluralTranslation{} = new, %PluralTranslation{} = existing),
     do: %{new | msgstr: existing.msgstr}
 end

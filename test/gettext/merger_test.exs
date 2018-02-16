@@ -93,13 +93,37 @@ defmodule Gettext.MergerTest do
     end
 
     test "new translations are fuzzy-matched against obsolete translations" do
-      old_po = %PO{translations: [%Translation{msgid: "hello world!", msgstr: ["foo"]}]}
-      new_pot = %PO{translations: [%Translation{msgid: "hello worlds!"}]}
+      old_po = %PO{
+        translations: [
+          %Translation{
+            msgid: "hello world!",
+            msgstr: ["foo"],
+            comments: ["# existing comment"],
+            extracted_comments: ["#. existing comment"],
+            references: [{"foo.ex", 1}]
+          }
+        ]
+      }
+
+      new_pot = %PO{
+        translations: [
+          %Translation{
+            msgid: "hello worlds!",
+            references: [{"foo.ex", 2}],
+            extracted_comments: ["#. new comment"],
+            flags: MapSet.new(["my-flag"])
+          }
+        ]
+      }
 
       assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
-      assert MapSet.member?(t.flags, "fuzzy")
+
       assert t.msgid == "hello worlds!"
       assert t.msgstr == ["foo"]
+      assert t.comments == ["# existing comment"]
+      assert t.extracted_comments == ["#. new comment"]
+      assert t.references == [{"foo.ex", 2}]
+      assert t.flags == MapSet.new(["my-flag", "fuzzy"])
     end
 
     test "exact matches have precedence over fuzzy matches" do
