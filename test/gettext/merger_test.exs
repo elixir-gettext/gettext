@@ -6,6 +6,7 @@ defmodule Gettext.MergerTest do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
+  @gettext_config []
   @opts fuzzy: true, fuzzy_threshold: 0.8
   @pot_path "../../tmp/" |> Path.expand(__DIR__) |> Path.relative_to_cwd()
 
@@ -129,6 +130,7 @@ defmodule Gettext.MergerTest do
     }
 
     assert %PO{translations: [t, pt]} = Merger.merge(old_po, new_pot, "en", @opts)
+
     assert %Translation{msgid: "a"} = t
     assert %PluralTranslation{msgid: "b", msgstr: %{0 => [""], 1 => [""], 2 => [""]}} = pt
   end
@@ -164,7 +166,9 @@ defmodule Gettext.MergerTest do
     msgstr[1] ""
     """)
 
-    merged = Merger.new_po_file(new_po_path, pot_path, "it", [plural_forms: 1] ++ @opts)
+    merged =
+      Merger.new_po_file(new_po_path, pot_path, "it", [plural_forms: 1] ++ @opts, @gettext_config)
+
     merged = IO.iodata_to_binary(merged)
 
     assert String.ends_with?(merged, ~S"""

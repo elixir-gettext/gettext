@@ -24,7 +24,8 @@ defmodule Gettext.Merger do
   be written to a PO file.
   """
   @spec merge_files(Path.t(), Path.t(), String.t(), Keyword.t(), Keyword.t()) :: iodata
-  def merge_files(po_file, pot_file, locale, opts, gettext_config \\ []) do
+  def merge_files(po_file, pot_file, locale, opts, gettext_config)
+      when is_binary(locale) and is_list(opts) and is_list(gettext_config) do
     merged = merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
     PO.dump(merged, gettext_config)
   end
@@ -182,7 +183,7 @@ defmodule Gettext.Merger do
   comments directed to developers.
   """
   @spec new_po_file(Path.t(), Path.t(), String.t(), Keyword.t(), Keyword.t()) :: iodata
-  def new_po_file(po_file, pot_file, locale, opts, gettext_config \\ [])
+  def new_po_file(po_file, pot_file, locale, opts, gettext_config)
       when is_binary(locale) and is_list(opts) and is_list(gettext_config) do
     pot = PO.parse_file!(pot_file)
     opts = put_plural_forms_opt(opts, pot.headers, locale)
