@@ -59,9 +59,9 @@ defmodule Mix.Tasks.Gettext.Merge do
       mix gettext.merge priv/gettext/en/LC_MESSAGES/default.po priv/gettext/default.pot
 
   If only one argument is given, then that argument must be a directory
-  containing gettext translations (with `.pot` files at the root level alongside
+  containing Gettext translations (with `.pot` files at the root level alongside
   locale directories - this is usually a "backend" directory used by a Gettext
-  backend).
+  backend, see `Gettext.Backend`).
 
       mix gettext.merge priv/gettext
 
@@ -106,11 +106,11 @@ defmodule Mix.Tasks.Gettext.Merge do
     gettext_config = Mix.Project.config()[:gettext] || []
 
     case OptionParser.parse!(args, switches: @switches) do
-      {opts, [arg1, arg2]} ->
-        run_with_two_args(arg1, arg2, opts, gettext_config)
+      {opts, [po_file, reference_file]} ->
+        merge_two_files(po_file, reference_file, opts, gettext_config)
 
-      {opts, [arg]} ->
-        run_with_one_arg(arg, opts, gettext_config)
+      {opts, [translations_dir]} ->
+        merge_translations_dir(translations_dir, opts, gettext_config)
 
       {_opts, []} ->
         Mix.raise(
@@ -128,34 +128,29 @@ defmodule Mix.Tasks.Gettext.Merge do
     Mix.Task.reenable("gettext.merge")
   end
 
-  defp run_with_two_args(arg1, arg2, opts, gettext_config) do
+  defp merge_two_files(po_file, reference_file, opts, gettext_config) do
     merging_opts = validate_merging_opts!(opts, gettext_config)
 
-    if Path.extname(arg1) == ".po" and Path.extname(arg2) in [".po", ".pot"] do
-      ensure_file_exists!(arg1)
-      ensure_file_exists!(arg2)
-      contents = merge_po_with_pot(arg1, arg2, merging_opts, gettext_config)
-      File.write!(arg1, contents)
-      Mix.shell().info("Wrote #{arg1}")
+    if Path.extname(po_file) == ".po" and Path.extname(reference_file) in [".po", ".pot"] do
+      ensure_file_exists!(po_file)
+      ensure_file_exists!(reference_file)
+      locale = locale_from_path(po_file)
+      contents = Merger.merge_files(po_file, reference_file, locale, merging_opts, gettext_config)
+      write_file(po_file, contents)
     else
       Mix.raise("Arguments must be a PO file and a PO/POT file")
     end
   end
 
-  defp run_with_one_arg(arg, opts, gettext_config) do
-    ensure_dir_exists!(arg)
+  defp merge_translations_dir(dir, opts, gettext_config) do
+    ensure_dir_exists!(dir)
     merging_opts = validate_merging_opts!(opts, gettext_config)
 
     if locale = opts[:locale] do
-      merge_locale_dir(arg, locale, merging_opts, gettext_config)
+      merge_locale_dir(dir, locale, merging_opts, gettext_config)
     else
-      merge_all_locale_dirs(arg, merging_opts, gettext_config)
+      merge_all_locale_dirs(dir, merging_opts, gettext_config)
     end
-  end
-
-  defp merge_po_with_pot(po_file, pot_file, opts, gettext_config) do
-    locale = locale_from_path(po_file)
-    Merger.merge_files(po_file, pot_file, locale, opts, gettext_config)
   end
 
   defp merge_locale_dir(pot_dir, locale, opts, gettext_config) do
@@ -175,19 +170,14 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp merge_dirs(po_dir, pot_dir, locale, opts, gettext_config) do
-    # TODO: replace Task.async/1 + Task.await/1 with Task.async_stream/2 when we depend on
-    # Elixir 1.4 and on.
     pot_dir
     |> Path.join("*.pot")
     |> Path.wildcard()
-    |> Enum.map(fn pot_file ->
-      Task.async(fn ->
-        po_file = find_matching_po(pot_file, po_dir)
-        contents = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
-        write_file(po_file, contents)
-      end)
+    |> each_async(fn pot_file ->
+      po_file = find_matching_po(pot_file, po_dir)
+      contents = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
+      write_file(po_file, contents)
     end)
-    |> Enum.each(&Task.await/1)
 
     warn_for_po_without_pot(po_dir, pot_dir)
   end
@@ -243,9 +233,13 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp validate_merging_opts!(opts, gettext_config) do
-    default_threshold = gettext_config[:fuzzy_threshold] || @default_fuzzy_threshold
-    defaults = [fuzzy: true, fuzzy_threshold: default_threshold]
-    opts = Keyword.merge(defaults, Keyword.take(opts, [:fuzzy, :fuzzy_threshold]))
+    opts =
+      opts
+      |> Keyword.take([:fuzzy, :fuzzy_threshold, :plural_forms])
+      |> Keyword.put_new(:fuzzy, true)
+      |> Keyword.put_new_lazy(:fuzzy_threshold, fn ->
+        gettext_config[:fuzzy_threshold] || @default_fuzzy_threshold
+      end)
 
     threshold = opts[:fuzzy_threshold]
 
@@ -260,5 +254,13 @@ defmodule Mix.Tasks.Gettext.Merge do
     parts = Path.split(path)
     index = Enum.find_index(parts, &(&1 == "LC_MESSAGES"))
     Enum.at(parts, index - 1)
+  end
+
+  defp each_async(enum, fun) do
+    # TODO: replace Task.async/1 + Task.await/1 with Task.async_stream/2 when we depend on
+    # Elixir 1.4 and on.
+    enum
+    |> Enum.map(&Task.async(fn -> fun.(&1) end))
+    |> Enum.each(&Task.await/1)
   end
 end
