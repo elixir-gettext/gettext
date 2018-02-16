@@ -23,7 +23,7 @@ defmodule Gettext.Merger do
   This function returns the contents (as iodata) of the merged file, which will
   be written to a PO file.
   """
-  @spec merge_files(Path.t(), Path.t(), Keyword.t(), Keyword.t()) :: iodata
+  @spec merge_files(Path.t(), Path.t(), String.t(), Keyword.t(), Keyword.t()) :: iodata
   def merge_files(po_file, pot_file, locale, opts, gettext_config \\ []) do
     merged = merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
     PO.dump(merged, gettext_config)

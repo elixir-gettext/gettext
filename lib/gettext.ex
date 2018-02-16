@@ -492,8 +492,11 @@ defmodule Gettext do
     @moduledoc """
     An error message raised for missing bindings errors.
     """
+
     @enforce_keys [:backend, :domain, :locale, :msgid, :missing]
     defexception [:backend, :domain, :locale, :msgid, :missing]
+
+    @type t() :: %__MODULE__{}
 
     def message(%{
           backend: backend,

@@ -13,22 +13,27 @@ defmodule Gettext.ExtractorAgent do
     extracting?: false
   }
 
+  @spec start_link() :: Agent.on_start()
   def start_link() do
     Agent.start_link(fn -> @initial_state end, name: @name)
   end
 
+  @spec enable() :: :ok
   def enable() do
     Agent.update(@name, &put_in(&1.extracting?, true))
   end
 
+  @spec disable() :: :ok
   def disable() do
     Agent.update(@name, &put_in(&1.extracting?, false))
   end
 
+  @spec extracting?() :: boolean()
   def extracting?() do
     Agent.get(@name, & &1.extracting?)
   end
 
+  @spec add_translation(module(), String.t(), Gettext.PO.translation()) :: :ok
   def add_translation(backend, domain, translation) do
     key = Gettext.PO.Translations.key(translation)
 
