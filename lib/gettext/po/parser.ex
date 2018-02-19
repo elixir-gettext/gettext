@@ -48,7 +48,7 @@ defmodule Gettext.PO.Parser do
   end
 
   defp extract_references(%{__struct__: _, comments: comments} = translation) do
-    {reference_comments, other_comments} = enum_split_with(comments, &match?("#:" <> _, &1))
+    {reference_comments, other_comments} = Enum.split_with(comments, &match?("#:" <> _, &1))
 
     references =
       reference_comments
@@ -88,7 +88,7 @@ defmodule Gettext.PO.Parser do
   end
 
   defp extract_extracted_comments(%{__struct__: _, comments: comments} = translation) do
-    {extracted_comments, other_comments} = enum_split_with(comments, &match?("#." <> _, &1))
+    {extracted_comments, other_comments} = Enum.split_with(comments, &match?("#." <> _, &1))
 
     extracted_comments =
       Enum.reject(extracted_comments, fn "#." <> comm -> String.trim(comm) == "" end)
@@ -97,7 +97,7 @@ defmodule Gettext.PO.Parser do
   end
 
   defp extract_flags(%{__struct__: _, comments: comments} = translation) do
-    {flag_comments, other_comments} = enum_split_with(comments, &match?("#," <> _, &1))
+    {flag_comments, other_comments} = Enum.split_with(comments, &match?("#," <> _, &1))
     %{translation | flags: parse_flags(flag_comments), comments: other_comments}
   end
 
@@ -172,11 +172,6 @@ defmodule Gettext.PO.Parser do
     do: [prefix, binary_part(rest, 0, byte_size(rest) - 2)]
 
   defp parse_error_reason(error, token), do: [error, token]
-
-  # TODO: remove once we depend on Elixir 1.4 and on.
-  Code.ensure_loaded(Enum)
-  split_with = if function_exported?(Enum, :split_with, 2), do: :split_with, else: :partition
-  defp enum_split_with(enum, fun), do: apply(Enum, unquote(split_with), [enum, fun])
 
   # TODO: remove once we depend on Elixir 1.5 and on.
   chunk_every = if function_exported?(Enum, :chunk_every, 2), do: :chunk_every, else: :chunk

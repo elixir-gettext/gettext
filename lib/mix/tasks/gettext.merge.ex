@@ -170,14 +170,17 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp merge_dirs(po_dir, pot_dir, locale, opts, gettext_config) do
-    pot_dir
-    |> Path.join("*.pot")
-    |> Path.wildcard()
-    |> each_async(fn pot_file ->
+    merger = fn pot_file ->
       po_file = find_matching_po(pot_file, po_dir)
       contents = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
       write_file(po_file, contents)
-    end)
+    end
+
+    pot_dir
+    |> Path.join("*.pot")
+    |> Path.wildcard()
+    |> Task.async_stream(merger, ordered: false, timeout: 10_000)
+    |> Stream.run()
 
     warn_for_po_without_pot(po_dir, pot_dir)
   end
@@ -259,13 +262,5 @@ defmodule Mix.Tasks.Gettext.Merge do
     parts = Path.split(path)
     index = Enum.find_index(parts, &(&1 == "LC_MESSAGES"))
     Enum.at(parts, index - 1)
-  end
-
-  defp each_async(enum, fun) do
-    # TODO: replace Task.async/1 + Task.await/1 with Task.async_stream/2 when we depend on
-    # Elixir 1.4 and on.
-    enum
-    |> Enum.map(&Task.async(fn -> fun.(&1) end))
-    |> Enum.each(&Task.await/1)
   end
 end
