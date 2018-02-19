@@ -66,40 +66,18 @@ defmodule Gettext.Merger do
     fuzzy_threshold = Keyword.fetch!(opts, :fuzzy_threshold)
     plural_forms = Keyword.fetch!(opts, :plural_forms)
 
-    # First, we convert the list of old translations into a map for
-    # constant-time lookup.
     old = Map.new(old, &{PO.Translations.key(&1), &1})
 
-    # Then, we do a first pass through the list of new translation and we mark
-    # all exact matches as {key, translation, exact_match | nil}, taking the exact matches
-    # out of `old` at the same time.
-    {new, old} =
-      Enum.map_reduce(new, old, fn t, old ->
-        key = PO.Translations.key(t)
-        {same, old} = Map.pop(old, key)
-        {{key, t, same}, old}
-      end)
+    Enum.map(new, fn t ->
+      key = PO.Translations.key(t)
+      t = adjust_number_of_plural_forms(t, plural_forms)
 
-    # Now, tuples like {key, translation, nil} identify translations with no
-    # exact match. For those translations, we look for a fuzzy match. We ditch
-    # the obsolete translations altogether.
-    {new, _obsolete} =
-      Enum.map_reduce(new, old, fn {key, t, maybe_exact_match}, old ->
-        t = adjust_number_of_plural_forms(t, plural_forms)
-
-        case maybe_exact_match do
-          nil when fuzzy? ->
-            maybe_merge_fuzzy(key, t, old, fuzzy_threshold)
-
-          nil ->
-            {t, old}
-
-          exact_match ->
-            {merge_two_translations(exact_match, t), old}
-        end
-      end)
-
-    new
+      case Map.fetch(old, key) do
+        {:ok, exact_match} -> merge_two_translations(exact_match, t)
+        :error when fuzzy? -> maybe_merge_fuzzy(t, old, key, fuzzy_threshold)
+        :error -> t
+      end
+    end)
   end
 
   defp adjust_number_of_plural_forms(%PluralTranslation{} = t, plural_forms)
@@ -112,10 +90,11 @@ defmodule Gettext.Merger do
     t
   end
 
-  defp maybe_merge_fuzzy(key, target, old_translations, threshold) do
-    case find_fuzzy_match(old_translations, key, threshold) do
-      {k, t} -> {Fuzzy.merge(target, t), Map.delete(old_translations, k)}
-      nil -> {target, old_translations}
+  defp maybe_merge_fuzzy(t, old, key, fuzzy_threshold) do
+    if matched = find_fuzzy_match(old, key, fuzzy_threshold) do
+      Fuzzy.merge(t, matched)
+    else
+      t
     end
   end
 
@@ -123,13 +102,13 @@ defmodule Gettext.Merger do
     matcher = Fuzzy.matcher(threshold)
 
     candidates =
-      for {k, t} <- translations, match = matcher.(k, key), match != :nomatch, do: {k, t, match}
+      for {k, t} <- translations, match = matcher.(k, key), match != :nomatch, do: {t, match}
 
     if candidates == [] do
       nil
     else
-      {k, t, _match} = Enum.max_by(candidates, fn {_k, _t, {:match, distance}} -> distance end)
-      {k, t}
+      {t, _match} = Enum.max_by(candidates, fn {_t, {:match, distance}} -> distance end)
+      t
     end
   end
 

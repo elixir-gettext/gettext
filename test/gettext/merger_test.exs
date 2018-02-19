@@ -144,6 +144,105 @@ defmodule Gettext.MergerTest do
       assert t.msgstr == ["foo"]
     end
 
+    test "exact matches do not prevent fuzzy matches for other translations" do
+      old_po = %PO{translations: [%Translation{msgid: ["hello world"], msgstr: ["foo"]}]}
+
+      # "hello world" will match exactly.
+      # "hello world!" should still get a fuzzy match.
+      new_pot = %PO{
+        translations: [
+          %Translation{msgid: ["hello world"]},
+          %Translation{msgid: ["hello world!"]}
+        ]
+      }
+
+      assert %PO{translations: [t1, t2]} = Merger.merge(old_po, new_pot, "en", @opts)
+
+      assert t1.msgid == ["hello world"]
+      assert t1.msgstr == ["foo"]
+      refute "fuzzy" in t1.flags
+
+      assert t2.msgid == ["hello world!"]
+      assert t2.msgstr == ["foo"]
+      assert "fuzzy" in t2.flags
+    end
+
+    test "multiple translations can fuzzy match against a single translation" do
+      old_po = %PO{translations: [%Translation{msgid: ["hello world"], msgstr: ["foo"]}]}
+
+      new_pot = %PO{
+        translations: [
+          %Translation{msgid: ["hello world 1"]},
+          %Translation{msgid: ["hello world 2"]}
+        ]
+      }
+
+      assert %PO{translations: [t1, t2]} = Merger.merge(old_po, new_pot, "en", @opts)
+
+      assert t1.msgid == ["hello world 1"]
+      assert t1.msgstr == ["foo"]
+      assert "fuzzy" in t1.flags
+
+      assert t2.msgid == ["hello world 2"]
+      assert t2.msgstr == ["foo"]
+      assert "fuzzy" in t2.flags
+    end
+
+    test "filling in a fuzzy translation preserves references" do
+      old_po = %PO{
+        translations: [
+          %Translation{
+            msgid: ["hello world!"],
+            msgstr: ["foo"],
+            comments: ["# old comment"],
+            references: [{"old_file.txt", 1}]
+          }
+        ]
+      }
+
+      new_pot = %PO{
+        translations: [%Translation{msgid: ["hello worlds!"], references: [{"new_file.txt", 2}]}]
+      }
+
+      assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
+      assert MapSet.member?(t.flags, "fuzzy")
+      assert t.msgid == ["hello worlds!"]
+      assert t.msgstr == ["foo"]
+      assert t.comments == ["# old comment"]
+      assert t.references == [{"new_file.txt", 2}]
+    end
+
+    test "simple translations can be a fuzzy match for plurals" do
+      old_po = %PO{
+        translations: [
+          %Translation{
+            msgid: ["Here are {count} cocoa balls."],
+            msgstr: ["Hier sind {count} Kakaokugeln."],
+            comments: ["# Guyanese Cocoballs"],
+            references: [{"old_file.txt", 1}]
+          }
+        ]
+      }
+
+      new_pot = %PO{
+        translations: [
+          %PluralTranslation{
+            msgid: ["Here is a cocoa ball."],
+            msgid_plural: ["Here are {count} cocoa balls."],
+            references: [{"new_file.txt", 2}]
+          }
+        ]
+      }
+
+      assert %PO{translations: [t]} = Merger.merge(old_po, new_pot, "en", @opts)
+      assert MapSet.member?(t.flags, "fuzzy")
+      assert t.msgid == ["Here is a cocoa ball."]
+      assert t.msgid_plural == ["Here are {count} cocoa balls."]
+      assert t.msgstr[0] == ["Hier sind {count} Kakaokugeln."]
+      assert t.comments == ["# Guyanese Cocoballs"]
+      assert t.references == [{"new_file.txt", 2}]
+    end
+
     test "if there's a Plural-Forms header, it's used to determine number of plural forms" do
       old_po = %PO{
         headers: [~s(Plural-Forms:  nplurals=3)],
