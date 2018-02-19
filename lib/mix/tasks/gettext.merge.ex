@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
       #, fuzzy
       msgid "hello, world!"
-      msgstr "ciao, mondo!"
+      msgstr "ciao, mondo"
 
   Generally, a `fuzzy` flag calls for review from a translator.
 
