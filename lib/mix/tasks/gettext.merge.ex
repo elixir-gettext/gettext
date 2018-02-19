@@ -70,6 +70,15 @@ defmodule Mix.Tasks.Gettext.Merge do
   options are given, then all the PO files for all locales under `DIR` are
   merged with the POT files in `DIR`.
 
+  ## Plural forms
+
+  By default, Gettext will determine the number of plural forms for newly generated translations
+  by checking the value of `nplurals` in the `Plural-Forms` header in the existing `.po` file. If
+  a `.po` file doesn't already exist and Gettext is creating a new one or if the `Plural-Forms`
+  header is not in the `.po` file, Gettext will use the number of plural forms that
+  `Gettext.Plural` returns for the locale of the file being created. The number of plural forms
+  can be forced through the `--plural-forms` option (see below).
+
   ## Options
 
     * `--locale` - a string representing a locale. If this is provided, then only the PO
@@ -87,7 +96,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
     * `--plural-forms` - a integer strictly greater than `0`. If this is passed,
       new translations in the target PO files will have this number of empty
-      plural forms.
+      plural forms. See the "Plural forms" section above.
 
   """
 
