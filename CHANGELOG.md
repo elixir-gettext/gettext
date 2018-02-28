@@ -1,5 +1,7 @@
 # Changelog
 
+## v0.15.0
+
 * Generate correct plural forms when dumping new translations in PO files
 * Fix a bug where we were losing translator comments for fuzzy-merged translations
 * Don't make an exact match when merging prevent later fuzzy matches
