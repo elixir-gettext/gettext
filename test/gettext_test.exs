@@ -317,8 +317,10 @@ defmodule GettextTest do
       end
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    assert ArgumentError.message(error) =~ "*gettext macros expect translation keys"
-    assert ArgumentError.message(error) =~ "Gettext.gettext(GettextTest.Translator, string)"
+    message = ArgumentError.message(error)
+    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "{:msgid"
+    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
 
     code =
       quote do
@@ -328,8 +330,10 @@ defmodule GettextTest do
       end
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    assert ArgumentError.message(error) =~ "*gettext macros expect translation keys"
-    assert ArgumentError.message(error) =~ "Gettext.gettext(GettextTest.Translator, string)"
+    message = ArgumentError.message(error)
+    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "{:msgid_plural"
+    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
 
     code =
       quote do
@@ -339,7 +343,9 @@ defmodule GettextTest do
       end
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    assert ArgumentError.message(error) =~ "*gettext macros expect translation keys"
+    message = ArgumentError.message(error)
+    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "{:domain"
   end
 
   test "dngettext/5" do
