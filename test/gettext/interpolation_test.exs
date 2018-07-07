@@ -18,6 +18,16 @@ defmodule Gettext.InterpolationTest do
 
     assert Interpolation.interpolate(interpolatable, %{b: "bar"}) ==
              {:missing_bindings, "%{a} %{a} %{a}", [:a]}
+
+    interpolatable = Interpolation.to_interpolatable("%{a:inner text}")
+
+    assert Interpolation.interpolate(interpolatable, %{a: &"[#{&1}]"}) == {:ok, "[inner text]"}
+
+    assert Interpolation.interpolate(interpolatable, %{a: "text"}) ==
+             {:invalid_bindings, a: "Is not a 1-arity function."}
+
+    assert Interpolation.interpolate(interpolatable, %{b: &"[#{&1}]"}) ==
+             {:missing_bindings, "%{a:inner text}", [:a]}
   end
 
   test "to_interpolatable/1" do
@@ -35,6 +45,11 @@ defmodule Gettext.InterpolationTest do
     assert Interpolation.to_interpolatable("first empty %{} then %{ incomplete") ==
              ["first empty %{} then %{ incomplete"]
 
+    assert Interpolation.to_interpolatable("read %{link:more} about it here") ==
+             ["read ", {:link, "more"}, " about it here"]
+
+    assert Interpolation.to_interpolatable("read %{link:more:}") == ["read ", {:link, "more:"}]
+
     assert Interpolation.to_interpolatable("") == []
   end
 
@@ -51,6 +66,7 @@ defmodule Gettext.InterpolationTest do
     assert Interpolation.keys("It's %{time} here in %{state}") == [:time, :state]
     assert Interpolation.keys("Hi there %{your name}") == [:"your name"]
     assert Interpolation.keys("Hello %{name} in %{state} goodbye %{name}") == [:name, :state]
+    assert Interpolation.keys("read %{link:more} about it here") == [:link]
 
     # With a list of segments as its argument
     assert Interpolation.keys(["Hello ", :name, " it's ", :time, " goodbye ", :name]) ==

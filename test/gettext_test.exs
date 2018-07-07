@@ -205,6 +205,13 @@ defmodule GettextTest do
     # A map of bindings is supported as well.
     assert Translator.lgettext("it", "interpolations", "Hello %{name}", %{name: "Jane"}) ==
              {:ok, "Ciao Jane"}
+
+    # Tag bindings 
+    msgid = "I lived in %{wiki:Italy} for a year"
+    wiki = &~s[<a href="#italy">#{&1}<a>]
+
+    assert Translator.lgettext("it", "interpolations", msgid, %{wiki: wiki}) ==
+             {:ok, ~s[Ho vissuto in <a href="#italy">italia<a> per un anno]}
   end
 
   test "interpolation is supported by lngettext" do
@@ -225,6 +232,17 @@ defmodule GettextTest do
 
     assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 0, %{name: "Jane"}) ==
              {:ok, "Hai 0 messaggi, Jane"}
+
+    # Tag bindings 
+    msgid = "I lived in %{wiki:Italy} for one year"
+    msgid_plural = "I lived in %{wiki:Italy} for %{count} years"
+    wiki = &~s[<a href="#italy">#{&1}<a>]
+
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 1, %{wiki: wiki}) ==
+             {:ok, ~s[Ho vissuto in <a href="#italy">italia<a> per un anno]}
+
+    assert Translator.lngettext("it", "interpolations", msgid, msgid_plural, 2, %{wiki: wiki}) ==
+             {:ok, ~s[Ho vissuto in <a href="#italy">italia<a> per 2 anni]}
   end
 
   test "strings are concatenated before generating function clauses" do

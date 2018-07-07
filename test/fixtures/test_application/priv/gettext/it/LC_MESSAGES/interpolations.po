@@ -4,6 +4,14 @@ msgstr "Ciao %{name}"
 msgid "My name is %{name} and I'm %{age}"
 msgstr "Mi chiamo %{name} e ho %{age} anni"
 
+msgid "I lived in %{wiki:Italy} for a year"
+msgstr "Ho vissuto in %{wiki:italia} per un anno"
+
+msgid "I lived in %{wiki:Italy} for one year"
+msgid_plural "I lived in %{wiki:Italy} for %{count} years"
+msgstr[0] "Ho vissuto in %{wiki:italia} per un anno"
+msgstr[1] "Ho vissuto in %{wiki:italia} per %{count} anni"
+
 msgid "You have one message, %{name}"
 msgid_plural "You have %{count} messages, %{name}"
 msgstr[0] "Hai un messaggio, %{name}"
