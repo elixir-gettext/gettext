@@ -22,16 +22,19 @@ defmodule Gettext.Interpolation do
   """
   @spec to_interpolatable(String.t()) :: interpolatable
   def to_interpolatable(string) do
-    start_pattern = :binary.compile_pattern("%{")
-    end_pattern = :binary.compile_pattern("}")
+    patterns = %{
+      start: :binary.compile_pattern("%{"),
+      end: :binary.compile_pattern("}"),
+      nested_delimiter: :binary.compile_pattern(":")
+    }
 
     string
-    |> to_interpolatable(_current = "", _acc = [], start_pattern, end_pattern)
+    |> to_interpolatable(_current = "", _acc = [], patterns)
     |> Enum.reverse()
   end
 
-  defp to_interpolatable(string, current, acc, start_pattern, end_pattern) do
-    case :binary.split(string, start_pattern) do
+  defp to_interpolatable(string, current, acc, patterns) do
+    case :binary.split(string, patterns.start) do
       # If we have one element, no %{ was found so this is the final part of the
       # string.
       [rest] ->
@@ -41,11 +44,11 @@ defmodule Gettext.Interpolation do
       # append %{} to the current string and keep going.
       [before, "}" <> rest] ->
         new_current = current <> before <> "%{}"
-        to_interpolatable(rest, new_current, acc, start_pattern, end_pattern)
+        to_interpolatable(rest, new_current, acc, patterns)
 
       # Otherwise, we found the start of a binding.
       [before, binding_and_rest] ->
-        case :binary.split(binding_and_rest, end_pattern) do
+        case :binary.split(binding_and_rest, patterns.end) do
           # If we don't find the end of this binding, it means we're at a string
           # like "foo %{ no end". In this case we consider no bindings to be
           # there.
@@ -55,14 +58,28 @@ defmodule Gettext.Interpolation do
           # This is the case where we found a binding, so we put it in the acc
           # and keep going.
           [binding, rest] ->
-            new_acc = [String.to_atom(binding) | prepend_if_not_empty(before, acc)]
-            to_interpolatable(rest, "", new_acc, start_pattern, end_pattern)
+            binding_and_opt_text = extract_nested_text(binding, patterns.nested_delimiter)
+            new_acc = [binding_and_opt_text | prepend_if_not_empty(before, acc)]
+            to_interpolatable(rest, "", new_acc, patterns)
         end
     end
   end
 
   defp prepend_if_not_empty("", list), do: list
   defp prepend_if_not_empty(string, list), do: [string | list]
+
+  defp extract_nested_text(string, nested_delimiter_pattern) do
+    case :binary.split(string, nested_delimiter_pattern) do
+      # There's no nested text for the binding.
+      [binding] ->
+        String.to_atom(binding)
+
+      # There's nested text, so put a start and end binding around the text that
+      # was found.
+      [binding, inner_text] ->
+        {String.to_atom(binding), inner_text}
+    end
+  end
 
   @doc """
   Interpolate an interpolatable with the given bindings.
@@ -91,29 +108,60 @@ defmodule Gettext.Interpolation do
           {:ok, String.t()} | {:missing_bindings, String.t(), [atom]}
   def interpolate(interpolatable, bindings)
       when is_list(interpolatable) and is_map(bindings) do
-    interpolate(interpolatable, bindings, [], [])
+    interpolate(interpolatable, bindings, [], [], [])
   end
 
-  defp interpolate([string | segments], bindings, strings, missing) when is_binary(string) do
-    interpolate(segments, bindings, [string | strings], missing)
+  # Next element is a binary, so just put it in the acc and keep going
+  defp interpolate([string | segments], bindings, strings, missing, invalid)
+       when is_binary(string) do
+    interpolate(segments, bindings, [string | strings], missing, invalid)
   end
 
-  defp interpolate([atom | segments], bindings, strings, missing) when is_atom(atom) do
+  # Next element is a simple atom binding, so we need to either replace it or 
+  # append a warning if it is not set.
+  defp interpolate([atom | segments], bindings, strings, missing, invalid) when is_atom(atom) do
     case bindings do
       %{^atom => value} ->
-        interpolate(segments, bindings, [to_string(value) | strings], missing)
+        interpolate(segments, bindings, [to_string(value) | strings], missing, invalid)
 
       %{} ->
         strings = ["%{" <> Atom.to_string(atom) <> "}" | strings]
-        interpolate(segments, bindings, strings, [atom | missing])
+        interpolate(segments, bindings, strings, [atom | missing], invalid)
     end
   end
 
-  defp interpolate([], _bindings, strings, []) do
+  # Next element is a binding with nested text, so we need to either replace it or 
+  # append a warning if it is not set or not a 1-arity function.
+  defp interpolate([{atom, inner} | segments], bindings, strings, missing, invalid)
+       when is_atom(atom) and is_binary(inner) do
+    case bindings do
+      %{^atom => value} when is_function(value, 1) ->
+        string = to_string(value.(inner))
+        interpolate(segments, bindings, [string | strings], missing, invalid)
+
+      %{^atom => _value} ->
+        invalidity = {atom, "Is not a 1-arity function."}
+        interpolate(segments, bindings, strings, missing, [invalidity | invalid])
+
+      %{} ->
+        strings = ["%{" <> Atom.to_string(atom) <> ":" <> inner <> "}" | strings]
+        interpolate(segments, bindings, strings, [atom | missing], invalid)
+    end
+  end
+
+  # At the end and no warnings. Reverse the iodata and convert to binary
+  defp interpolate([], _bindings, strings, [], []) do
     {:ok, IO.iodata_to_binary(Enum.reverse(strings))}
   end
 
-  defp interpolate([], _bindings, strings, missing) do
+  # At the end, but there were invalid bindings
+  defp interpolate([], _bindings, _strings, [], invalid) do
+    invalid = invalid |> Enum.reverse() |> Enum.uniq()
+    {:invalid_bindings, invalid}
+  end
+
+  # At the end, but there were errors
+  defp interpolate([], _bindings, strings, missing, _invalid) do
     missing = missing |> Enum.reverse() |> Enum.uniq()
     {:missing_bindings, IO.iodata_to_binary(Enum.reverse(strings)), missing}
   end
@@ -146,6 +194,14 @@ defmodule Gettext.Interpolation do
 
   def keys(string) when is_binary(string), do: string |> to_interpolatable() |> keys()
 
-  def keys(interpolatable) when is_list(interpolatable),
-    do: interpolatable |> Enum.filter(&is_atom/1) |> Enum.uniq()
+  def keys(interpolatable) when is_list(interpolatable) do
+    interpolatable
+    |> Enum.reduce([], fn
+      el, acc when is_atom(el) -> [el | acc]
+      {el, _inner}, acc when is_atom(el) -> [el | acc]
+      _, acc -> acc
+    end)
+    |> Enum.reverse()
+    |> Enum.uniq()
+  end
 end

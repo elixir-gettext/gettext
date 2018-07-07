@@ -527,6 +527,9 @@ defmodule Gettext.Compiler do
       key, acc when is_atom(key) ->
         quote do: unquote(acc) <> to_string(unquote(Macro.var(key, __MODULE__)))
 
+      {key, inner}, acc when is_atom(key) ->
+        quote do: unquote(acc) <> to_string(unquote(Macro.var(key, __MODULE__)).(unquote(inner)))
+
       str, acc ->
         quote do: unquote(acc) <> unquote(str)
     end)
