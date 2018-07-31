@@ -34,27 +34,19 @@ defmodule Mix.Tasks.Gettext.Extract do
     _ = Mix.Project.get!()
     mix_config = Mix.Project.config()
     {args, opts} = OptionParser.parse!(args, switches: @switches)
-
     pot_files = extract(mix_config[:app], mix_config[:gettext] || [])
-    write_extracted_files(pot_files)
+
+    for {path, contents} <- pot_files do
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, contents)
+      Mix.shell().info("Extracted #{Path.relative_to_cwd(path)}")
+    end
 
     if opts[:merge] do
       run_merge(pot_files, args)
     end
 
     :ok
-  end
-
-  defp write_extracted_files(pot_files) do
-    pot_files
-    |> Enum.map(fn {path, contents} ->
-      Task.async(fn ->
-        File.mkdir_p!(Path.dirname(path))
-        File.write!(path, contents)
-        Mix.shell().info("Extracted #{Path.relative_to_cwd(path)}")
-      end)
-    end)
-    |> Enum.each(&Task.await/1)
   end
 
   defp extract(app, gettext_config) do
@@ -86,7 +78,7 @@ defmodule Mix.Tasks.Gettext.Extract do
     pot_files
     |> Enum.map(fn {path, _} -> Path.dirname(path) end)
     |> Enum.uniq()
-    |> Enum.map(&Task.async(fn -> Mix.Tasks.Gettext.Merge.run([&1 | argv]) end))
-    |> Enum.each(&Task.await/1)
+    |> Task.async_stream(&Mix.Tasks.Gettext.Merge.run([&1 | argv]), ordered: false)
+    |> Stream.run()
   end
 end
