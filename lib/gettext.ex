@@ -512,7 +512,7 @@ defmodule Gettext do
 
   @type locale :: binary
   @type backend :: module
-  @type bindings :: %{} | Keyword.t()
+  @type bindings :: map() | Keyword.t()
 
   @doc false
   defmacro __using__(opts) do
