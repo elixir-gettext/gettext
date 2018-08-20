@@ -334,13 +334,20 @@ defmodule Gettext.PO.ParserTest do
     parsed =
       parse("""
       #: foo.ex:1 bar.ex:2 with spaces.ex:3
-      #: baz.ex:3
+      #: baz.ex:3 with:colon.ex:12
       msgid "foo"
       msgstr "bar"
       """)
 
     assert {:ok, [], [], [%Translation{} = t]} = parsed
-    assert t.references == [{"foo.ex", 1}, {"bar.ex", 2}, {"with spaces.ex", 3}, {"baz.ex", 3}]
+
+    assert t.references == [
+             {"foo.ex", 1},
+             {"bar.ex", 2},
+             {"with spaces.ex", 3},
+             {"baz.ex", 3},
+             {"with:colon.ex", 12}
+           ]
   end
 
   test "top-of-the-file comments are extracted correctly" do

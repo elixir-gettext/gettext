@@ -257,15 +257,11 @@ defmodule Gettext.PO do
   end
 
   defp dump_references(references, gettext_config) do
-    if Keyword.get(gettext_config, :write_reference_comments, true) do
+    if Keyword.get(gettext_config, :write_reference_comments, true) and references != [] do
       dump_references(references)
     else
-      dump_references([])
+      ""
     end
-  end
-
-  defp dump_references([]) do
-    ""
   end
 
   defp dump_references(references) do
