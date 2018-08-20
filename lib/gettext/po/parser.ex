@@ -59,31 +59,14 @@ defmodule Gettext.PO.Parser do
   end
 
   defp parse_references("#:" <> comment) do
-    # Steps:
-    #   * after trimming, we remain with "21 foo.ex"
-    #   * [file, line, file, line...]
-    #   * [[file, line], [file, line], ...]
-    #   * [{file, line}, {file, line}, ...]
-    comment
-    |> String.trim()
-    |> String.split(":")
-    |> Enum.flat_map(&parse_reference_part/1)
-    |> enum_chunk_every(2)
-    |> Enum.map(&List.to_tuple/1)
-  end
+    regex = ~r/
+      ((?:\w|\.|:)(?:\w|\s|\.|:|\/)+?)
+      :
+      (\d+)
+    /x
 
-  defp parse_reference_part(part) do
-    case Integer.parse(part) do
-      {next_line_no, ""} ->
-        # last line number
-        [next_line_no]
-
-      {next_line_no, filename} ->
-        [next_line_no, String.trim_leading(filename)]
-
-      :error ->
-        # first filename
-        [part]
+    for [_file_and_line, file, line] <- Regex.scan(regex, comment) do
+      {file, String.to_integer(line)}
     end
   end
 
@@ -172,8 +155,4 @@ defmodule Gettext.PO.Parser do
     do: [prefix, binary_part(rest, 0, byte_size(rest) - 2)]
 
   defp parse_error_reason(error, token), do: [error, token]
-
-  # TODO: remove once we depend on Elixir 1.5 and on.
-  chunk_every = if function_exported?(Enum, :chunk_every, 2), do: :chunk_every, else: :chunk
-  defp enum_chunk_every(enum, n), do: apply(Enum, unquote(chunk_every), [enum, n])
 end
