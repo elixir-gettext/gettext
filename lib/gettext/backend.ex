@@ -52,6 +52,38 @@ defmodule Gettext.Backend do
               binary | no_return
 
   @doc """
+  Default handling for translations with a missing translation.
+
+  When a Gettext function/macro is called with a string to translate into a locale but that
+  locale doesn't provide a translation for that string, this callback is invoked. `msgid` is the
+  string that Gettext tried to translate.
+
+  This function should return `{:ok, translated}` if a translation can be fetched or constructed
+  for the given string, or `{:default, msgid}` otherwise.
+  """
+  @callback handle_missing_translation(
+              Gettext.locale(),
+              domain :: String.t(),
+              msgid :: String.t(),
+              bindings :: map()
+            ) :: {:ok | :default, String.t()}
+
+  @doc """
+  Default handling for plural translations with a missing translation.
+
+  Same as `c:handle_missing_translation/4`, but for plural translations. In this case, `n` is
+  the number used for pluralizing the translated string.
+  """
+  @callback handle_missing_plural_translation(
+              Gettext.locale(),
+              domain :: String.t(),
+              msgid :: String.t(),
+              msgid_plural :: String.t(),
+              n :: non_neg_integer(),
+              bindings :: map()
+            ) :: {:ok | :default, String.t()}
+
+  @doc """
   Translates the given `msgid` in the given `domain`.
 
   `bindings` is a map of bindings to support interpolation.

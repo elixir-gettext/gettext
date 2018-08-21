@@ -60,8 +60,13 @@ defmodule Gettext.Compiler do
       def lngettext(locale, domain, msgid, msgid_plural, n, bindings)
 
       unquote(compile_po_files(env, translations_dir, opts))
-      unquote(catch_all_clauses())
-      unquote(catch_all_helpers())
+
+      # Catch-all clauses.
+      def lgettext(locale, domain, msgid, bindings),
+        do: handle_missing_translation(locale, domain, msgid, bindings)
+
+      def lngettext(locale, domain, msgid, msgid_plural, n, bindings),
+        do: handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings)
     end
   end
 
@@ -170,53 +175,6 @@ defmodule Gettext.Compiler do
   end
 
   @doc """
-  Returns the quoted code for the dynamic clauses of `lgettext/4` and
-  `lngettext/6`.
-  """
-  @spec catch_all_clauses() :: Macro.t()
-  def catch_all_clauses() do
-    quote do
-      def lgettext(_locale, domain, msgid, bindings) do
-        catch_all(domain, msgid, bindings)
-      end
-
-      def lngettext(_locale, domain, msgid, msgid_plural, n, bindings) do
-        catch_all_n(domain, msgid, msgid_plural, n, bindings)
-      end
-    end
-  end
-
-  @doc """
-  Defines helper functions for handling catch all throughout the backend.
-  """
-  @spec catch_all_helpers() :: Macro.t()
-  def catch_all_helpers() do
-    quote do
-      defp catch_all(domain, msgid, bindings) do
-        import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
-
-        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
-
-        with {:ok, interpolated} <- interpolate(to_interpolatable(msgid), bindings) do
-          {:default, interpolated}
-        end
-      end
-
-      defp catch_all_n(domain, msgid, msgid_plural, n, bindings) do
-        import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
-
-        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
-        string = if n == 1, do: msgid, else: msgid_plural
-        bindings = Map.put(bindings, :count, n)
-
-        with {:ok, interpolated} <- interpolate(to_interpolatable(string), bindings) do
-          {:default, interpolated}
-        end
-      end
-    end
-  end
-
-  @doc """
   Expands the given `msgid` in the given `env`, raising if it doesn't expand to
   a binary.
   """
@@ -285,18 +243,15 @@ defmodule Gettext.Compiler do
   @spec warn_if_domain_contains_slashes(binary) :: :ok
   def warn_if_domain_contains_slashes(domain) do
     if String.contains?(domain, "/") do
-      Logger.error(["Slashes in domains are not supported: ", inspect(domain)])
+      Logger.error(fn -> ["Slashes in domains are not supported: ", inspect(domain)] end)
     end
 
     :ok
   end
 
-  @doc """
-  Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
-  and `lngettext/6` function clauses.
-  """
-  @spec compile_po_files(Macro.Env.t(), Path.t(), Keyword.t()) :: Macro.t()
-  def compile_po_files(env, dir, opts) do
+  # Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
+  # and `lngettext/6` function clauses.
+  defp compile_po_files(env, dir, opts) do
     plural_mod = Keyword.get(opts, :plural_forms, Gettext.Plural)
     po_files = po_files_in_dir(dir)
 
@@ -310,18 +265,19 @@ defmodule Gettext.Compiler do
 
       quoted
     else
-      Enum.map(po_files, &compile_serial_po_file(&1, plural_mod))
+      Enum.map(po_files, &compile_serial_po_file(env, &1, plural_mod))
     end
   end
 
   defp create_locale_module(env, {module, translations}) do
-    exprs = [quote(do: @moduledoc(false)), catch_all_helpers() | translations]
+    exprs = [quote(do: @moduledoc(false)) | translations]
     Module.create(module, block(exprs), env)
     :ok
   end
 
-  defp compile_serial_po_file(path, plural_mod) do
-    {locale, domain, singular_fun, plural_fun, quoted} = compile_po_file(:defp, path, plural_mod)
+  defp compile_serial_po_file(env, path, plural_mod) do
+    {locale, domain, singular_fun, plural_fun, quoted} =
+      compile_po_file(:defp, path, env, plural_mod)
 
     quote do
       unquote(quoted)
@@ -338,7 +294,7 @@ defmodule Gettext.Compiler do
 
   defp compile_parallel_po_file(env, path, locales, plural_mod) do
     {locale, domain, singular_fun, plural_fun, locale_module_quoted} =
-      compile_po_file(:def, path, plural_mod)
+      compile_po_file(:def, path, env, plural_mod)
 
     module = :"#{env.module}.T_#{locale}"
 
@@ -359,7 +315,7 @@ defmodule Gettext.Compiler do
 
   # Compiles a .po file into a list of lgettext/4 (for translations) and
   # lngettext/6 (for plural translations) clauses.
-  defp compile_po_file(kind, path, plural_mod) do
+  defp compile_po_file(kind, path, env, plural_mod) do
     {locale, domain} = locale_and_domain_from_path(path)
     %PO{translations: translations, file: file} = PO.parse_file!(path)
 
@@ -373,11 +329,23 @@ defmodule Gettext.Compiler do
         unquote(translations)
 
         Kernel.unquote(kind)(unquote(singular_fun)(msgid, bindings)) do
-          catch_all(unquote(domain), msgid, bindings)
+          unquote(env.module).handle_missing_translation(
+            unquote(locale),
+            unquote(domain),
+            msgid,
+            bindings
+          )
         end
 
         Kernel.unquote(kind)(unquote(plural_fun)(msgid, msgid_plural, n, bindings)) do
-          catch_all_n(unquote(domain), msgid, msgid_plural, n, bindings)
+          unquote(env.module).handle_missing_plural_translation(
+            unquote(locale),
+            unquote(domain),
+            msgid,
+            msgid_plural,
+            n,
+            bindings
+          )
         end
       end
 
