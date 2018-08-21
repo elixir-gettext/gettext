@@ -528,6 +528,28 @@ defmodule Gettext do
       end
 
       defoverridable handle_missing_bindings: 2
+
+      def handle_missing_translation(_locale, domain, msgid, bindings) do
+        import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
+
+        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+
+        with {:ok, interpolated} <- interpolate(to_interpolatable(msgid), bindings),
+             do: {:default, interpolated}
+      end
+
+      def handle_missing_translation(_locale, domain, msgid, msgid_plural, n, bindings) do
+        import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
+
+        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+        string = if n == 1, do: msgid, else: msgid_plural
+        bindings = Map.put(bindings, :count, n)
+
+        with {:ok, interpolated} <- interpolate(to_interpolatable(string), bindings),
+             do: {:default, interpolated}
+      end
+
+      defoverridable handle_missing_translation: 4, handle_missing_translation: 6
     end
   end
 
