@@ -27,7 +27,7 @@ defmodule GettextTest.HandleMissingTranslation do
     super(locale, domain, msgid, bindings)
   end
 
-  def handle_missing_translation(locale, domain, msgid, msgid_plural, n, bindings) do
+  def handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings) do
     send(self(), {locale, domain, msgid, msgid_plural, n, bindings})
     super(locale, domain, msgid, msgid_plural, n, bindings)
   end
@@ -308,7 +308,7 @@ defmodule GettextTest do
              {:default, "9 errors"}
   end
 
-  test "lngettext/6: fallbacks to handle_missing_translation if no translation is found" do
+  test "lngettext/6: fallbacks to handle_missing_plural_translation if no translation is found" do
     msgid = "Hello %{name}"
     msgid_plural = "Hello %{name}"
     bindings = %{name: "Jane"}

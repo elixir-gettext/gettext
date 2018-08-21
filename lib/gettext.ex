@@ -538,7 +538,7 @@ defmodule Gettext do
              do: {:default, interpolated}
       end
 
-      def handle_missing_translation(_locale, domain, msgid, msgid_plural, n, bindings) do
+      def handle_missing_plural_translation(_locale, domain, msgid, msgid_plural, n, bindings) do
         import Gettext.Interpolation, only: [to_interpolatable: 1, interpolate: 2]
 
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
@@ -549,7 +549,7 @@ defmodule Gettext do
              do: {:default, interpolated}
       end
 
-      defoverridable handle_missing_translation: 4, handle_missing_translation: 6
+      defoverridable handle_missing_translation: 4, handle_missing_plural_translation: 6
     end
   end
 

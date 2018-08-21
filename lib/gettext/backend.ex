@@ -74,7 +74,7 @@ defmodule Gettext.Backend do
   Same as `c:handle_missing_translation/4`, but for plural translations. In this case, `n` is
   the number used for pluralizing the translated string.
   """
-  @callback handle_missing_translation(
+  @callback handle_missing_plural_translation(
               Gettext.locale(),
               domain :: String.t(),
               msgid :: String.t(),

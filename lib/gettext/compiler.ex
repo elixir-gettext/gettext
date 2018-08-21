@@ -66,7 +66,7 @@ defmodule Gettext.Compiler do
         do: handle_missing_translation(locale, domain, msgid, bindings)
 
       def lngettext(locale, domain, msgid, msgid_plural, n, bindings),
-        do: handle_missing_translation(locale, domain, msgid, msgid_plural, n, bindings)
+        do: handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings)
     end
   end
 
@@ -338,7 +338,7 @@ defmodule Gettext.Compiler do
         end
 
         Kernel.unquote(kind)(unquote(plural_fun)(msgid, msgid_plural, n, bindings)) do
-          unquote(env.module).handle_missing_translation(
+          unquote(env.module).handle_missing_plural_translation(
             unquote(locale),
             unquote(domain),
             msgid,
