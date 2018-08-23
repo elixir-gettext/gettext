@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Gettext.MergeTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
+
   import ExUnit.CaptureIO
 
   @priv_path "../../../tmp/gettext.merge" |> Path.expand(__DIR__) |> Path.relative_to_cwd()
@@ -9,17 +10,39 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     :ok
   end
 
-  test "merging an existing PO file with a new POT file" do
-    # "No such file" errors if one of the files doesn't exist.
+  test "raises an error when if one of the files doesn't exist" do
     assert_raise Mix.Error, "No such file: foo.po", fn ->
       run(~w(foo.po bar.pot))
     end
+  end
 
-    # The first file must be be a .po file and the second one a .pot file.
+  test "raises an error if the files aren't a .po file and a .pot file" do
     assert_raise Mix.Error, "Arguments must be a PO file and a PO/POT file", fn ->
       run(~w(foo.ex bar.exs))
     end
+  end
 
+  test "passing more than one argument raises an error" do
+    assert_raise Mix.Error, ~r/^Too many arguments for the gettext\.merge task/, fn ->
+      run(~w(foo bar baz bong))
+    end
+  end
+
+  test "passing no arguments raises an error" do
+    assert_raise Mix.Error, ~r/^gettext\.merge requires at least one argument to work/, fn ->
+      run([])
+    end
+  end
+
+  test "passing a :fuzzy_threshold outside of 0..1 raises an error" do
+    File.mkdir_p!(@priv_path)
+
+    assert_raise Mix.Error, "The :fuzzy_threshold option must be a float >= 0.0 and <= 1.0", fn ->
+      run([@priv_path, "--fuzzy-threshold", "5.0"])
+    end
+  end
+
+  test "merging an existing PO file with a new POT file" do
     pot_contents = """
     msgid "hello"
     msgstr ""
@@ -107,34 +130,6 @@ defmodule Mix.Tasks.Gettext.MergeTest do
 
     assert read_file("fr/LC_MESSAGES/foo.po") == contents
     assert read_file("it/LC_MESSAGES/foo.po") == contents
-  end
-
-  test "passing more than one argument raises an error" do
-    msg =
-      "Too many arguments for the gettext.merge task. Use " <>
-        "`mix help gettext.merge` to see the usage of this task"
-
-    assert_raise Mix.Error, msg, fn ->
-      run(~w(foo bar baz bong))
-    end
-  end
-
-  test "passing no arguments raises an error" do
-    msg =
-      "gettext.merge requires at least one argument to work. " <>
-        "Use `mix help gettext.merge` to see the usage of this task"
-
-    assert_raise Mix.Error, msg, fn ->
-      run([])
-    end
-  end
-
-  test "passing a :fuzzy_threshold outside of 0..1 raises an error" do
-    File.mkdir_p!(@priv_path)
-
-    assert_raise Mix.Error, "The :fuzzy_threshold option must be a float >= 0.0 and <= 1.0", fn ->
-      run([@priv_path, "--fuzzy-threshold", "5.0"])
-    end
   end
 
   test "non existing locale/LC_MESSAGES directories are created" do
