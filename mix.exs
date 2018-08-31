@@ -1,7 +1,7 @@
 defmodule Gettext.Mixfile do
   use Mix.Project
 
-  @version "0.15.0"
+  @version "0.16.0"
 
   @description "Internationalization and localization through gettext"
   @repo_url "https://github.com/elixir-lang/gettext"
@@ -48,7 +48,7 @@ defmodule Gettext.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.18", only: :dev}
+      {:ex_doc, "~> 0.19", only: :dev}
     ]
   end
 end

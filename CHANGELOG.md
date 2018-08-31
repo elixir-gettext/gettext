@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.16.0
+
+* Fix bugs related to expanding arguments to Gettext macros
+* Fix a bug where you couldn't have filenames with colons in them in reference comments
+* Add `handle_missing_translation/4` and `handle_missing_plural_translation/6` callbacks to Gettext backends
+* Fix a bug in `mix gettext.extract`, which was ignoring the `--merge` option
+
 ## v0.15.0
 
 * Generate correct plural forms when dumping new translations in PO files
