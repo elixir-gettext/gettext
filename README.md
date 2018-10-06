@@ -14,9 +14,7 @@ Gettext is an **internationalization** (i18n) and **localization** (l10n) system
      end
      ```
 
-  2. Optionally add the `:gettext` application to your `:applications` key if you're not using `:extra_applications`.
-
-  3. Optionally add the `:gettext` compiler to your Mix compilers so your backends are recompiled when `.po` files change:
+  2. Optionally add the `:gettext` compiler to your Mix compilers so your backends are recompiled when `.po` files change:
 
      ```elixir
      def project do
@@ -24,11 +22,11 @@ Gettext is an **internationalization** (i18n) and **localization** (l10n) system
      end
      ```
 
-[Documentation for `Gettext` is available on Hex][docs-gettext].
+Documentation for `Gettext` is [available on Hex][docs-gettext].
 
 ## Usage
 
-To use Gettext, you must define a Gettext module:
+To use Gettext, define a Gettext module:
 
 ```elixir
 defmodule MyApp.Gettext do
@@ -36,7 +34,7 @@ defmodule MyApp.Gettext do
 end
 ```
 
-And invoke the Gettext API, which consists of the `*gettext` macros:
+and invoke the Gettext API, which consists of the `*gettext` macros:
 
 ```elixir
 import MyApp.Gettext
