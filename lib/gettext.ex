@@ -102,7 +102,7 @@ defmodule Gettext do
   that the locale must be set in every new process in order to have the right
   locale available for that process. Pay attention to this behaviour, since not
   setting the locale *will not* result in any errors when `Gettext.get_locale/0`
-  or `Gettext.get_locale/1` are called called; the default locale will be
+  or `Gettext.get_locale/1` are called; the default locale will be
   returned instead.
 
   To decide which locale to use, each gettext-related function in a given
