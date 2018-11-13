@@ -34,7 +34,9 @@ defmodule Gettext.Compiler do
     translations_dir = Application.app_dir(otp_app, priv)
     external_file = String.replace(Path.join(".compile", priv), "/", "_")
     known_locales = known_locales(translations_dir)
-    default_locale = opts[:default_locale] || quote(do: Application.fetch_env!(:gettext, :default_locale))
+
+    default_locale =
+      opts[:default_locale] || quote(do: Application.fetch_env!(:gettext, :default_locale))
 
     quote do
       @behaviour Gettext.Backend
