@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.16.1
+
+* Optimize default locale lookup
+
 ## v0.16.0
 
 * Fix bugs related to expanding arguments to Gettext macros
