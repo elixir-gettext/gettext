@@ -120,19 +120,6 @@ defmodule Gettext do
 
   ### Default locale
 
-  The value of the default locale for a
-  given Gettext backend can be set in the configuration for the `:otp_app` of
-  that Gettext backend. For example, in the `config/config.exs` file of the
-  `my_app` application:
-
-      config :my_app, MyApp.Gettext,
-        default_locale: "fr"
-
-  This option is read dynamically every time the locale has not been explicitly
-  set, so to change the default locale of a backend for all processes at runtime
-  it's enough to use `Application.put_env/4`. There's no default
-  backend-specific locale.
-
   The global Gettext default locale can be configured through the
   `:default_locale` key of the `:gettext` application:
 
@@ -140,6 +127,13 @@ defmodule Gettext do
 
   By default the global locale is `"en"`. See also `get_locale/0` and
   `put_locale/1`.
+
+  If for some reason a backend requires with a different `:default_locale`
+  than all other backends, you can set the `:default_locale` inside the
+  backend configuration, but this approach is generally discouraged as
+  it makes it hard to track which locale each backend is using:
+
+      config :my_app, MyApp.Gettext, default_locale: "fr"
 
   ## Gettext API
 
@@ -616,25 +610,7 @@ defmodule Gettext do
   """
   @spec get_locale(backend) :: locale
   def get_locale(backend) do
-    cond do
-      locale = Process.get(backend) ->
-        locale
-
-      global_locale = Process.get(Gettext) ->
-        global_locale
-
-      default_locale = get_default_backend_locale(backend) ->
-        default_locale
-
-      true ->
-        # If this is not set by the user, it's still set in mix.exs (to "en").
-        Application.fetch_env!(:gettext, :default_locale)
-    end
-  end
-
-  defp get_default_backend_locale(backend) do
-    backend_config = Application.get_env(backend.__gettext__(:otp_app), backend, [])
-    Keyword.get(backend_config, :default_locale)
+    Process.get(backend) || Process.get(Gettext) || backend.__gettext__(:default_locale)
   end
 
   @doc """

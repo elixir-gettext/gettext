@@ -73,26 +73,13 @@ defmodule GettextTest do
 
   test "get_locale/0,1: using the default locales" do
     global_default = Application.get_env(:gettext, :default_locale)
-    backend_config = Application.get_env(:test_application, Translator)
 
     try do
       Application.put_env(:gettext, :default_locale, "fr")
-
       assert Gettext.get_locale() == "fr"
       assert Gettext.get_locale(Translator) == "fr"
-
-      Application.put_env(:test_application, Translator, default_locale: "es")
-
-      assert Gettext.get_locale() == "fr"
-      assert Gettext.get_locale(Translator) == "es"
     after
       Application.put_env(:gettext, :default_locale, global_default)
-
-      if backend_config do
-        Application.put_env(:test_application, Translator, backend_config)
-      else
-        Application.delete_env(:test_application, Translator)
-      end
     end
   end
 

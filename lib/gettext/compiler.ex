@@ -34,6 +34,7 @@ defmodule Gettext.Compiler do
     translations_dir = Application.app_dir(otp_app, priv)
     external_file = String.replace(Path.join(".compile", priv), "/", "_")
     known_locales = known_locales(translations_dir)
+    default_locale = opts[:default_locale] || quote(do: Application.fetch_env!(:gettext, :default_locale))
 
     quote do
       @behaviour Gettext.Backend
@@ -43,6 +44,7 @@ defmodule Gettext.Compiler do
       def __gettext__(:priv), do: unquote(priv)
       def __gettext__(:otp_app), do: unquote(otp_app)
       def __gettext__(:known_locales), do: unquote(known_locales)
+      def __gettext__(:default_locale), do: unquote(default_locale)
 
       # The manifest lives in the root of the priv
       # directory that contains .po/.pot files.
