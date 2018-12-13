@@ -18,13 +18,22 @@ defmodule Gettext.PO do
   defstruct headers: [],
             translations: [],
             file: nil,
-            top_of_the_file_comments: []
+            top_of_the_file_comments: [],
+            change_stats: nil
 
   @type t :: %__MODULE__{
           top_of_the_file_comments: [binary],
           headers: [binary],
           translations: [translation],
-          file: nil | Path.t()
+          file: nil | Path.t(),
+          change_stats: nil | change_stats()
+        }
+
+  @type change_stats :: %{
+          new: integer(),
+          fuzzy: integer(),
+          removed: integer(),
+          unchanged: integer()
         }
 
   @wrapping_column 80

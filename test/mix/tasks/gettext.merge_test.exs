@@ -57,13 +57,81 @@ defmodule Mix.Tasks.Gettext.MergeTest do
         run([tmp_path("it/LC_MESSAGES/foo.po"), tmp_path("foo.pot")])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
+    assert output =~ """
+           Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po:
+           1 new / 0 fuzzy / 0 removed / 0 unchanged
+           """
 
     # The POT file is left unchanged
     assert read_file("foo.pot") == pot_contents
 
     assert read_file("it/LC_MESSAGES/foo.po") == """
            msgid "hello"
+           msgstr ""
+           """
+  end
+
+  test "gathering stats merging an existing PO file with a new POT file" do
+    pot_contents = """
+    msgid "hello"
+    msgstr ""
+
+    msgid "great"
+    msgstr ""
+
+    msgid "elixir"
+    msgstr ""
+
+    msgid "world"
+    msgstr ""
+    """
+
+    po_contents = """
+    msgid "hello"
+    msgstr ""
+
+    msgid "elixr"
+    msgstr ""
+
+    msgid "to"
+    msgstr ""
+
+    msgid "be"
+    msgstr ""
+
+    msgid "removed"
+    msgstr ""
+    """
+
+    write_file("foo.pot", pot_contents)
+
+    write_file("it/LC_MESSAGES/foo.po", po_contents)
+
+    output =
+      capture_io(fn ->
+        run([tmp_path("it/LC_MESSAGES/foo.po"), tmp_path("foo.pot")])
+      end)
+
+    assert output =~ """
+           Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po:
+           2 new / 1 fuzzy / 3 removed / 1 unchanged
+           """
+
+    # The POT file is left unchanged
+    assert read_file("foo.pot") == pot_contents
+
+    assert read_file("it/LC_MESSAGES/foo.po") == """
+           msgid "hello"
+           msgstr ""
+
+           msgid "great"
+           msgstr ""
+
+           #, fuzzy
+           msgid "elixir"
+           msgstr ""
+
+           msgid "world"
            msgstr ""
            """
   end
@@ -86,8 +154,15 @@ defmodule Mix.Tasks.Gettext.MergeTest do
         run([@priv_path, "--locale", "it"])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/new.po"
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/default.po"
+    assert output =~ """
+           Wrote tmp/gettext.merge/it/LC_MESSAGES/new.po:
+           1 new / 0 fuzzy / 0 removed / 0 unchanged
+           """
+
+    assert output =~ """
+           Wrote tmp/gettext.merge/it/LC_MESSAGES/default.po:
+           1 new / 0 fuzzy / 0 removed / 0 unchanged
+           """
 
     assert read_file("it/LC_MESSAGES/default.po") == """
            msgid "def"
@@ -125,8 +200,15 @@ defmodule Mix.Tasks.Gettext.MergeTest do
         run([@priv_path])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/fr/LC_MESSAGES/foo.po"
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
+    assert output =~ """
+           Wrote tmp/gettext.merge/fr/LC_MESSAGES/foo.po:
+           1 new / 0 fuzzy / 0 removed / 0 unchanged
+           """
+
+    assert output =~ """
+           Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po:
+           1 new / 0 fuzzy / 0 removed / 0 unchanged
+           """
 
     assert read_file("fr/LC_MESSAGES/foo.po") == contents
     assert read_file("it/LC_MESSAGES/foo.po") == contents

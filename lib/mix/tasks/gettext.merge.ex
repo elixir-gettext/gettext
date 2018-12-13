@@ -211,10 +211,18 @@ defmodule Mix.Tasks.Gettext.Merge do
     Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
   end
 
-  defp write_file(path, po, gettext_config) do
+  defp write_file(path, %{change_stats: stats} = po, gettext_config) do
     contents = PO.dump(po, gettext_config)
     File.write!(path, contents)
-    Mix.shell().info("Wrote #{path}")
+
+    text = """
+    Wrote #{path}:
+    #{stats.new} new / #{stats.fuzzy} fuzzy / #{stats.removed} removed / #{stats.unchanged} unchanged
+    """
+
+    text
+    |> String.trim_trailing()
+    |> Mix.shell().info()
   end
 
   # Warns for every PO file that has no matching POT file.
