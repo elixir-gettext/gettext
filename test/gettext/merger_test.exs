@@ -303,7 +303,8 @@ defmodule Gettext.MergerTest do
     """)
 
     opts = [plural_forms: 1] ++ @opts
-    merged = Merger.new_po_file(new_po_path, pot_path, "it", opts, @gettext_config)
+    merged = Merger.new_po_file(new_po_path, pot_path, "it", opts)
+    merged = PO.dump(merged, @gettext_config)
     merged = IO.iodata_to_binary(merged)
 
     assert String.ends_with?(merged, ~S"""

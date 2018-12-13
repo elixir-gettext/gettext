@@ -203,7 +203,8 @@ defmodule Mix.Tasks.Gettext.Merge do
     if File.regular?(po_file) do
       merge_files(po_file, pot_file, locale, opts, gettext_config)
     else
-      Merger.new_po_file(po_file, pot_file, locale, opts, gettext_config)
+      po = Merger.new_po_file(po_file, pot_file, locale, opts)
+      PO.dump(po, gettext_config)
     end
   end
 
