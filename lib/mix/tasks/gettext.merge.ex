@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   Generally, a `fuzzy` flag calls for review from a translator.
 
   Fuzzy matching can be configured (for example, the threshold for translation
-  similarity can be tweaked) or disabled entirely; lool at the "Options" section
+  similarity can be tweaked) or disabled entirely; look at the "Options" section
   below.
 
   ## Usage
