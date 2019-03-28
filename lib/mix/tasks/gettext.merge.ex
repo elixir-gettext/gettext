@@ -101,6 +101,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   """
 
   @default_fuzzy_threshold 0.8
+
   @switches [
     locale: :string,
     fuzzy: :boolean,
@@ -197,7 +198,8 @@ defmodule Mix.Tasks.Gettext.Merge do
     if File.regular?(po_file) do
       merge_files(po_file, pot_file, locale, opts, gettext_config)
     else
-      Merger.new_po_file(po_file, pot_file, locale, opts, gettext_config)
+      new_po = Merger.new_po_file(po_file, pot_file, locale, opts)
+      PO.dump(new_po, gettext_config)
     end
   end
 
