@@ -121,15 +121,9 @@ defmodule Mix.Tasks.Gettext.Merge do
       {opts, [translations_dir]} ->
         merge_translations_dir(translations_dir, opts, gettext_config)
 
-      {_opts, []} ->
-        Mix.raise(
-          "gettext.merge requires at least one argument to work. " <>
-            "Use `mix help gettext.merge` to see the usage of this task"
-        )
-
       {_opts, _args} ->
         Mix.raise(
-          "Too many arguments for the gettext.merge task. " <>
+          "You can only pass one or two arguments to the \"gettext.merge\" task. " <>
             "Use `mix help gettext.merge` to see the usage of this task"
         )
     end

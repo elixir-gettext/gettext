@@ -23,13 +23,13 @@ defmodule Mix.Tasks.Gettext.MergeTest do
   end
 
   test "passing more than one argument raises an error" do
-    assert_raise Mix.Error, ~r/^Too many arguments for the gettext\.merge task/, fn ->
+    assert_raise Mix.Error, ~r/^You can only pass one or two arguments/, fn ->
       run(~w(foo bar baz bong))
     end
   end
 
   test "passing no arguments raises an error" do
-    assert_raise Mix.Error, ~r/^gettext\.merge requires at least one argument to work/, fn ->
+    assert_raise Mix.Error, ~r/You can only pass one or two arguments/, fn ->
       run([])
     end
   end
