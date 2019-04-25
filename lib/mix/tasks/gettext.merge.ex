@@ -139,8 +139,11 @@ defmodule Mix.Tasks.Gettext.Merge do
       ensure_file_exists!(po_file)
       ensure_file_exists!(reference_file)
       locale = locale_from_path(po_file)
-      contents = merge_files(po_file, reference_file, locale, merging_opts, gettext_config)
-      write_file(po_file, contents)
+
+      {contents, stats} =
+        merge_files(po_file, reference_file, locale, merging_opts, gettext_config)
+
+      write_file(po_file, contents, stats)
     else
       Mix.raise("Arguments must be a PO file and a PO/POT file")
     end
@@ -176,8 +179,8 @@ defmodule Mix.Tasks.Gettext.Merge do
   defp merge_dirs(po_dir, pot_dir, locale, opts, gettext_config) do
     merger = fn pot_file ->
       po_file = find_matching_po(pot_file, po_dir)
-      contents = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
-      write_file(po_file, contents)
+      {contents, stats} = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
+      write_file(po_file, contents, stats)
     end
 
     pot_dir
@@ -198,19 +201,21 @@ defmodule Mix.Tasks.Gettext.Merge do
     if File.regular?(po_file) do
       merge_files(po_file, pot_file, locale, opts, gettext_config)
     else
-      new_po = Merger.new_po_file(po_file, pot_file, locale, opts)
-      PO.dump(new_po, gettext_config)
+      {new_po, stats} = Merger.new_po_file(po_file, pot_file, locale, opts)
+      {PO.dump(new_po, gettext_config), stats}
     end
   end
 
   defp merge_files(po_file, pot_file, locale, opts, gettext_config) do
-    merged = Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
-    PO.dump(merged, gettext_config)
+    {merged, stats} =
+      Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
+
+    {PO.dump(merged, gettext_config), stats}
   end
 
-  defp write_file(path, contents) do
+  defp write_file(path, contents, stats) do
     File.write!(path, contents)
-    Mix.shell().info("Wrote #{path}")
+    Mix.shell().info("Wrote #{path}: #{inspect(stats)}")
   end
 
   # Warns for every PO file that has no matching POT file.

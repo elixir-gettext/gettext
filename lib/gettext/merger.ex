@@ -49,35 +49,58 @@ defmodule Gettext.Merger do
         by the references in the POT file
 
   """
-  @spec merge(PO.t(), PO.t(), String.t(), Keyword.t()) :: PO.t()
+  @spec merge(PO.t(), PO.t(), String.t(), Keyword.t()) :: {PO.t(), map()}
   def merge(%PO{} = old, %PO{} = new, locale, opts) when is_binary(locale) and is_list(opts) do
     opts = put_plural_forms_opt(opts, old.headers, locale)
+    stats = %{new: 0, exact_matches: 0, fuzzy_matches: 0, removed: 0}
 
-    %PO{
+    {translations, stats} = merge_translations(old.translations, new.translations, opts, stats)
+
+    po = %PO{
       top_of_the_file_comments: old.top_of_the_file_comments,
       headers: old.headers,
       file: old.file,
-      translations: merge_translations(old.translations, new.translations, opts)
+      translations: translations
     }
+
+    {po, stats}
   end
 
-  defp merge_translations(old, new, opts) do
+  defp merge_translations(old, new, opts, stats) do
     fuzzy? = Keyword.fetch!(opts, :fuzzy)
     fuzzy_threshold = Keyword.fetch!(opts, :fuzzy_threshold)
     plural_forms = Keyword.fetch!(opts, :plural_forms)
 
     old = Map.new(old, &{PO.Translations.key(&1), &1})
 
-    Enum.map(new, fn t ->
-      key = PO.Translations.key(t)
-      t = adjust_number_of_plural_forms(t, plural_forms)
+    {translations, {stats, unused}} =
+      Enum.map_reduce(new, {stats, _unused = old}, fn t, {stats_acc, unused} ->
+        key = PO.Translations.key(t)
+        t = adjust_number_of_plural_forms(t, plural_forms)
 
-      case Map.fetch(old, key) do
-        {:ok, exact_match} -> merge_two_translations(exact_match, t)
-        :error when fuzzy? -> maybe_merge_fuzzy(t, old, key, fuzzy_threshold)
-        :error -> t
-      end
-    end)
+        case Map.fetch(old, key) do
+          {:ok, exact_match} ->
+            stats = update_in(stats_acc.exact_matches, &(&1 + 1))
+            {merge_two_translations(exact_match, t), {stats, Map.delete(unused, key)}}
+
+          :error when fuzzy? ->
+            case maybe_merge_fuzzy(t, old, key, fuzzy_threshold) do
+              {:matched, t} ->
+                stats_acc = update_in(stats_acc.fuzzy_matches, &(&1 + 1))
+                {t, {stats_acc, Map.delete(unused, key)}}
+
+              :nomatch ->
+                stats_acc = update_in(stats_acc.new, &(&1 + 1))
+                {t, {stats_acc, unused}}
+            end
+
+          :error ->
+            stats_acc = update_in(stats_acc.new, &(&1 + 1))
+            {t, {stats_acc, unused}}
+        end
+      end)
+
+    {translations, put_in(stats.removed, map_size(unused))}
   end
 
   defp adjust_number_of_plural_forms(%PluralTranslation{} = t, plural_forms)
@@ -92,9 +115,9 @@ defmodule Gettext.Merger do
 
   defp maybe_merge_fuzzy(t, old, key, fuzzy_threshold) do
     if matched = find_fuzzy_match(old, key, fuzzy_threshold) do
-      Fuzzy.merge(t, matched)
+      {:matched, Fuzzy.merge(t, matched)}
     else
-      t
+      :nomatch
     end
   end
 
@@ -162,12 +185,16 @@ defmodule Gettext.Merger do
     opts = put_plural_forms_opt(opts, pot.headers, locale)
     plural_forms = Keyword.fetch!(opts, :plural_forms)
 
-    %PO{
+    po = %PO{
       top_of_the_file_comments: String.split(@new_po_informative_comment, "\n", trim: true),
       headers: headers_for_new_po_file(locale, plural_forms),
       file: po_file,
       translations: Enum.map(pot.translations, &prepare_new_translation(&1, plural_forms))
     }
+
+    stats = %{new: length(po.translations), exact_matches: 0, fuzzy_matches: 0, removed: 0}
+
+    {po, stats}
   end
 
   defp headers_for_new_po_file(locale, plural_forms) do

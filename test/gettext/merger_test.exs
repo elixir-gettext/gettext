@@ -155,7 +155,7 @@ defmodule Gettext.MergerTest do
         ]
       }
 
-      assert %PO{translations: [t1, t2]} = Merger.merge(old_po, new_pot, "en", @opts)
+      assert {%PO{translations: [t1, t2]}, stats} = Merger.merge(old_po, new_pot, "en", @opts)
 
       assert t1.msgid == ["hello world"]
       assert t1.msgstr == ["foo"]
@@ -164,6 +164,11 @@ defmodule Gettext.MergerTest do
       assert t2.msgid == ["hello world!"]
       assert t2.msgstr == ["foo"]
       assert "fuzzy" in t2.flags
+
+      assert stats.new == 0
+      assert stats.removed == 0
+      assert stats.fuzzy_matches == 1
+      assert stats.exact_matches == 1
     end
 
     test "multiple translations can fuzzy match against a single translation" do
