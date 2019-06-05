@@ -10,7 +10,7 @@ defmodule Gettext.Mixfile do
     [
       app: :gettext,
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.6",
       build_embedded: Mix.env() == :prod,
       deps: deps(),
       xref: [exclude: [{Kernel.ParallelCompiler, :async, 1}]],

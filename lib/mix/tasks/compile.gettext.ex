@@ -1,7 +1,5 @@
 defmodule Mix.Tasks.Compile.Gettext do
-  # TODO: use Mix.Task.Compiler once we depend on Elixir 1.6 and on
-
-  use Mix.Task
+  use Mix.Task.Compiler
 
   @recursive true
 
@@ -35,7 +33,7 @@ defmodule Mix.Tasks.Compile.Gettext do
       |> Map.delete(:not_in_canonical_dir)
       |> change_manifests()
 
-    if changed == [], do: :noop, else: :ok
+    if changed == [], do: {:noop, []}, else: {:ok, []}
   end
 
   defp priv_prefix(path, app_dir) do

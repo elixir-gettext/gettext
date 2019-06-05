@@ -26,24 +26,24 @@ defmodule Mix.Tasks.Compile.GettextTest do
 
   test "touches manifest file when necessary" do
     assert read_manifest(".compile_tmp_gettext_foo") == []
-    assert run([]) == :noop
+    assert run([]) == {:noop, []}
     assert read_manifest(".compile_tmp_gettext_foo") == []
 
     # Write .po file out of place
     write_po("hello.po")
-    assert run([]) == :noop
+    assert run([]) == {:noop, []}
     assert read_manifest(".compile_tmp_gettext_foo") == []
 
     # Write proper .po file
     write_po("foo/en/LC_MESSAGES/hello.po")
-    assert run([]) == :ok
+    assert run([]) == {:ok, []}
 
     assert read_manifest(".compile_tmp_gettext_foo") ==
              ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
 
     # Write another .po file
     write_po("foo/en/LC_MESSAGES/world.po")
-    assert run([]) == :ok
+    assert run([]) == {:ok, []}
 
     assert read_manifest(".compile_tmp_gettext_foo") ==
              [
@@ -53,21 +53,21 @@ defmodule Mix.Tasks.Compile.GettextTest do
 
     # Remove .po file
     remove_po("foo/en/LC_MESSAGES/world.po")
-    assert run([]) == :ok
+    assert run([]) == {:ok, []}
 
     assert read_manifest(".compile_tmp_gettext_foo") ==
              ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
 
     # Write .po file to another directory
     write_po("bar/en/LC_MESSAGES/world.po")
-    assert run([]) == :ok
+    assert run([]) == {:ok, []}
 
     assert read_manifest(".compile_tmp_gettext_foo") ==
              ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
 
     # Touch existing .po file
     touch_po("foo/en/LC_MESSAGES/hello.po")
-    assert run([]) == :ok
+    assert run([]) == {:ok, []}
 
     assert read_manifest(".compile_tmp_gettext_foo") ==
              ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
