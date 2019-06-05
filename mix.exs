@@ -1,7 +1,7 @@
 defmodule Gettext.Mixfile do
   use Mix.Project
 
-  @version "0.16.1"
+  @version "0.17.0"
 
   @description "Internationalization and localization through gettext"
   @repo_url "https://github.com/elixir-lang/gettext"
@@ -10,7 +10,7 @@ defmodule Gettext.Mixfile do
     [
       app: :gettext,
       version: @version,
-      elixir: "~> 1.4",
+      elixir: "~> 1.5",
       build_embedded: Mix.env() == :prod,
       deps: deps(),
       xref: [exclude: [{Kernel.ParallelCompiler, :async, 1}]],

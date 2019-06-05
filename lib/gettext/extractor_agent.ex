@@ -1,5 +1,6 @@
 defmodule Gettext.ExtractorAgent do
   @moduledoc false
+  use Agent
 
   @name __MODULE__
 
@@ -13,8 +14,8 @@ defmodule Gettext.ExtractorAgent do
     extracting?: false
   }
 
-  @spec start_link() :: Agent.on_start()
-  def start_link() do
+  @spec start_link(any) :: Agent.on_start()
+  def start_link(_) do
     Agent.start_link(fn -> @initial_state end, name: @name)
   end
 
