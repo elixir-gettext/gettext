@@ -288,6 +288,40 @@ defmodule Gettext.ExtractorTest do
     refute Extractor.extracting?()
   end
 
+  test "warns on conflicting backends" do
+    refute Extractor.extracting?()
+    Extractor.enable()
+    assert Extractor.extracting?()
+
+    code = """
+    defmodule Gettext.ExtractorConflictTest.MyGettext do
+      use Gettext, otp_app: :test_application
+    end
+
+    defmodule Gettext.ExtractorConflictTest.MyOtherGettext do
+      use Gettext, otp_app: :test_application
+    end
+
+    defmodule FooConflict do
+      import Gettext.ExtractorConflictTest.MyGettext
+      require Gettext.ExtractorConflictTest.MyOtherGettext
+
+      def bar do
+        gettext "foo"
+        Gettext.ExtractorConflictTest.MyOtherGettext.gettext "foo"
+      end
+    end
+    """
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.compile_string(code, Path.join(File.cwd!(), "foo_conflict.ex"))
+             Extractor.pot_files(:test_application, [])
+           end) =~
+             "the Gettext backend Gettext.ExtractorConflictTest.MyGettext has the same :priv directory as Gettext.ExtractorConflictTest.MyOtherGettext"
+  after
+    Extractor.disable()
+  end
+
   defp write_file(path, contents) do
     path |> Path.dirname() |> File.mkdir_p!()
     File.write!(path, contents)

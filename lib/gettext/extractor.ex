@@ -75,12 +75,33 @@ defmodule Gettext.Extractor do
   @spec pot_files(atom, Keyword.t()) :: [{path :: String.t(), contents :: iodata}]
   def pot_files(app, gettext_config) do
     backends = ExtractorAgent.pop_backends(app)
+    warn_on_conflicting_backends(backends)
     existing_pot_files = pot_files_for_backends(backends)
 
     backends
     |> ExtractorAgent.pop_translations()
     |> create_po_structs_from_extracted_translations()
     |> merge_pot_files(existing_pot_files, gettext_config)
+  end
+
+  defp warn_on_conflicting_backends(backends) do
+    Enum.reduce(backends, %{}, fn backend, acc ->
+      priv = backend.__gettext__(:priv)
+
+      case acc do
+        %{^priv => other_backend} ->
+          IO.warn(
+            "the Gettext backend #{inspect backend} has the same :priv directory as " <>
+              "#{inspect other_backend}, which means they will override each other. " <>
+              "Please set the :priv option to different directories on use Gettext " <>
+              "inside each backend",
+            []
+          )
+
+        %{} ->
+          Map.put(acc, priv, backend)
+      end
+    end)
   end
 
   # Returns all the .pot files for each of the given `backends`.
