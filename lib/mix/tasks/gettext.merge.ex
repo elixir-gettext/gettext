@@ -215,7 +215,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp write_file(path, contents, stats) do
     File.write!(path, contents)
-    Mix.shell().info("Wrote #{path}: #{inspect(stats)}")
+    Mix.shell().info("Wrote #{path} (#{format_stats(stats)})")
   end
 
   # Warns for every PO file that has no matching POT file.
@@ -272,5 +272,10 @@ defmodule Mix.Tasks.Gettext.Merge do
     parts = Path.split(path)
     index = Enum.find_index(parts, &(&1 == "LC_MESSAGES"))
     Enum.at(parts, index - 1)
+  end
+
+  defp format_stats(stats) do
+    "#{stats.exact_matches} exact matches, #{stats.fuzzy_matches} fuzzy matches, " <>
+      "#{stats.new} new, #{stats.removed} removed"
   end
 end

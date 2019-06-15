@@ -85,9 +85,10 @@ defmodule Gettext.Merger do
 
           :error when fuzzy? ->
             case maybe_merge_fuzzy(t, old, key, fuzzy_threshold) do
-              {:matched, t} ->
+              {:matched, match, fuzzy_merged} ->
                 stats_acc = update_in(stats_acc.fuzzy_matches, &(&1 + 1))
-                {t, {stats_acc, Map.delete(unused, key)}}
+                unused = Map.delete(unused, PO.Translations.key(match))
+                {fuzzy_merged, {stats_acc, unused}}
 
               :nomatch ->
                 stats_acc = update_in(stats_acc.new, &(&1 + 1))
@@ -115,7 +116,7 @@ defmodule Gettext.Merger do
 
   defp maybe_merge_fuzzy(t, old, key, fuzzy_threshold) do
     if matched = find_fuzzy_match(old, key, fuzzy_threshold) do
-      {:matched, Fuzzy.merge(t, matched)}
+      {:matched, matched, Fuzzy.merge(t, matched)}
     else
       :nomatch
     end
