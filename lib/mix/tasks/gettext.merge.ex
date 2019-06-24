@@ -275,7 +275,9 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp format_stats(stats) do
-    "#{stats.exact_matches} exact matches, #{stats.fuzzy_matches} fuzzy matches, " <>
-      "#{stats.new} new, #{stats.removed} removed"
+    pluralized = if stats.new == 1, do: "translation", else: "translations"
+
+    "#{stats.new} new #{pluralized}, #{stats.removed} removed, " <>
+      "#{stats.exact_matches} unchanged, #{stats.fuzzy_matches} reworded (fuzzy)"
   end
 end

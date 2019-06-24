@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
       end)
 
     assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
-    assert output =~ "(0 exact matches, 0 fuzzy matches, 1 new, 0 removed)"
+    assert output =~ "(1 new translation, 0 removed, 0 unchanged, 0 reworded (fuzzy))"
 
     # The POT file is left unchanged
     assert read_file("foo.pot") == pot_contents
