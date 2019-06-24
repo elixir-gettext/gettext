@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.17.0
+
+* Require Elixir 1.6 and later
+* Add stats reporting when merging PO files
+
 ## v0.16.1
 
 * Optimize default locale lookup
