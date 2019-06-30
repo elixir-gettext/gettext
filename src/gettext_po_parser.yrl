@@ -18,6 +18,7 @@ translations ->
 translation ->
   maybe_msgctxt msgid strings msgstr strings : {translation, #{
     comments       => [],
+    msgctxt        => '$1',
     msgid          => '$3',
     msgstr         => '$5',
     po_source_line => extract_line('$2')
@@ -25,6 +26,7 @@ translation ->
 translation ->
   maybe_msgctxt msgid strings msgid_plural strings pluralizations : {plural_translation, #{
     comments       => [],
+    msgctxt        => '$1',
     msgid          => '$3',
     msgid_plural   => '$5',
     msgstr         => plural_forms_map_from_list('$6'),
@@ -51,9 +53,9 @@ comments ->
 
 %% For now, we ignore the msgctxt.
 maybe_msgctxt ->
-  '$empty' : [].
+  '$empty' : nil.
 maybe_msgctxt ->
-  msgctxt strings : [].
+  msgctxt strings : '$2'.
 
 Erlang code.
 
