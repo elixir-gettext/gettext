@@ -399,17 +399,16 @@ defmodule Gettext.PO.ParserTest do
 
   test "msgctxt is nil when no msgctxt is present in a translation" do
     parsed =
-    parse("""
-    msgid "my_msgid"
-    msgstr "my_msgstr"
-    """)
+      parse("""
+      msgid "my_msgid"
+      msgstr "my_msgstr"
+      """)
 
     assert {:ok, [], [], [%Translation{} = translation]} = parsed
     assert translation.msgctxt == nil
   end
 
   test "msgctxt causes a syntax error when misplaced" do
-
     # Badly placed msgctxt still causes a syntax error
     parsed =
       parse("""
