@@ -42,7 +42,7 @@ defmodule Gettext do
       msgstr "Ciao mondo!"
 
   PO files containing translations for an application must be stored in a
-  directory (by default it's `priv/gettext`) that has the following struture:
+  directory (by default it's `priv/gettext`) that has the following structure:
 
       gettext directory
       └─ locale
