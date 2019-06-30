@@ -31,6 +31,7 @@ defmodule Gettext.PO.Translation do
   @type t :: %__MODULE__{
           msgid: [binary],
           msgstr: [binary],
+          msgctxt: [binary] | nil,
           comments: [binary],
           extracted_comments: [binary],
           references: [{binary, pos_integer}],
@@ -42,6 +43,7 @@ defmodule Gettext.PO.Translation do
 
   defstruct msgid: nil,
             msgstr: nil,
+            msgctxt: nil,
             comments: [],
             extracted_comments: [],
             references: [],

@@ -367,7 +367,7 @@ defmodule Gettext.PO.ParserTest do
            } = parsed
   end
 
-  test "msgctxt is parsed correctly but ignored" do
+  test "msgctxt is parsed correctly for translations" do
     parsed =
       parse("""
       msgctxt "my_" "context"
@@ -376,8 +376,39 @@ defmodule Gettext.PO.ParserTest do
       """)
 
     assert {:ok, [], [], [%Translation{} = translation]} = parsed
+    assert translation.msgctxt == ["my_", "context"]
     assert translation.msgid == ["my_msgid"]
     assert translation.msgstr == ["my_msgstr"]
+  end
+
+  test "msgctxt is parsed correctly for plural translations" do
+    parsed =
+      parse("""
+      msgctxt "my_" "context"
+      msgid "my_msgid"
+      msgid_plural "my_msgid_plural"
+      msgstr[0] "my_msgstr"
+      """)
+
+    assert {:ok, [], [], [%PluralTranslation{} = translation]} = parsed
+    assert translation.msgctxt == ["my_", "context"]
+    assert translation.msgid == ["my_msgid"]
+    assert translation.msgid_plural == ["my_msgid_plural"]
+    assert translation.msgstr[0] == ["my_msgstr"]
+  end
+
+  test "msgctxt is nil when no msgctxt is present in a translation" do
+    parsed =
+    parse("""
+    msgid "my_msgid"
+    msgstr "my_msgstr"
+    """)
+
+    assert {:ok, [], [], [%Translation{} = translation]} = parsed
+    assert translation.msgctxt == nil
+  end
+
+  test "msgctxt causes a syntax error when misplaced" do
 
     # Badly placed msgctxt still causes a syntax error
     parsed =
