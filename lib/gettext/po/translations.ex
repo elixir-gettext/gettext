@@ -95,12 +95,21 @@ defmodule Gettext.PO.Translations do
       iex> Gettext.PO.Translations.key(t)
       {"foo", "foos"}
 
+      iex> t = %Gettext.PO.PluralTranslation{msgctxt: "bar", msgid: "foo", msgid_plural: "foos"}
+      iex> Gettext.PO.Translations.key(t)
+      {"bar", {"foo", "foos"}}
   """
-  @spec key(PO.translation()) :: binary | {binary, binary}
-  def key(%Translation{msgid: msgid}), do: IO.iodata_to_binary(msgid)
+  @spec key(PO.translation()) :: binary | {binary, binary} | {binary, {binary, binary}}
+  def key(%Translation{msgid: msgid, msgctxt: nil}), do: IO.iodata_to_binary(msgid)
 
-  def key(%PluralTranslation{msgid: msgid, msgid_plural: msgid_plural}),
+  def key(%Translation{msgctxt: msgctxt} = translation),
+    do: {IO.iodata_to_binary(msgctxt), key(%Translation{translation | msgctxt: nil})}
+
+  def key(%PluralTranslation{msgid: msgid, msgid_plural: msgid_plural, msgctxt: nil}),
     do: {IO.iodata_to_binary(msgid), IO.iodata_to_binary(msgid_plural)}
+
+  def key(%PluralTranslation{msgctxt: msgctxt} = translation),
+    do: {IO.iodata_to_binary(msgctxt), key(%PluralTranslation{translation | msgctxt: nil})}
 
   @doc """
   Finds a given translation in a list of translations.

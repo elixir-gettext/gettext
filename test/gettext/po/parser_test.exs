@@ -420,6 +420,54 @@ defmodule Gettext.PO.ParserTest do
     assert parsed == {:error, 2, "syntax error before: msgctxt"}
   end
 
+  test "msgctxt should not cause duplication translations" do
+    parsed =
+      parse("""
+      msgctxt "my_" "context"
+      msgid "my_msgid"
+      msgstr "my_msgstr"
+
+      msgid "my_msgid"
+      msgstr "my_msgstr"
+      """)
+
+    assert {:ok, [], [], [%Translation{} = translation, %Translation{} = translation2]} = parsed
+    assert translation.msgctxt == ["my_", "context"]
+    assert translation.msgid == ["my_msgid"]
+    assert translation.msgstr == ["my_msgstr"]
+
+    assert translation2.msgctxt == nil
+    assert translation2.msgid == ["my_msgid"]
+    assert translation2.msgstr == ["my_msgstr"]
+  end
+
+  test "msgctxt should not cause duplication for plural translations" do
+    parsed =
+      parse("""
+      msgctxt "my_" "context"
+      msgid "my_msgid"
+      msgid_plural "my_msgid_plural"
+      msgstr[0] "my_msgstr"
+
+      msgid "my_msgid"
+      msgid_plural "my_msgid_plural"
+      msgstr[0] "my_msgstr"
+      """)
+
+    assert {:ok, [], [],
+            [%PluralTranslation{} = translation, %PluralTranslation{} = translation2]} = parsed
+
+    assert translation.msgctxt == ["my_", "context"]
+    assert translation.msgid == ["my_msgid"]
+    assert translation.msgid_plural == ["my_msgid_plural"]
+    assert translation.msgstr[0] == ["my_msgstr"]
+
+    assert translation2.msgctxt == nil
+    assert translation2.msgid == ["my_msgid"]
+    assert translation2.msgid_plural == ["my_msgid_plural"]
+    assert translation2.msgstr[0] == ["my_msgstr"]
+  end
+
   test "tokens are printed as Elixir terms, not Erlang terms" do
     parsed =
       parse("""
