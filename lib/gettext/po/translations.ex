@@ -89,17 +89,23 @@ defmodule Gettext.PO.Translations do
 
       iex> t = %Gettext.PO.Translation{msgid: "foo"}
       iex> Gettext.PO.Translations.key(t)
-      "foo"
+      {nil, "foo"}
 
       iex> t = %Gettext.PO.PluralTranslation{msgid: "foo", msgid_plural: "foos"}
       iex> Gettext.PO.Translations.key(t)
-      {"foo", "foos"}
+      {nil, {"foo", "foos"}}
 
+      iex> t = %Gettext.PO.PluralTranslation{msgctxt: "bar", msgid: "foo", msgid_plural: "foos"}
+      iex> Gettext.PO.Translations.key(t)
+      {"bar", {"foo", "foos"}}
   """
-  @spec key(PO.translation()) :: binary | {binary, binary}
-  def key(%Translation{msgid: msgid}), do: IO.iodata_to_binary(msgid)
+  @spec key(PO.translation()) :: {binary | nil, binary | {binary, binary}}
+  def key(%{msgctxt: msgctxt} = translation), do: {IO.iodata_to_binary(msgctxt), id_key(translation)}
 
-  def key(%PluralTranslation{msgid: msgid, msgid_plural: msgid_plural}),
+  defp id_key(%Translation{msgid: msgid}),
+    do: IO.iodata_to_binary(msgid)
+
+  defp id_key(%PluralTranslation{msgid: msgid, msgid_plural: msgid_plural}),
     do: {IO.iodata_to_binary(msgid), IO.iodata_to_binary(msgid_plural)}
 
   @doc """
