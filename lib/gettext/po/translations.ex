@@ -100,7 +100,11 @@ defmodule Gettext.PO.Translations do
       {"bar", {"foo", "foos"}}
   """
   @spec key(PO.translation()) :: {binary | nil, binary | {binary, binary}}
-  def key(%{msgctxt: msgctxt} = translation), do: {IO.iodata_to_binary(msgctxt), id_key(translation)}
+  def key(%{msgctxt: nil} = translation),
+    do: {nil, id_key(translation)}
+
+  def key(%{msgctxt: msgctxt} = translation),
+    do: {IO.iodata_to_binary(msgctxt), id_key(translation)}
 
   defp id_key(%Translation{msgid: msgid}),
     do: IO.iodata_to_binary(msgid)
