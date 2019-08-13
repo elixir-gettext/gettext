@@ -6,16 +6,27 @@ defmodule Gettext.FuzzyTest do
   alias Gettext.PO.PluralTranslation
 
   test "matcher/1" do
-    assert Fuzzy.matcher(0.5).("foo", "foo") == {:match, 1.0}
-    assert Fuzzy.matcher(0.5).("foo", "bar") == :nomatch
-    assert Fuzzy.matcher(0.0).("foo", "bar") == {:match, 0.0}
+    assert Fuzzy.matcher(0.5).({nil, "foo"}, {nil, "foo"}) == {:match, 1.0}
+    assert Fuzzy.matcher(0.5).({nil, "foo"}, {nil, "bar"}) == :nomatch
+    assert Fuzzy.matcher(0.0).({nil, "foo"}, {nil, "bar"}) == {:match, 0.0}
   end
 
-  test "jaro_distance/2" do
-    assert Fuzzy.jaro_distance("foo", {"foo", "bar"}) == 1.0
-    assert Fuzzy.jaro_distance({"foo", "bar"}, "foo") == 1.0
-    assert Fuzzy.jaro_distance("foo", "foos") > 0.0
-    assert Fuzzy.jaro_distance({"foo", ""}, {"bar", ""}) == 0.0
+  describe "jaro_distance/2" do
+    test "compares the distance of the msgid" do
+      assert Fuzzy.jaro_distance({nil, "foo"}, {nil, "foo"}) == 1.0
+      assert Fuzzy.jaro_distance({nil, "foo"}, {nil, "foos"}) > 0.0
+      assert Fuzzy.jaro_distance({nil, "foo"}, {nil, "bar"}) == 0.0
+    end
+
+    test "with one translation and one plural translation, only the msgids are compared" do
+      assert Fuzzy.jaro_distance({nil, "foo"}, {nil, {"foo", "bar"}}) == 1.0
+      assert Fuzzy.jaro_distance({nil, {"foo", "bar"}}, {nil, "foo"}) == 1.0
+    end
+
+    test "completely ignores the msgctxt in the key when calculating the distance" do
+      assert Fuzzy.jaro_distance({"a", "foo"}, {"b", "foo"}) == 1.0
+      assert Fuzzy.jaro_distance({"same", "foo"}, {"same", "bar"}) == 0.0
+    end
   end
 
   describe "merge/2" do
