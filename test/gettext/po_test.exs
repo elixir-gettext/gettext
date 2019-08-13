@@ -531,6 +531,50 @@ defmodule Gettext.POTest do
              "Foo: \"bar\"\n"
              """
     end
+
+    test "multiple translations with msgctxt" do
+      po = %PO{
+        headers: [],
+        translations: [
+          %Translation{msgid: ["foo"], msgstr: ["bar"]},
+          %Translation{msgid: ["foo"], msgstr: ["bong"], msgctxt: ["baz"]}
+        ]
+      }
+
+      assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+             msgid "foo"
+             msgstr "bar"
+
+             msgctxt "baz"
+             msgid "foo"
+             msgstr "bong"
+             """
+    end
+
+    test "single plural translation with msgctxt" do
+      po = %PO{
+        headers: [],
+        translations: [
+          %PluralTranslation{
+            msgid: ["one foo"],
+            msgid_plural: ["%{count} foos"],
+            msgstr: %{
+              0 => ["one bar"],
+              1 => ["%{count} bars"]
+            },
+            msgctxt: ["baz"]
+          }
+        ]
+      }
+
+      assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
+             msgctxt "baz"
+             msgid "one foo"
+             msgid_plural "%{count} foos"
+             msgstr[0] "one bar"
+             msgstr[1] "%{count} bars"
+             """
+    end
   end
 
   test "parsing and re-dumping: dangling comments are ignored and not dumped back" do

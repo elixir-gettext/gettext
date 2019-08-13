@@ -235,6 +235,7 @@ defmodule Gettext.PO do
       dump_comments(t.extracted_comments),
       dump_flags(t.flags),
       dump_references(t.references, gettext_config),
+      dump_msgctxt(t.msgctxt),
       dump_kw_and_strings("msgid", t.msgid),
       dump_kw_and_strings("msgstr", t.msgstr)
     ]
@@ -246,6 +247,7 @@ defmodule Gettext.PO do
       dump_comments(t.extracted_comments),
       dump_flags(t.flags),
       dump_references(t.references, gettext_config),
+      dump_msgctxt(t.msgctxt),
       dump_kw_and_strings("msgid", t.msgid),
       dump_kw_and_strings("msgid_plural", t.msgid_plural),
       dump_plural_msgstr(t.msgstr)
@@ -311,6 +313,10 @@ defmodule Gettext.PO do
     rest = Enum.map(rest, &[?", escape(&1), ?", ?\n])
     [first | rest]
   end
+
+  defp dump_msgctxt(nil), do: []
+
+  defp dump_msgctxt(string), do: dump_kw_and_strings("msgctxt", string)
 
   defp escape(str) do
     for <<char <- str>>, into: "", do: escape_char(char)
