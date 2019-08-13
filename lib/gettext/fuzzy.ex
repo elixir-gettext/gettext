@@ -5,7 +5,7 @@ defmodule Gettext.Fuzzy do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
-  @type translation_key :: binary | {binary, binary}
+  @type translation_key :: {binary | nil, binary} | {binary | nil, {binary, binary}}
 
   @doc """
   Returns a matcher function that takes two translation keys and checks if they
@@ -30,19 +30,28 @@ defmodule Gettext.Fuzzy do
   To mimic the behaviour of the `msgmerge` tool, this function only calculates
   the Jaro distance of the msgids of the two translations, even if one (or both)
   of them is a plural translation.
+
+  As per `msgmerge`, the msgctxt of a translation is completely ignored when
+  calculating the distance.
   """
   @spec jaro_distance(translation_key, translation_key) :: float
-  def jaro_distance(key1, key2)
+  def jaro_distance({_context1, key1}, {_context2, key2}) do
+    jaro_distance_on_key(key1, key2)
+  end
 
   # Apparently, msgmerge only looks at the msgid when performing fuzzy
   # matching. This means that if we have two plural translations with similar
   # msgids but very different msgid_plurals, they'll still fuzzy match.
-  def jaro_distance(key1, key2) when is_binary(key1) and is_binary(key2),
+  def jaro_distance_on_key(key1, key2) when is_binary(key1) and is_binary(key2),
     do: String.jaro_distance(key1, key2)
 
-  def jaro_distance({key1, _}, key2) when is_binary(key2), do: String.jaro_distance(key1, key2)
-  def jaro_distance(key1, {key2, _}) when is_binary(key1), do: String.jaro_distance(key1, key2)
-  def jaro_distance({key1, _}, {key2, _}), do: String.jaro_distance(key1, key2)
+  def jaro_distance_on_key({key1, _}, key2) when is_binary(key2),
+    do: String.jaro_distance(key1, key2)
+
+  def jaro_distance_on_key(key1, {key2, _}) when is_binary(key1),
+    do: String.jaro_distance(key1, key2)
+
+  def jaro_distance_on_key({key1, _}, {key2, _}), do: String.jaro_distance(key1, key2)
 
   @doc """
   Merges a translation with the corresponding fuzzy match.

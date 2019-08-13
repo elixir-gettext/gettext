@@ -136,7 +136,8 @@ defmodule Gettext.Merger do
     end
   end
 
-  # msgid (and msgid_plural): they're the same
+  # msgid, msgid_plural: they're the same
+  # msgctxt: it's the same, even if it's not present (nil)
   # msgstr: new.msgstr should be empty since it comes from a POT file
   # comments: new has no translator comments as it comes from POT
   # extracted_comments: we should take the new most recent ones
@@ -145,6 +146,7 @@ defmodule Gettext.Merger do
 
   defp merge_two_translations(%Translation{} = old, %Translation{} = new) do
     %Translation{
+      msgctxt: new.msgctxt,
       msgid: new.msgid,
       msgstr: old.msgstr,
       comments: old.comments,
@@ -156,6 +158,7 @@ defmodule Gettext.Merger do
 
   defp merge_two_translations(%PluralTranslation{} = old, %PluralTranslation{} = new) do
     %PluralTranslation{
+      msgctxt: new.msgctxt,
       msgid: new.msgid,
       msgid_plural: new.msgid_plural,
       msgstr: old.msgstr,
