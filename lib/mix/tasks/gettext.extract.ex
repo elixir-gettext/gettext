@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Gettext.Extract do
     Application.ensure_all_started(:gettext)
     _ = Mix.Project.get!()
     mix_config = Mix.Project.config()
-    {opts, args} = OptionParser.parse!(args, switches: @switches)
+    {opts, _} = OptionParser.parse!(args, switches: @switches)
     pot_files = extract(mix_config[:app], mix_config[:gettext] || [])
 
     for {path, contents} <- pot_files do
