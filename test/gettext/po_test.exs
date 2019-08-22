@@ -376,16 +376,17 @@ defmodule Gettext.POTest do
             msgid: ["foo"],
             msgstr: ["bar"],
             references: [
-              {String.duplicate("a", 50) <> ".ex", 1},
-              {String.duplicate("b", 50) <> ".ex", 2}
+              {String.duplicate("a", 30) <> ".ex", 1},
+              {String.duplicate("b", 30) <> ".ex", 1},
+              {String.duplicate("c", 30) <> ".ex", 1}
             ]
           }
         ]
       }
 
       assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
-             #: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.ex:1
-             #: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ex:2
+             #: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.ex:1 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ex:1
+             #: cccccccccccccccccccccccccccccc.ex:1
              msgid "foo"
              msgstr "bar"
              """
