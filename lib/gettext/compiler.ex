@@ -488,16 +488,6 @@ defmodule Gettext.Compiler do
     quote do
       case var!(bindings), do: unquote(clauses)
     end
-
-    # quote do
-    #   case var!(bindings) do
-    #     unquote(match) ->
-    #       {:ok, unquote(interpolation)}
-
-    #     %{} ->
-    #       Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings))
-    #   end
-    # end
   end
 
   # Compiles a list of atoms into a "match" map. For example `[:foo, :bar]` gets
