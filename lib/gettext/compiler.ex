@@ -381,7 +381,7 @@ defmodule Gettext.Compiler do
     if msgstr != "" do
       quote do
         Kernel.unquote(kind)(unquote(singular_fun)(unquote(msgid), var!(bindings))) do
-          unquote(compile_interpolation(msgstr))
+          unquote(compile_interpolation(msgstr, :translation))
         end
       end
     end
@@ -410,7 +410,7 @@ defmodule Gettext.Compiler do
       # when quoted they are a list.
       clauses =
         Enum.flat_map(msgstr, fn {form, str} ->
-          quote do: (unquote(form) -> unquote(compile_interpolation(str)))
+          quote do: (unquote(form) -> unquote(compile_interpolation(str, :plural_translation)))
         end)
 
       error_clause =
@@ -456,31 +456,48 @@ defmodule Gettext.Compiler do
   # string based on some bindings or returns an error in case those bindings are
   # missing. Note that the `bindings` variable is assumed to be in the scope by
   # the quoted code that is returned.
-  defp compile_interpolation(str) do
-    compile_interpolation(str, Interpolation.keys(str))
+  defp compile_interpolation(str, translation_type) do
+    compile_interpolation(str, translation_type, Interpolation.keys(str))
   end
 
-  defp compile_interpolation(str, [] = _keys) do
+  defp compile_interpolation(str, _translation_type, [] = _keys) do
     quote do
       _ = var!(bindings)
       {:ok, unquote(str)}
     end
   end
 
-  defp compile_interpolation(str, keys) do
+  defp compile_interpolation(str, translation_type, keys) do
     match = compile_interpolation_match(keys)
     interpolation = compile_interpolatable_string(str)
     interpolatable = Interpolation.to_interpolatable(str)
 
-    quote do
-      case var!(bindings) do
-        unquote(match) ->
-          {:ok, unquote(interpolation)}
+    all_bindings_clause = quote do: (unquote(match) -> {:ok, unquote(interpolation)})
 
-        %{} ->
-          Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings))
+    dynamic_interpolation_clause =
+      quote do
+        %{} -> Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings))
       end
+
+    clauses =
+      cond do
+        keys == [:count] and translation_type == :plural_translation -> all_bindings_clause
+        true -> all_bindings_clause ++ dynamic_interpolation_clause
+      end
+
+    quote do
+      case var!(bindings), do: unquote(clauses)
     end
+
+    # quote do
+    #   case var!(bindings) do
+    #     unquote(match) ->
+    #       {:ok, unquote(interpolation)}
+
+    #     %{} ->
+    #       Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings))
+    #   end
+    # end
   end
 
   # Compiles a list of atoms into a "match" map. For example `[:foo, :bar]` gets
