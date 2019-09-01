@@ -480,9 +480,10 @@ defmodule Gettext.Compiler do
       end
 
     clauses =
-      cond do
-        keys == [:count] and translation_type == :plural_translation -> all_bindings_clause
-        true -> all_bindings_clause ++ dynamic_interpolation_clause
+      if keys == [:count] and translation_type == :plural_translation do
+        all_bindings_clause
+      else
+        all_bindings_clause ++ dynamic_interpolation_clause
       end
 
     quote do
