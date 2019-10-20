@@ -111,7 +111,7 @@ defmodule Gettext.MergerTest do
         ]
       }
 
-      assert {%PO{translations: translations}, stats} = Merger.merge(old_po, new_pot, "en", @opts)
+      assert {%PO{translations: translations}, _stats} = Merger.merge(old_po, new_pot, "en", @opts)
 
       assert [
                %Translation{msgid: "foo", msgctxt: "context", msgstr: "with context"},
