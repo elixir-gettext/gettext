@@ -565,9 +565,7 @@ defmodule Gettext do
   """
   @spec get_locale() :: locale
   def get_locale() do
-    if locale = Process.get(Gettext) do
-      locale
-    else
+    with nil <- Process.get(Gettext) do
       # If this is not set by the user, it's still set in mix.exs (to "en").
       Application.fetch_env!(:gettext, :default_locale)
     end
@@ -610,7 +608,10 @@ defmodule Gettext do
   """
   @spec get_locale(backend) :: locale
   def get_locale(backend) do
-    Process.get(backend) || Process.get(Gettext) || backend.__gettext__(:default_locale)
+    with nil <- Process.get(backend),
+         nil <- Process.get(Gettext) do
+      backend.__gettext__(:default_locale)
+    end
   end
 
   @doc """
