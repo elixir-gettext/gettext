@@ -87,7 +87,9 @@ defmodule Gettext.PO.Parser do
   defp parse_flags(flag_comments) do
     flag_comments
     |> Stream.map(fn "#," <> content -> content end)
-    |> Stream.flat_map(&String.split(&1, ~r/[,\s]+/, trim: true))
+    |> Stream.flat_map(&String.split(&1, ","))
+    |> Stream.map(&String.trim/1)
+    |> Stream.reject(& &1 == "")
     |> MapSet.new()
   end
 
