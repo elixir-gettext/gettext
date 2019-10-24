@@ -234,7 +234,7 @@ defmodule Gettext.PO.ParserTest do
       """)
 
     assert {:ok, [], [], [%Translation{} = t]} = parsed
-    assert Enum.sort(t.flags) == ~w(a-flag b-flag c-flag d-flag e-flag flag)
+    assert Enum.sort(t.flags) == ["a-flag b-flag", "c-flag", "d-flag", "e-flag", "flag"]
     assert t.comments == ["# comment"]
   end
 

@@ -94,8 +94,7 @@ defmodule Gettext.Extractor do
             "the Gettext backend #{inspect(backend)} has the same :priv directory as " <>
               "#{inspect(other_backend)}, which means they will override each other. " <>
               "Please set the :priv option to different directories on use Gettext " <>
-              "inside each backend",
-            []
+              "inside each backend"
           )
 
         %{} ->
