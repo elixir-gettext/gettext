@@ -107,7 +107,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
            msgstr ""
            """
 
-    assert String.starts_with?(new_po, "## `msgid`s in this file come from POT")
+    assert String.starts_with?(new_po, "## \"msgid\"s in this file come from POT")
   end
 
   test "passing just a dir merges with PO files in every locale" do
@@ -161,7 +161,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     capture_io(fn ->
       run([@priv_path, "--locale", "en"])
       contents = read_file("en/LC_MESSAGES/inf.po")
-      assert contents =~ "## `msgid`s in this file"
+      assert contents =~ "## \"msgid\"s in this file"
 
       # Running the task again without having change the PO file shouldn't
       # remove the informative comment.

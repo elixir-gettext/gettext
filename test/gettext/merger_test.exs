@@ -384,7 +384,7 @@ defmodule Gettext.MergerTest do
     assert new_po.file == new_po_path
     assert new_po.headers == ["Language: it\n", "Plural-Forms: nplurals=1\n"]
 
-    assert ["## `msgid`s in this file come from POT (.pot) files.", "##" | _] =
+    assert ["## \"msgid\"s in this file come from POT (.pot) files.", "##" | _] =
              new_po.top_of_the_file_comments
 
     assert [%Translation{} = t, %PluralTranslation{} = pt, %Translation{} = ct] =
