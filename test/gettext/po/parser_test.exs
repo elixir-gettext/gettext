@@ -177,6 +177,7 @@ defmodule Gettext.PO.ParserTest do
     parsed =
       parse("""
       #: foo.ex:1
+      #: f:2
       #: filename with spaces.ex:12
       # Not a reference comment
       # : Not a reference comment either
@@ -189,6 +190,7 @@ defmodule Gettext.PO.ParserTest do
 
     assert t.references == [
              {"foo.ex", 1},
+             {"f", 2},
              {"filename with spaces.ex", 12},
              {"another/ref/comment.ex", 83}
            ]
