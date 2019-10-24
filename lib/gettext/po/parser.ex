@@ -60,7 +60,7 @@ defmodule Gettext.PO.Parser do
 
   defp parse_references("#:" <> comment) do
     regex = ~r/
-      ([\w\.:][\w\s\.:\/]+?)
+      ([\w\.:][\w\s\.:\/]*?)
       :
       (\d+)
     /x
