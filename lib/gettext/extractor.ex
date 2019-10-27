@@ -257,13 +257,13 @@ defmodule Gettext.Extractor do
     """
     ## This file is a PO Template file.
     ##
-    ## `msgid`s here are often extracted from source code.
+    ## "msgid"s here are often extracted from source code.
     ## Add new translations manually only if they're dynamic
     ## translations that can't be statically extracted.
     ##
-    ## Run `mix gettext.extract` to bring this file up to
-    ## date. Leave `msgstr`s empty as changing them here as no
-    ## effect: edit them in PO (`.po`) files instead.
+    ## Run "mix gettext.extract" to bring this file up to
+    ## date. Leave "msgstr"s empty as changing them here as no
+    ## effect: edit them in PO (.po) files instead.
     """
   end
 
