@@ -89,7 +89,7 @@ defmodule Gettext.PO.Parser do
     |> Stream.map(fn "#," <> content -> content end)
     |> Stream.flat_map(&String.split(&1, ","))
     |> Stream.map(&String.trim/1)
-    |> Stream.reject(& &1 == "")
+    |> Stream.reject(&(&1 == ""))
     |> MapSet.new()
   end
 
