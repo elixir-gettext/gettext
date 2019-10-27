@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.17.1
+
+* Store the `msgctxt` value in translation and dump it when dumping translations
+* Fix a bug when dumping references
+* Improve code generation
+* Preserve whitespace in translation flags
+
 ## v0.17.0
 
 * Require Elixir 1.6 and later
