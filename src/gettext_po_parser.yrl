@@ -51,7 +51,6 @@ comments ->
 comments ->
   comment comments : [extract_simple_token('$1')|'$2'].
 
-%% For now, we ignore the msgctxt.
 maybe_msgctxt ->
   '$empty' : nil.
 maybe_msgctxt ->
