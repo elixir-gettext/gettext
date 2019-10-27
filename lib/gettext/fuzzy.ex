@@ -5,7 +5,7 @@ defmodule Gettext.Fuzzy do
   alias Gettext.PO.Translation
   alias Gettext.PO.PluralTranslation
 
-  @type translation_key :: {binary | nil, binary} | {binary | nil, {binary, binary}}
+  @type translation_key :: {binary | nil, binary | {binary, binary}}
 
   @doc """
   Returns a matcher function that takes two translation keys and checks if they
