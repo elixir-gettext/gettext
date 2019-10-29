@@ -315,7 +315,8 @@ defmodule Gettext.Extractor do
       comments: old.comments,
       # We don't care about the references of the old translation since the new
       # in-memory translation has all the actual and current references.
-      references: new.references
+      references: new.references,
+      extracted_comments: new.extracted_comments
     }
   end
 
@@ -330,7 +331,8 @@ defmodule Gettext.Extractor do
       msgstr: old.msgstr,
       flags: old.flags,
       comments: old.comments,
-      references: new.references
+      references: new.references,
+      extracted_comments: new.extracted_comments
     }
   end
 
