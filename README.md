@@ -10,7 +10,9 @@ Gettext is an **internationalization** (i18n) and **localization** (l10n) system
 
      ```elixir
      def deps do
-       [{:gettext, ">= 0.0.0"}]
+       [
+         {:gettext, ">= 0.0.0"}
+       ]
      end
      ```
 
@@ -18,7 +20,9 @@ Gettext is an **internationalization** (i18n) and **localization** (l10n) system
 
      ```elixir
      def project do
-       [compilers: [:gettext] ++ Mix.compilers()]
+       [
+         compilers: [:gettext] ++ Mix.compilers()
+       ]
      end
      ```
 
