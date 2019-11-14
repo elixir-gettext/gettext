@@ -56,7 +56,9 @@ defmodule Gettext.Extractor do
   """
   @spec extract(Macro.Env.t(), module, binary, binary, binary | {binary, binary}, [binary]) :: :ok
   def extract(%Macro.Env{} = caller, backend, domain, msgctxt, id, extracted_comments) do
-    translation = create_translation_struct(id, msgctxt, caller.file, caller.line, extracted_comments)
+    translation =
+      create_translation_struct(id, msgctxt, caller.file, caller.line, extracted_comments)
+
     ExtractorAgent.add_translation(backend, domain, translation)
   end
 
@@ -147,7 +149,7 @@ defmodule Gettext.Extractor do
   defp create_translation_struct({msgid, msgid_plural}, msgctxt, file, line, extracted_comments) do
     %PluralTranslation{
       msgid: [msgid],
-      msgctxt: (if msgctxt != nil, do: [msgctxt], else: nil),
+      msgctxt: if(msgctxt != nil, do: [msgctxt], else: nil),
       msgid_plural: [msgid_plural],
       msgstr: %{0 => [""], 1 => [""]},
       flags: MapSet.new([@extracted_translations_flag]),
@@ -157,10 +159,11 @@ defmodule Gettext.Extractor do
   end
 
   defp create_translation_struct(msgid, msgctxt, file, line, extracted_comments) do
-    IO.puts msgctxt
+    IO.puts(msgctxt)
+
     %Translation{
       msgid: [msgid],
-      msgctxt: (if msgctxt != nil, do: [msgctxt], else: nil),
+      msgctxt: if(msgctxt != nil, do: [msgctxt], else: nil),
       msgstr: [""],
       flags: MapSet.new([@extracted_translations_flag]),
       references: [{Path.relative_to_cwd(file), line}],

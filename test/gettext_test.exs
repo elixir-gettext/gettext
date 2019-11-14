@@ -110,10 +110,12 @@ defmodule GettextTest do
 
   test "non-found translations return the argument message" do
     # Unknown msgid.
-    assert Translator.lgettext("it", "default", nil, "nonexistent", %{}) == {:default, "nonexistent"}
+    assert Translator.lgettext("it", "default", nil, "nonexistent", %{}) ==
+             {:default, "nonexistent"}
 
     # Unknown domain.
-    assert Translator.lgettext("it", "unknown", nil, "Hello world", %{}) == {:default, "Hello world"}
+    assert Translator.lgettext("it", "unknown", nil, "Hello world", %{}) ==
+             {:default, "Hello world"}
 
     # Unknown locale.
     assert Translator.lgettext("pt_BR", "nonexistent", nil, "Hello world", %{}) ==
@@ -154,7 +156,8 @@ defmodule GettextTest do
   end
 
   test "by default, non-found pluralized translation behave like regular translation" do
-    assert Translator.lngettext("it", "not a domain", nil, "foo", "foos", 1, %{}) == {:default, "foo"}
+    assert Translator.lngettext("it", "not a domain", nil, "foo", "foos", 1, %{}) ==
+             {:default, "foo"}
 
     assert Translator.lngettext("it", "not a domain", nil, "foo", "foos", 10, %{}) ==
              {:default, "foos"}
@@ -222,10 +225,14 @@ defmodule GettextTest do
     msgid = "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
 
-    assert Translator.lngettext("it", "interpolations", nil, msgid, msgid_plural, 1, %{name: "Jane"}) ==
+    assert Translator.lngettext("it", "interpolations", nil, msgid, msgid_plural, 1, %{
+             name: "Jane"
+           }) ==
              {:ok, "Hai un messaggio, Jane"}
 
-    assert Translator.lngettext("it", "interpolations", nil, msgid, msgid_plural, 0, %{name: "Jane"}) ==
+    assert Translator.lngettext("it", "interpolations", nil, msgid, msgid_plural, 0, %{
+             name: "Jane"
+           }) ==
              {:ok, "Hai 0 messaggi, Jane"}
   end
 
@@ -234,12 +241,15 @@ defmodule GettextTest do
 
     assert Translator.lgettext("it", "default", nil, msgid, %{}) ==
              {:ok, "Stringa lunga e concatenata"}
-    #assert Translator.lgettext("it", "default", msgid, %{}) ==
+
+    # assert Translator.lgettext("it", "default", msgid, %{}) ==
     #         {:ok, "Stringa lunga e concatenata"}
 
     msgid = "A friend"
     msgid_plural = "%{count} friends"
-    assert Translator.lngettext("it", "default", nil, msgid, msgid_plural, 1, %{}) == {:ok, "Un amico"}
+
+    assert Translator.lngettext("it", "default", nil, msgid, msgid_plural, 1, %{}) ==
+             {:ok, "Un amico"}
   end
 
   test "lgettext/4: default handle_missing_binding preserves key" do
@@ -343,13 +353,27 @@ defmodule GettextTest do
     assert Translator.pgettext("test", "Hello missing", %{}) == "Hello missing"
   end
 
-  test "pgettext/3: dynamic context raises" do
+  test "pgettext/3, pngettext/4: dynamic context raises" do
     code =
       quote do
         require Translator
         context = "test"
         Translator.pgettext(context, "Hello world")
       end
+
+    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
+    message = ArgumentError.message(error)
+    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "{:context"
+    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
+
+    code =
+      quote do
+        require Translator
+        context = "test"
+        Translator.pngettext(context, "Hello world", "Hello world", 5)
+      end
+
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect translation keys"
@@ -364,6 +388,7 @@ defmodule GettextTest do
         context = "test"
         Translator.dpgettext("default", context, "Hello world")
       end
+
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect translation keys"
@@ -376,6 +401,7 @@ defmodule GettextTest do
         domain = "test"
         Translator.dpgettext(domain, "test", "Hello world")
       end
+
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect translation keys"
@@ -386,8 +412,9 @@ defmodule GettextTest do
       quote do
         require Translator
         context = "test"
-        Translator.pngettext(context, "Hello world", "Hello world", n)
+        Translator.dpngettext("default", context, "Hello world", "Hello world", n)
       end
+
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect translation keys"
@@ -400,6 +427,7 @@ defmodule GettextTest do
         domain = "test"
         Translator.dpngettext(domain, "test", "Hello world", "Hello World", n)
       end
+
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect translation keys"
@@ -486,11 +514,18 @@ defmodule GettextTest do
 
   test "pngettext/4" do
     Gettext.put_locale(Translator, "it")
-    assert Translator.pngettext("test", "One new email", "%{count} new emails", 1) == "Una nuova test email"
-    assert Translator.pngettext("test", "One new email", "%{count} new emails", 2) == "2 nuove test email"
 
-    assert Translator.pngettext("test", @ngettext_msgid, @ngettext_msgid_plural, 1) == "Una nuova test email"
-    assert Translator.pngettext("test", @ngettext_msgid, @ngettext_msgid_plural, 2) == "2 nuove test email"
+    assert Translator.pngettext("test", "One new email", "%{count} new emails", 1) ==
+             "Una nuova test email"
+
+    assert Translator.pngettext("test", "One new email", "%{count} new emails", 2) ==
+             "2 nuove test email"
+
+    assert Translator.pngettext("test", @ngettext_msgid, @ngettext_msgid_plural, 1) ==
+             "Una nuova test email"
+
+    assert Translator.pngettext("test", @ngettext_msgid, @ngettext_msgid_plural, 2) ==
+             "2 nuove test email"
   end
 
   test "the d?n?gettext macros support a kw list for interpolation" do
@@ -506,13 +541,13 @@ defmodule GettextTest do
 
   test "(d)(p)ngettext_noop" do
     assert Translator.dpngettext_noop("errors", "test", "One error", "%{count} errors") ==
-      {{"One error", "%{count} errors"}, "test"}
+             {{"One error", "%{count} errors"}, "test"}
 
     assert Translator.dngettext_noop("errors", "One error", "%{count} errors") ==
-      {{"One error", "%{count} errors"}, nil}
+             {{"One error", "%{count} errors"}, nil}
 
     assert Translator.ngettext_noop("One message", "%{count} messages") ==
-      {{"One message", "%{count} messages"}, nil}
+             {{"One message", "%{count} messages"}, nil}
   end
 
   # Actual Gettext functions (not the ones generated in the modules that `use
@@ -544,7 +579,7 @@ defmodule GettextTest do
   test "pgettext/3" do
     Gettext.put_locale(Translator, "it")
     assert Gettext.pgettext(Translator, "test", "Hello world") == "Ciao mondo"
-    assert Gettext.pgettext(Translator,  "test", "Nonexistent") == "Nonexistent"
+    assert Gettext.pgettext(Translator, "test", "Nonexistent") == "Nonexistent"
   end
 
   test "dngettext/6" do
@@ -564,19 +599,25 @@ defmodule GettextTest do
     msgid = "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
 
-    assert Gettext.dpngettext(Translator, "interpolations", "test", msgid, msgid_plural, 1, %{name: "Meg"}) ==
+    assert Gettext.dpngettext(Translator, "interpolations", "test", msgid, msgid_plural, 1, %{
+             name: "Meg"
+           }) ==
              "Hai un messaggio, Meg"
 
-    assert Gettext.dpngettext(Translator, "interpolations", "test", msgid, msgid_plural, 5, %{name: "Meg"}) ==
+    assert Gettext.dpngettext(Translator, "interpolations", "test", msgid, msgid_plural, 5, %{
+             name: "Meg"
+           }) ==
              "Hai 5 messaggi, Meg"
 
     assert Gettext.dpngettext(
-      Translator, 
-      "default", 
-      "test", 
-      "One new email", 
-      "%{count} new emails", 
-      5, %{name: "Meg"}) == "5 nuove test email"
+             Translator,
+             "default",
+             "test",
+             "One new email",
+             "%{count} new emails",
+             5,
+             %{name: "Meg"}
+           ) == "5 nuove test email"
   end
 
   test "pngettext/6" do
@@ -584,8 +625,12 @@ defmodule GettextTest do
     msgctxt = "test"
     msgid = "One cake, %{name}"
     msgid_plural = "%{count} cakes, %{name}"
-    assert Gettext.pngettext(Translator, msgctxt, msgid, msgid_plural, 1, %{name: "Meg"}) == "One cake, Meg"
-    assert Gettext.pngettext(Translator, msgctxt, msgid, msgid_plural, 5, %{name: "Meg"}) == "5 cakes, Meg"
+
+    assert Gettext.pngettext(Translator, msgctxt, msgid, msgid_plural, 1, %{name: "Meg"}) ==
+             "One cake, Meg"
+
+    assert Gettext.pngettext(Translator, msgctxt, msgid, msgid_plural, 5, %{name: "Meg"}) ==
+             "5 cakes, Meg"
   end
 
   test "ngettext/5" do
@@ -670,7 +715,15 @@ defmodule GettextTest do
                {:ok, "Indirizzo email non valido"}
 
       # Found with plural form.
-      assert lngettext("it", "errors", nil, "There was an error", "There were %{count} errors", 1, %{}) ==
+      assert lngettext(
+               "it",
+               "errors",
+               nil,
+               "There was an error",
+               "There were %{count} errors",
+               1,
+               %{}
+             ) ==
                {:ok, "C'è stato un errore"}
 
       # Unknown msgid.
@@ -680,7 +733,8 @@ defmodule GettextTest do
       assert lgettext("it", "unknown", nil, "Hello world", %{}) == {:default, "Hello world"}
 
       # Unknown locale.
-      assert lgettext("pt_BR", "nonexistent", nil, "Hello world", %{}) == {:default, "Hello world"}
+      assert lgettext("pt_BR", "nonexistent", nil, "Hello world", %{}) ==
+               {:default, "Hello world"}
     end
   end
 end

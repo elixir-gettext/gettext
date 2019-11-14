@@ -750,7 +750,8 @@ defmodule Gettext do
   @spec dpngettext(module, binary, binary, binary, binary, non_neg_integer, bindings) :: binary
   def dpngettext(backend, domain, msgctxt, msgid, msgid_plural, n, bindings \\ %{})
 
-  def dpngettext(backend, domain, msgctxt, msgid, msgid_plural, n, bindings) when is_list(bindings) do
+  def dpngettext(backend, domain, msgctxt, msgid, msgid_plural, n, bindings)
+      when is_list(bindings) do
     dpngettext(backend, domain, msgctxt, msgid, msgid_plural, n, Map.new(bindings))
   end
 
@@ -787,9 +788,9 @@ defmodule Gettext do
       #=> "Errore"
 
   """
-     
-  def dngettext(backend, domain, msgid, msgid_plural, n, bindings), do:
-    dpngettext(backend, domain, nil, msgid, msgid_plural, n, bindings)
+
+  def dngettext(backend, domain, msgid, msgid_plural, n, bindings),
+    do: dpngettext(backend, domain, nil, msgid, msgid_plural, n, bindings)
 
   @doc """
   Returns the pluralized translation of the given string with a given context
@@ -800,8 +801,8 @@ defmodule Gettext do
       Gettext.dpngettext(backend, "default", context, msgid, msgid_plural, n, bindings)
 
   """
-  def pngettext(backend, msgctxt, msgid, msgid_plural, n, bindings), do:
-    dpngettext(backend, "default", msgctxt, msgid, msgid_plural, n, bindings)
+  def pngettext(backend, msgctxt, msgid, msgid_plural, n, bindings),
+    do: dpngettext(backend, "default", msgctxt, msgid, msgid_plural, n, bindings)
 
   @doc """
   Returns the pluralized translation of the given string in the `"default"`
