@@ -357,7 +357,7 @@ defmodule GettextTest do
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
   end
 
-  test "dpgettext/4: dynamic context raises" do
+  test "dpgettext/4, dpngettext/5: dynamic context or dynamic domain raises" do
     code =
       quote do
         require Translator
@@ -368,6 +368,42 @@ defmodule GettextTest do
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect translation keys"
     assert message =~ "{:context"
+    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
+
+    code =
+      quote do
+        require Translator
+        domain = "test"
+        Translator.dpgettext(domain, "test", "Hello world")
+      end
+    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
+    message = ArgumentError.message(error)
+    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "{:domain"
+    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
+
+    code =
+      quote do
+        require Translator
+        context = "test"
+        Translator.pngettext(context, "Hello world", "Hello world", n)
+      end
+    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
+    message = ArgumentError.message(error)
+    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "{:context"
+    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
+
+    code =
+      quote do
+        require Translator
+        domain = "test"
+        Translator.dpngettext(domain, "test", "Hello world", "Hello World", n)
+      end
+    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
+    message = ArgumentError.message(error)
+    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "{:domain"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
   end
 
