@@ -54,9 +54,9 @@ defmodule Gettext.Extractor do
 
   Note that this function doesn't perform any operation on the filesystem.
   """
-  @spec extract(Macro.Env.t(), module, binary, binary | {binary, binary}, [binary]) :: :ok
-  def extract(%Macro.Env{} = caller, backend, domain, id, extracted_comments) do
-    translation = create_translation_struct(id, caller.file, caller.line, extracted_comments)
+  @spec extract(Macro.Env.t(), module, binary, binary, binary | {binary, binary}, [binary]) :: :ok
+  def extract(%Macro.Env{} = caller, backend, domain, msgctxt, id, extracted_comments) do
+    translation = create_translation_struct(id, msgctxt, caller.file, caller.line, extracted_comments)
     ExtractorAgent.add_translation(backend, domain, translation)
   end
 
@@ -144,9 +144,10 @@ defmodule Gettext.Extractor do
     update_in(translation.references, &Enum.sort/1)
   end
 
-  defp create_translation_struct({msgid, msgid_plural}, file, line, extracted_comments) do
+  defp create_translation_struct({msgid, msgid_plural}, msgctxt, file, line, extracted_comments) do
     %PluralTranslation{
       msgid: [msgid],
+      msgctxt: (if msgctxt != nil, do: [msgctxt], else: nil),
       msgid_plural: [msgid_plural],
       msgstr: %{0 => [""], 1 => [""]},
       flags: MapSet.new([@extracted_translations_flag]),
@@ -155,9 +156,11 @@ defmodule Gettext.Extractor do
     }
   end
 
-  defp create_translation_struct(msgid, file, line, extracted_comments) do
+  defp create_translation_struct(msgid, msgctxt, file, line, extracted_comments) do
+    IO.puts msgctxt
     %Translation{
       msgid: [msgid],
+      msgctxt: (if msgctxt != nil, do: [msgctxt], else: nil),
       msgstr: [""],
       flags: MapSet.new([@extracted_translations_flag]),
       references: [{Path.relative_to_cwd(file), line}],
@@ -308,6 +311,7 @@ defmodule Gettext.Extractor do
     %Translation{
       msgid: old.msgid,
       msgstr: old.msgstr,
+      msgctxt: new.msgctxt,
       # The new in-memory translation has no new flags.
       flags: old.flags,
       # The new in-memory translation has no comments since it was extracted
@@ -327,6 +331,7 @@ defmodule Gettext.Extractor do
     # The logic here is the same as for %Translation{}s.
     %PluralTranslation{
       msgid: old.msgid,
+      msgctxt: new.msgctxt,
       msgid_plural: old.msgid_plural,
       msgstr: old.msgstr,
       flags: old.flags,
