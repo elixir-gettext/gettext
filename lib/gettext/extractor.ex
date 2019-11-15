@@ -159,8 +159,6 @@ defmodule Gettext.Extractor do
   end
 
   defp create_translation_struct(msgid, msgctxt, file, line, extracted_comments) do
-    IO.puts(msgctxt)
-
     %Translation{
       msgid: [msgid],
       msgctxt: if(msgctxt != nil, do: [msgctxt], else: nil),
