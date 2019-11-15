@@ -6,10 +6,10 @@ defmodule Gettext.PO.Parser do
   alias Gettext.PO.PluralTranslation
 
   @doc """
-  Parses a list of tokens into a list of translations.
+  Parses a list of tokens into lists of comments, headers, and translations.
   """
   @spec parse([Gettext.PO.Tokenizer.token()]) ::
-          {:ok, [binary], [Gettext.PO.translation()]} | Gettext.PO.parse_error()
+          {:ok, [binary], [binary], [Gettext.PO.translation()]} | Gettext.PO.parse_error()
   def parse(tokens) when is_list(tokens) do
     case :gettext_po_parser.parse(tokens) do
       {:ok, translations} ->
