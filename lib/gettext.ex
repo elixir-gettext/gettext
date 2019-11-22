@@ -522,7 +522,9 @@ defmodule Gettext do
           missing: missing
         }) do
       "missing Gettext bindings: #{inspect(missing)} (backend #{inspect(backend)}, " <>
-        "locale #{inspect(locale)}, domain #{inspect(domain)}, msgctxt #{inspect(msgctxt)}, msgid #{inspect(msgid)})"
+        "locale #{inspect(locale)}, domain #{inspect(domain)}, msgctxt #{inspect(msgctxt)}, msgid #{
+          inspect(msgid)
+        })"
     end
   end
 
