@@ -37,7 +37,7 @@ defmodule Gettext do
                                       3
 
   The arguments for the gettext macros and their order can be derived from
-  the function names. For `dpgettext/4` the arguments are: `domain`, `context`, `msgid`, `bindings` (default to `%{}`).
+  their names. For `dpgettext/4` the arguments are: `domain`, `context`, `msgid`, `bindings` (default to `%{}`).
 
   Translations are looked up from `.po` files. In the following sections we will
   explore exactly what are those files before we explore the "Gettext API" in
