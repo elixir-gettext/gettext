@@ -153,9 +153,13 @@ defmodule Gettext do
 
     * `gettext/2`
     * `dgettext/3`
+    * `pgettext/3`
+    * `dpgettext/4`
     * `ngettext/4`
     * `dngettext/5`
-    * `gettext_noop/1`, `dgettext_noop/2`, `ngettext_noop/3`, `dngettext_noop/4`
+    * `pngettext/5`
+    * `dpngettext/6`
+    * `gettext_noop/1`, `dgettext_noop/2`, `pgettext_noop/2`, `ngettext_noop/3`, `dngettext_noop/4`
 
   Supposing the caller module is `MyApp.Gettext`, the macros mentioned above
   behave as follows:
@@ -631,13 +635,6 @@ defmodule Gettext do
   def put_locale(_backend, locale),
     do: raise(ArgumentError, "put_locale/2 only accepts binary locales, got: #{inspect(locale)}")
 
-  @spec dpgettext(module, binary, binary, binary, bindings) :: binary
-  def dpgettext(backend, domain, msgctxt, msgid, bindings \\ %{})
-
-  def dpgettext(backend, domain, msgctxt, msgid, bindings) when is_list(bindings) do
-    dpgettext(backend, domain, msgctxt, msgid, Map.new(bindings))
-  end
-
   @doc """
   Returns the translation of the given string with a given context in the given domain.
 
@@ -664,6 +661,11 @@ defmodule Gettext do
       Gettext.dgettext(MyApp.Gettext, "errors", "signup form", "%{name} is not a valid name", name: "Meg")
       #=> "Meg non è un nome valido"
   """
+  @spec dpgettext(module, binary, binary, binary, bindings) :: binary
+  def dpgettext(backend, domain, msgctxt, msgid, bindings) when is_list(bindings) do
+    dpgettext(backend, domain, msgctxt, msgid, Map.new(bindings))
+  end
+
   def dpgettext(backend, domain, msgctxt, msgid, bindings)
       when is_atom(backend) and is_binary(domain) and is_binary(msgid) and is_map(bindings) do
     locale = get_locale(backend)
@@ -701,10 +703,41 @@ defmodule Gettext do
       #=> "nonexisting"
 
   """
+  @spec dgettext(module, binary, binary, bindings) :: binary
   def dgettext(backend, domain, msgid, bindings \\ %{}) do
     dpgettext(backend, domain, nil, msgid, bindings)
   end
 
+  @doc """
+  Returns the translation of the given string with the given context
+
+  The string is translated by the `backend` module.
+
+  The translated string is interpolated based on the `bindings` argument. For
+  more information on how interpolation works, refer to the documentation of the
+  `Gettext` module.
+
+  If the translation for the given `msgid` is not found, the `msgid`
+  (interpolated if necessary) is returned.
+
+  ## Examples
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app
+      end
+
+      Gettext.put_locale(MyApp.Gettext, "it")
+
+      Gettext.pgettext(MyApp.Gettext, "user-interface", "Invalid")
+      #=> "Non valido"
+
+      Gettext.pgettext(MyApp.Gettext, "user-interface", "%{name} is not a valid name", name: "Meg")
+      #=> "Meg non è un nome valido"
+
+      Gettext.pgettext(MyApp.Gettext, "alerts-users", "nonexisting")
+      #=> "nonexisting"
+  """
+  @spec pgettext(module, binary, binary, bindings) :: binary
   def pgettext(backend, msgctxt, msgid, bindings \\ %{}) do
     dpgettext(backend, "default", msgctxt, msgid, bindings)
   end
@@ -788,7 +821,7 @@ defmodule Gettext do
       #=> "Errore"
 
   """
-
+  @spec pngettext(module, binary, binary, binary, non_neg_integer, bindings) :: binary
   def dngettext(backend, domain, msgid, msgid_plural, n, bindings),
     do: dpngettext(backend, domain, nil, msgid, msgid_plural, n, bindings)
 
@@ -801,6 +834,7 @@ defmodule Gettext do
       Gettext.dpngettext(backend, "default", context, msgid, msgid_plural, n, bindings)
 
   """
+  @spec pngettext(module, binary, binary, binary, non_neg_integer, bindings) :: binary
   def pngettext(backend, msgctxt, msgid, msgid_plural, n, bindings),
     do: dpngettext(backend, "default", msgctxt, msgid, msgid_plural, n, bindings)
 
