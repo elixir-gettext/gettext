@@ -132,7 +132,7 @@ defmodule Gettext.Compiler do
           )
         end
 
-        {{msgid, msgid_plural}, msgctxt}
+        {:{}, [], [msgid, msgid_plural, msgctxt]}
       end
 
       defmacro dngettext_noop(domain, msgid, msgid_plural) do
