@@ -259,6 +259,14 @@ defmodule GettextTest do
              {:missing_bindings, "Mi chiamo José e ho %{age} anni", [:age]}
   end
 
+  test "MissingBindingsError log messages" do
+    assert capture_log(fn ->
+      Translator.pgettext("test", "Hello %{name}, missing translation!", %{})
+    end) =~ "missing Gettext bindings: [:name] (backend GettextTest.Translator," <>
+            " locale \"en\", domain \"default\", msgctxt \"test\", msgid \"Hello " <>
+            "%{name}, missing translation!\")"
+  end
+
   test "lgettext/4: interpolation works when a translation is missing" do
     msgid = "Hello %{name}, missing translation!"
 
