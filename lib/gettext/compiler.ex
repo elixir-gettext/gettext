@@ -138,7 +138,7 @@ defmodule Gettext.Compiler do
       defmacro dngettext_noop(domain, msgid, msgid_plural) do
         quote do
           unquote(__MODULE__).dpngettext_noop(
-            "default",
+            unquote(domain),
             nil,
             unquote(msgid),
             unquote(msgid_plural)
