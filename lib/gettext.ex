@@ -348,7 +348,7 @@ defmodule Gettext do
   "nouns" context as to avoid ambiguity. The functions that handle contexts are 
   are `pgettext`, `dpgettext`, `pngettext` and `dpngettext`. 
   `dpgettext` can be read as d(omain)p(articular)gettext. The same reading rules
-  apply for `dnpgettext`.
+  apply for `dpngettext`.
 
   ## Compile-time features
 
@@ -821,7 +821,7 @@ defmodule Gettext do
       #=> "Errore"
 
   """
-  @spec pngettext(module, binary, binary, binary, non_neg_integer, bindings) :: binary
+  @spec dngettext(module, binary, binary, binary, non_neg_integer, bindings) :: binary
   def dngettext(backend, domain, msgid, msgid_plural, n, bindings),
     do: dpngettext(backend, domain, nil, msgid, msgid_plural, n, bindings)
 
