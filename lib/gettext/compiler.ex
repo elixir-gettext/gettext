@@ -477,7 +477,7 @@ defmodule Gettext.Compiler do
        ) do
     msgid = IO.iodata_to_binary(t.msgid)
     msgstr = IO.iodata_to_binary(t.msgstr)
-    msgctxt = if !is_nil(t.msgctxt), do: IO.iodata_to_binary(t.msgctxt), else: nil
+    msgctxt = t.msgctxt && IO.iodata_to_binary(t.msgctxt)
 
     # Only actually generate this function clause if the msgstr is not empty. If
     # it's empty, not generating this clause (by returning `nil` from this `if`)
@@ -508,7 +508,7 @@ defmodule Gettext.Compiler do
     msgid = IO.iodata_to_binary(t.msgid)
     msgid_plural = IO.iodata_to_binary(t.msgid_plural)
     msgstr = Enum.map(t.msgstr, fn {form, str} -> {form, IO.iodata_to_binary(str)} end)
-    msgctxt = if !is_nil(t.msgctxt), do: IO.iodata_to_binary(t.msgctxt), else: nil
+    msgctxt = t.msgctxt && IO.iodata_to_binary(t.msgctxt)
 
     # If any of the msgstrs is empty, then we skip the generation of this
     # function clause. The reason we do this is the same as for the
