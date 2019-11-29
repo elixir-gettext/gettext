@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   Translations are extracted into POT (Portable Object Template) files (with a
   `.pot` extension). The location of these files is determined by the `:otp_app`
-  and `:priv` options given by gettext modules when they call `use Gettext`. One
+  and `:priv` options given by Gettext modules when they call `use Gettext`. One
   POT file is generated for each translation domain.
 
   It is possible to give the `--merge` option to perform merging

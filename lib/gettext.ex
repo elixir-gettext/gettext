@@ -18,25 +18,31 @@ defmodule Gettext do
       import MyApp.Gettext
 
       # Simple translation
-      gettext "Here is the string to translate"
+      gettext("Here is the string to translate")
 
       # Plural translation
-      ngettext "Here is the string to translate",
-               "Here are the strings to translate",
-               3
+      ngettext(
+        "Here is the string to translate",
+        "Here are the strings to translate",
+        3
+      )
 
       # Domain-based translation
-      dgettext "errors", "Here is the error message to translate"
+      dgettext("errors", "Here is the error message to translate")
 
       # Context-based translation
-      pgettext "email", "Email text to translate"
+      pgettext("email", "Email text to translate")
 
       # All of the above
-      dpngettext "errors", "context", "Here is the string to translate",
-                                      "Here are the strings to translate",
-                                      3
+      dpngettext(
+        "errors",
+        "context",
+        "Here is the string to translate",
+        "Here are the strings to translate",
+        3
+      )
 
-  The arguments for the gettext macros and their order can be derived from
+  The arguments for the Gettext macros and their order can be derived from
   their names. For `dpgettext/4` the arguments are: `domain`, `context`, `msgid`, `bindings` (default to `%{}`).
 
   Translations are looked up from `.po` files. In the following sections we will
@@ -148,9 +154,9 @@ defmodule Gettext do
 
   ## Gettext API
 
-  There are two ways to use gettext:
+  There are two ways to use Gettext:
 
-    * using macros from your own gettext module, like `MyApp.Gettext`
+    * using macros from your own Gettext module, like `MyApp.Gettext`
     * using functions from the `Gettext` module
 
   These two approaches are different and each one has its own use case.
@@ -207,22 +213,22 @@ defmodule Gettext do
   See also the `Gettext.Backend` behaviour for more detailed documentation about
   these macros.
 
-  Using macros is preferred as gettext is able to automatically sync the
+  Using macros is preferred as Gettext is able to automatically sync the
   translations in your code with PO files. This, however, imposes a constraint:
   arguments passed to any of these macros have to be strings **at compile
   time**. This means that they have to be string literals or something that
   expands to a string literal at compile time (for example, a module attribute like
   `@my_string "foo"`).
 
-  These are all valid uses of the gettext macros:
+  These are all valid uses of the Gettext macros:
 
-      Gettext.put_locale MyApp.Gettext, "it"
+      Gettext.put_locale(MyApp.Gettext, "it")
 
-      MyApp.Gettext.gettext "Hello world"
+      MyApp.Gettext.gettext("Hello world")
       #=> "Ciao mondo"
 
       @msgid "Hello world"
-      MyApp.Gettext.gettext @msgid
+      MyApp.Gettext.gettext(@msgid)
       #=> "Ciao mondo"
 
   The `*gettext` macros raise an `ArgumentError` exception if they receive a
@@ -230,7 +236,7 @@ defmodule Gettext do
   *at compile time*:
 
       msgid = "Hello world"
-      MyApp.Gettext.gettext msgid
+      MyApp.Gettext.gettext(msgid)
       #=> ** (ArgumentError) msgid must be a string literal
 
   Using compile-time strings isn't always possible. For this reason,
@@ -247,7 +253,7 @@ defmodule Gettext do
         use Gettext, otp_app: :my_app
       end
 
-      Gettext.put_locale MyApp.Gettext, "pt_BR"
+      Gettext.put_locale(MyApp.Gettext, "pt_BR")
 
       msgid = "Hello world"
       Gettext.gettext(MyApp.Gettext, msgid)
@@ -265,7 +271,7 @@ defmodule Gettext do
   translations in the `it/LC_MESSAGES/errors.po` file is `"errors"`, so those
   translations would need to be retrieved with `dgettext` or `dngettext`:
 
-      MyApp.Gettext.dgettext "errors", "Error!"
+      MyApp.Gettext.dgettext("errors", "Error!")
       #=> "Errore!"
 
   When `gettext` or `ngettext` are used, the `"default"` domain is used.
@@ -283,7 +289,7 @@ defmodule Gettext do
 
   ## Interpolation
 
-  All `*gettext` functions and macros provided by gettext support interpolation.
+  All `*gettext` functions and macros provided by Gettext support interpolation.
   Interpolation keys can be placed in `msgid`s or `msgid_plural`s with by
   enclosing them in `%{` and `}`, like this:
 
@@ -298,24 +304,24 @@ defmodule Gettext do
 
   interpolation can be done like follows:
 
-      Gettext.put_locale MyApp.Gettext, "it"
-      MyApp.Gettext.gettext "Hello, %{name}!", name: "Meg"
+      Gettext.put_locale(MyApp.Gettext, "it")
+      MyApp.Gettext.gettext("Hello, %{name}!", name: "Meg")
       #=> "Ciao, Meg!"
 
   Interpolation keys that are in a string but not in the provided bindings
   result in a `Gettext.Error` exception:
 
-      MyApp.Gettext.gettext "Hello, %{name}!"
+      MyApp.Gettext.gettext("Hello, %{name}!")
       #=> ** (Gettext.Error) missing interpolation keys: name
 
   Keys that are in the interpolation bindings but that don't occur in the string
-  are ignored. Interpolations in gettext are often expanded at compile time,
+  are ignored. Interpolations in Gettext are often expanded at compile time,
   ensuring a low performance cost when running them at runtime.
 
   ## Pluralization
 
-  Pluralization in gettext for Elixir works very similar to how pluralization
-  works in GNU gettext. The `*ngettext` functions/macros accept a `msgid`, a
+  Pluralization in Gettext for Elixir works very similar to how pluralization
+  works in GNU Gettext. The `*ngettext` functions/macros accept a `msgid`, a
   `msgid_plural` and a count of elements; the right translation is chosen based
   on the **pluralization rule** for the given locale.
 
@@ -328,8 +334,8 @@ defmodule Gettext do
 
   the `ngettext` macro can be used like this:
 
-      Gettext.put_locale MyApp.Gettext, "it"
-      MyApp.Gettext.ngettext "One error", "%{count} errors", 3
+      Gettext.put_locale(MyApp.Gettext, "it")
+      MyApp.Gettext.ngettext("One error", "%{count} errors", 3)
       #=> "3 errori"
 
   The `%{count}` interpolation key is a special key since it gets replaced by
@@ -338,7 +344,7 @@ defmodule Gettext do
   `count` key in the bindings:
 
       # `count: 4` is ignored here
-      MyApp.Gettext.ngettext "One error", "%{count} errors", 3, count: 4
+      MyApp.Gettext.ngettext("One error", "%{count} errors", 3, count: 4)
       #=> "3 errori"
 
   You can specify a "pluralizer" module via the `:plural_forms` option in the
@@ -364,10 +370,10 @@ defmodule Gettext do
 
   For example:
 
-      Gettext.put_locale MyApp.Gettext, "foo"
-      MyApp.Gettext.gettext "Hey there"
+      Gettext.put_locale(MyApp.Gettext, "foo")
+      MyApp.Gettext.gettext("Hey there")
       #=> "Hey there"
-      MyApp.Gettext.ngettext "One error", "%{count} errors", 3
+      MyApp.Gettext.ngettext("One error", "%{count} errors", 3)
       #=> "3 errors"
 
   ### Empty translations
@@ -379,8 +385,8 @@ defmodule Gettext do
 
   ## Compile-time features
 
-  As mentioned above, using the gettext macros (as opposed to functions) allows
-  gettext to operate on those translations *at compile-time*. This can be used
+  As mentioned above, using the Gettext macros (as opposed to functions) allows
+  Gettext to operate on those translations *at compile-time*. This can be used
   to extract translations from the source code into POT files automatically
   (instead of having to manually add translations to POT files when they're added
   to the source code). The `gettext.extract` does exactly this: whenever there
@@ -405,7 +411,7 @@ defmodule Gettext do
   version of the POT files in `priv/gettext`. Read more about the merging
   process in the documentation for `Mix.Tasks.Gettext.Merge`.
 
-  Finally, gettext is able to recompile modules that call `use Gettext` whenever
+  Finally, Gettext is able to recompile modules that call `use Gettext` whenever
   PO files change. To enable this feature, the `:gettext` compiler needs to be
   added to the list of Mix compilers. In `mix.exs`:
 
@@ -900,9 +906,9 @@ defmodule Gettext do
       MyApp.Gettext.gettext("Hello world")
       #=> "Bonjour monde"
 
-      Gettext.with_locale "it", fn ->
+      Gettext.with_locale("it", fn ->
         MyApp.Gettext.gettext("Hello world")
-      end
+      end)
       #=> "Ciao mondo"
 
       MyApp.Gettext.gettext("Hello world")
@@ -926,7 +932,7 @@ defmodule Gettext do
   end
 
   @doc """
-  Runs `fun` with the gettext locale set to `locale` for the given `backend`.
+  Runs `fun` with the Gettext locale set to `locale` for the given `backend`.
 
   This function just sets the Gettext locale for `backend` to `locale` before
   running `fun` and sets it back to its previous value afterwards. Note that
@@ -943,9 +949,9 @@ defmodule Gettext do
       MyApp.Gettext.gettext("Hello world")
       #=> "Bonjour monde"
 
-      Gettext.with_locale MyApp.Gettext, "it", fn ->
+      Gettext.with_locale(MyApp.Gettext, "it", fn ->
         MyApp.Gettext.gettext("Hello world")
-      end
+      end)
       #=> "Ciao mondo"
 
       MyApp.Gettext.gettext("Hello world")

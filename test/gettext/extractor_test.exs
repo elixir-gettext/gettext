@@ -225,14 +225,14 @@ defmodule Gettext.ExtractorTest do
       require Gettext.ExtractorTest.MyOtherGettext
 
       def bar do
-        gettext_comment "some comment"
-        gettext_comment "some other comment"
-        gettext "foo"
-        dngettext "errors", "one error", "%{count} errors", 2
-        gettext_comment "one more comment"
-        gettext "foo"
-        Gettext.ExtractorTest.MyOtherGettext.dgettext "greetings", "hi"
-        pgettext "test", "context based translation"
+        gettext_comment("some comment")
+        gettext_comment("some other comment")
+        gettext("foo")
+        dngettext("errors", "one error", "%{count} errors", 2)
+        gettext_comment("one more comment")
+        gettext("foo")
+        Gettext.ExtractorTest.MyOtherGettext.dgettext("greetings", "hi")
+        pgettext("test", "context based translation")
       end
     end
     """
@@ -320,8 +320,8 @@ defmodule Gettext.ExtractorTest do
       require Gettext.ExtractorConflictTest.MyOtherGettext
 
       def bar do
-        gettext "foo"
-        Gettext.ExtractorConflictTest.MyOtherGettext.gettext "foo"
+        gettext("foo")
+        Gettext.ExtractorConflictTest.MyOtherGettext.gettext("foo")
       end
     end
     """
