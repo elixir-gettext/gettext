@@ -232,6 +232,7 @@ defmodule Gettext.ExtractorTest do
         gettext_comment "one more comment"
         gettext "foo"
         Gettext.ExtractorTest.MyOtherGettext.dgettext "greetings", "hi"
+        pgettext "test", "context based translation"
       end
     end
     """
@@ -250,6 +251,12 @@ defmodule Gettext.ExtractorTest do
        #, elixir-format
        #: foo.ex:16 foo.ex:19
        msgid "foo"
+       msgstr ""
+
+       #, elixir-format
+       #: foo.ex:21
+       msgctxt "test"
+       msgid "context based translation"
        msgstr ""
        """},
       {"priv/gettext/errors.pot",
