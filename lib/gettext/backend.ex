@@ -93,8 +93,7 @@ defmodule Gettext.Backend do
   @macrocallback dpgettext(
                    domain :: Macro.t(),
                    msgctxt :: String.t(),
-                   msgid ::
-                     String.t(),
+                   msgid :: String.t(),
                    bindings :: Macro.t()
                  ) :: Macro.t()
 

@@ -30,7 +30,7 @@ defmodule Gettext do
 
       # Context-based translation
       pgettext "email", "Email text to translate"
-      
+
       # All of the above
       dpngettext "errors", "context", "Here is the string to translate",
                                       "Here are the strings to translate",
@@ -51,7 +51,6 @@ defmodule Gettext do
       # This is a comment
       msgid "Hello world!"
       msgstr "Ciao mondo!"
-      msgctxt "context" # Optional
 
   PO files containing translations for an application must be stored in a
   directory (by default it's `priv/gettext`) that has the following structure:
@@ -171,29 +170,38 @@ defmodule Gettext do
     * `dngettext/5`
     * `pngettext/5`
     * `dpngettext/6`
-    * `gettext_noop/1`, `dgettext_noop/2`, `pgettext_noop/2`, `dpgettext_noop/3`, `ngettext_noop/3`, `pngettext_noop/4`, `dngettext_noop/4`, `dpngettext_noop/5`
+    * all macros above with a `_noop` suffix (and without accepting bindings), for
+      example `pgettext_noop/2`
 
   Supposing the caller module is `MyApp.Gettext`, the macros mentioned above
   behave as follows:
 
     * `gettext(msgid, bindings \\ %{})` -
       like `Gettext.gettext(MyApp.Gettext, msgid, bindings)`
+
     * `dgettext(domain, msgid, bindings \\ %{})` -
       like `Gettext.dgettext(MyApp.Gettext, domain, msgid, bindings)`
+
     * `pgettext(msgctxt, msgid, bindings \\ %{})` -
       like `Gettext.pgettext(MyApp.Gettext, msgctxt, msgid, bindings)`
+
     * `dpgettext(domain, msgctxt, msgid, bindings \\ %{})` -
       like `Gettext.dpgettext(MyApp.Gettext, domain, msgctxt, msgid, bindings)`
+
     * `ngettext(msgid, msgid_plural, n, bindings \\ %{})` -
       like `Gettext.ngettext(MyApp.Gettext, msgid, msgid_plural, n, bindings)`
+
     * `dngettext(domain, msgid, msgid_plural, n, bindings \\ %{})` -
       like `Gettext.dngettext(MyApp.Gettext, domain, msgid, msgid_plural, n, bindings)`
+
     * `pngettext(msgctxt, msgid, msgid_plural, n, bindings \\ %{})` -
       like `Gettext.pngettext(MyApp.Gettext, msgctxt, msgid, msgid_plural, n, bindings)`
+
     * `dpngettext(domain, msgctxt, msgid, msgid_plural, n, bindings \\ %{})` -
       like `Gettext.dpngettext(MyApp.Gettext, domain, msgctxt, msgid, msgid_plural, n, bindings)`
+
     * `*_noop` family of functions - used to mark translations for extraction
-      without translating them; see the documentation for these macros in
+      without translating them. See the documentation for these macros in
       `Gettext.Backend`
 
   See also the `Gettext.Backend` behaviour for more detailed documentation about
@@ -217,9 +225,9 @@ defmodule Gettext do
       MyApp.Gettext.gettext @msgid
       #=> "Ciao mondo"
 
-  The `gettext`/`dgettext`/`pgettext`/`dpgettext`/`ngettext`/`pngettext`/`dngettext`/`dpngettext` macros raise an
-  `ArgumentError` exception if they receive a `domain`, `msgctxt`, `msgid`, or
-  `msgid_plural` that doesn't expand to a string at compile time:
+  The `*gettext` macros raise an `ArgumentError` exception if they receive a
+  `domain`, `msgctxt`, `msgid`, or `msgid_plural` that doesn't expand to a string
+  *at compile time*:
 
       msgid = "Hello world"
       MyApp.Gettext.gettext msgid
@@ -261,6 +269,17 @@ defmodule Gettext do
       #=> "Errore!"
 
   When `gettext` or `ngettext` are used, the `"default"` domain is used.
+
+  ## Contexts
+
+  The GNU Gettext implementation supports
+  [*contexts*](https://www.gnu.org/software/gettext/manual/html_node/Contexts.html),
+  which are a way to contextualize translations. For example, in English, the
+  word "file" could be used both as a noun as well as a verb. Contexts can be used to
+  solve similar problems: you could have a `imperative_verbs` context and a
+  `nouns` context as to avoid ambiguity. The functions that handle contexts
+  have a `p` in their name (to match the GNU Gettext API), and are `pgettext`,
+  `dpgettext`, `pngettext`, and `dpngettext`. The "p" stands for "particular".
 
   ## Interpolation
 
@@ -331,18 +350,6 @@ defmodule Gettext do
 
   To learn more about pluralization rules, plural forms and what they mean to
   Gettext check the documentation for `Gettext.Plural`.
-
-  ## Contexts
-
-  The GNU Gettext implementation supports
-  [*contexts*](https://www.gnu.org/software/gettext/manual/html_node/Contexts.html),
-  which are a way to "contextualize" translations. For example, in English, the
-  word "file" could be used both as a noun or as a verb. Contexts can be used to
-  solve similar problems: one could have a "imperative_verbs" context and a
-  "nouns" context as to avoid ambiguity. The functions that handle contexts are 
-  are `pgettext`, `dpgettext`, `pngettext` and `dpngettext`. 
-  `dpgettext` can be read as d(omain)p(articular)gettext. The same reading rules
-  apply for `dpngettext`.
 
   ## Missing translations
 
@@ -680,7 +687,7 @@ defmodule Gettext do
 
       Gettext.dpgettext(MyApp.Gettext, "errors", "user error", "Invalid")
       #=> "Non valido"
-      
+
       Gettext.dgettext(MyApp.Gettext, "errors", "signup form", "%{name} is not a valid name", name: "Meg")
       #=> "Meg non è un nome valido"
   """

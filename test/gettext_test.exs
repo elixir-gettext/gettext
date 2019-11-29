@@ -194,7 +194,9 @@ defmodule GettextTest do
     assert_raise Gettext.Error,
                  ~r/plural form 2 is required for locale \"ru\" but is missing/,
                  fn ->
-                   BadTranslations.lngettext("ru", "errors", nil, msgid, msgid_plural, 8, %{})
+                   # Dynamic module to avoid warnings.
+                   module = BadTranslations
+                   module.lngettext("ru", "errors", nil, msgid, msgid_plural, 8, %{})
                  end
   end
 

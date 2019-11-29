@@ -232,7 +232,6 @@ defmodule Gettext.Compiler do
         quote do
           unquote(__MODULE__).dpngettext(
             unquote(domain),
-            # Context
             nil,
             unquote(msgid),
             unquote(msgid_plural),
@@ -245,9 +244,7 @@ defmodule Gettext.Compiler do
       defmacro ngettext(msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
         quote do
           unquote(__MODULE__).dpngettext(
-            # Domain
             "default",
-            # Context
             nil,
             unquote(msgid),
             unquote(msgid_plural),
@@ -303,11 +300,10 @@ defmodule Gettext.Compiler do
       """
     end
 
+    # We support nil too in order to fall back to a nil context and always use the *p
+    # variants of the Gettext macros.
     case Macro.expand(term, env) do
-      term when is_nil(term) ->
-        nil
-
-      term when is_binary(term) ->
+      term when is_binary(term) or is_nil(term) ->
         term
 
       {:<<>>, _, pieces} = term ->
