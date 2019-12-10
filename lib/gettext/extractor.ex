@@ -298,8 +298,22 @@ defmodule Gettext.Extractor do
     # with the translations that only appear in `new`.
     unique_new = Enum.reject(new.translations, &PO.Translations.find(existing.translations, &1))
 
+    translations = old_and_merged ++ unique_new
+
+    translations =
+      if gettext_config[:sort_by_msgid] do
+        Enum.sort_by(translations, fn t ->
+          case PO.Translations.key(t) do
+            {_, {msgid, _}} -> msgid
+            {_, msgid} -> msgid
+          end
+        end)
+      else
+        translations
+      end
+
     %PO{
-      translations: old_and_merged ++ unique_new,
+      translations: translations,
       headers: existing.headers,
       top_of_the_file_comments: existing.top_of_the_file_comments
     }
