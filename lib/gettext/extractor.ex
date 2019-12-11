@@ -302,12 +302,7 @@ defmodule Gettext.Extractor do
 
     translations =
       if gettext_config[:sort_by_msgid] do
-        Enum.sort_by(translations, fn t ->
-          case PO.Translations.key(t) do
-            {_, {msgid, _}} -> msgid
-            {_, msgid} -> msgid
-          end
-        end)
+        Enum.sort_by(translations, & &1.msgid)
       else
         translations
       end
