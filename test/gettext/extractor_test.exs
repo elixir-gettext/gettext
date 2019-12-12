@@ -208,16 +208,16 @@ defmodule Gettext.ExtractorTest do
 
     test "order can be alphabetical if desired" do
       # Old and new translations are mixed together and ordered alphabetically.
-      foo_translation = %Translation{msgid: "foo", references: [{"foo.ex", 1}]}
-      bar_translation = %Translation{msgid: "bar", references: [{"bar.ex", 1}]}
+      foo_translation = %Translation{msgid: ["foo"], references: [{"foo.ex", 1}]}
+      bar_translation = %Translation{msgid: ["bar"], references: [{"bar.ex", 1}]}
 
       baz_translation = %PluralTranslation{
-        msgid: "baz",
-        msgid_plural: "bazs",
+        msgid: ["baz"],
+        msgid_plural: ["bazs"],
         references: [{"baz.ex", 1}]
       }
 
-      qux_translation = %Translation{msgid: "qux", references: [{"bar.ex", 1}]}
+      qux_translation = %Translation{msgid: ["qux"], references: [{"bar.ex", 1}]}
 
       po1 = %PO{
         translations: [
@@ -237,7 +237,7 @@ defmodule Gettext.ExtractorTest do
 
       %PO{translations: translations} = Extractor.merge_template(po1, po2, sort_by_msgid: true)
 
-      assert Enum.map(translations, & &1.msgid) == ~w(bar baz foo qux)
+      assert Enum.map(translations, &Enum.at(&1.msgid, 0)) == ~w(bar baz foo qux)
     end
   end
 
