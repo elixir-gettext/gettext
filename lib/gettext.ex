@@ -145,7 +145,7 @@ defmodule Gettext do
   By default the global locale is `"en"`. See also `get_locale/0` and
   `put_locale/1`.
 
-  If for some reason a backend requires with a different `:default_locale`
+  If for some reason a backend requires a different `:default_locale`
   than all other backends, you can set the `:default_locale` inside the
   backend configuration, but this approach is generally discouraged as
   it makes it hard to track which locale each backend is using:
