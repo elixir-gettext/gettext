@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.17.2
+
+* Support `pgettext`
+* Consider extracted comments when merging templates during extraction
+
 ## v0.17.1
 
 * Store the `msgctxt` value in translation and dump it when dumping translations
