@@ -361,6 +361,6 @@ defmodule Gettext.Extractor do
           "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
   end
 
-  defp blank?(nil), do: true
-  defp blank?(str), do: IO.iodata_length(str) == 0
+  defp blank?(str) when not is_nil(str), do: IO.iodata_length(str) == 0
+  defp blank?(_), do: true
 end

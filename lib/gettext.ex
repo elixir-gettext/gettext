@@ -697,7 +697,7 @@ defmodule Gettext do
       Gettext.dgettext(MyApp.Gettext, "errors", "signup form", "%{name} is not a valid name", name: "Meg")
       #=> "Meg non è un nome valido"
   """
-  @spec dpgettext(module, binary, binary, binary, bindings) :: binary
+  @spec dpgettext(module, binary, binary | nil, binary, bindings) :: binary
   def dpgettext(backend, domain, msgctxt, msgid, bindings) when is_list(bindings) do
     dpgettext(backend, domain, msgctxt, msgid, Map.new(bindings))
   end
@@ -816,7 +816,8 @@ defmodule Gettext do
       #=> "Errore"
 
   """
-  @spec dpngettext(module, binary, binary, binary, binary, non_neg_integer, bindings) :: binary
+  @spec dpngettext(module, binary, binary | nil, binary, binary, non_neg_integer, bindings) ::
+          binary
   def dpngettext(backend, domain, msgctxt, msgid, msgid_plural, n, bindings \\ %{})
 
   def dpngettext(backend, domain, msgctxt, msgid, msgid_plural, n, bindings)

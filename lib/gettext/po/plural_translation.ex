@@ -31,25 +31,25 @@ defmodule Gettext.PO.PluralTranslation do
 
   @type t :: %__MODULE__{
           msgid: [binary],
-          msgid_plural: [binary],
+          msgid_plural: [binary] | nil,
           msgstr: %{non_neg_integer => [binary]},
           msgctxt: [binary] | nil,
-          comments: [binary],
+          comments: [binary] | [],
           extracted_comments: [binary],
           references: [{binary, pos_integer}],
           flags: MapSet.t(),
-          po_source_line: pos_integer
+          po_source_line: pos_integer | nil
         }
 
   @enforce_keys [:msgid, :msgid_plural]
 
   defstruct msgid: nil,
             msgid_plural: nil,
-            msgstr: nil,
+            msgstr: [""],
             msgctxt: nil,
-            comments: [],
-            extracted_comments: [],
+            comments: [""],
+            extracted_comments: [""],
             references: [],
             flags: MapSet.new(),
-            po_source_line: nil
+            po_source_line: 1
 end
