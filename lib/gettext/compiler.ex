@@ -58,10 +58,9 @@ defmodule Gettext.Compiler do
 
       unquote(macros())
 
-      # These are the two functions we generated inside the backend. Here we define the bodyless
-      # clauses.
-      def lgettext(locale, domain, msgctxt, msgid, bindings)
-      def lngettext(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)
+      # These are the two functions we generated inside the backend.
+      def lgettext(locale, domain, msgctxt \\ nil, msgid, bindings)
+      def lngettext(locale, domain, msgctxt \\ nil, msgid, msgid_plural, n, bindings)
 
       unquote(compile_po_files(env, translations_dir, opts))
 

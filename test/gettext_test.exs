@@ -241,11 +241,11 @@ defmodule GettextTest do
   test "strings are concatenated before generating function clauses" do
     msgid = "Concatenated and long string"
 
+    assert Translator.lgettext("it", "default", msgid, %{}) ==
+            {:ok, "Stringa lunga e concatenata"}
+
     assert Translator.lgettext("it", "default", nil, msgid, %{}) ==
              {:ok, "Stringa lunga e concatenata"}
-
-    # assert Translator.lgettext("it", "default", msgid, %{}) ==
-    #         {:ok, "Stringa lunga e concatenata"}
 
     msgid = "A friend"
     msgid_plural = "%{count} friends"
@@ -254,7 +254,7 @@ defmodule GettextTest do
              {:ok, "Un amico"}
   end
 
-  test "lgettext/4: default handle_missing_binding preserves key" do
+  test "lgettext/5: default handle_missing_binding preserves key" do
     msgid = "My name is %{name} and I'm %{age}"
 
     assert Translator.lgettext("it", "interpolations", nil, msgid, %{name: "José"}) ==
@@ -270,7 +270,7 @@ defmodule GettextTest do
                "%{name}, missing translation!\")"
   end
 
-  test "lgettext/4: interpolation works when a translation is missing" do
+  test "lgettext/5: interpolation works when a translation is missing" do
     msgid = "Hello %{name}, missing translation!"
 
     assert Translator.lgettext("pl", "foo", nil, msgid, %{name: "Samantha"}) ==
@@ -285,7 +285,7 @@ defmodule GettextTest do
              {:missing_bindings, "Hello %{name}", [:name]}
   end
 
-  test "lgettext/4: fallbacks to handle_missing_translation if no translation is found" do
+  test "lgettext/5: fallbacks to handle_missing_translation if no translation is found" do
     msgid = "Hello %{name}"
     bindings = %{name: "Jane"}
 

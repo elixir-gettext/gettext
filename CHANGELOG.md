@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.17.3
+
+* Add `lgettext/4` back which was removeed in v0.17.2 - note `lgettext/4` is private API and may be removed in future once again
+
 ## v0.17.2
 
 * Support `pgettext`
