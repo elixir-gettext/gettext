@@ -42,11 +42,11 @@ defmodule Gettext.PO.Translation do
   @enforce_keys [:msgid]
 
   defstruct msgid: nil,
-            msgstr: nil,
+            msgstr: [],
             msgctxt: nil,
             comments: [],
             extracted_comments: [],
             references: [],
             flags: MapSet.new(),
-            po_source_line: nil
+            po_source_line: 1
 end
