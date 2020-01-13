@@ -242,7 +242,7 @@ defmodule GettextTest do
     msgid = "Concatenated and long string"
 
     assert Translator.lgettext("it", "default", msgid, %{}) ==
-            {:ok, "Stringa lunga e concatenata"}
+             {:ok, "Stringa lunga e concatenata"}
 
     assert Translator.lgettext("it", "default", nil, msgid, %{}) ==
              {:ok, "Stringa lunga e concatenata"}
