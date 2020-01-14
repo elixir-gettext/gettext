@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.17.4
+
+* Do not change the return types of `*_noop` macros (regression in v0.17.2 and v0.17.3)
+* Fix dialyzer warnings
+
 ## v0.17.3
 
 * Add `lgettext/4` back which was removeed in v0.17.2 - note `lgettext/4` is private API and may be removed in future once again
