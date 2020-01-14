@@ -545,23 +545,23 @@ defmodule GettextTest do
   end
 
   test "(d)(p)gettext_noop" do
-    assert Translator.dpgettext_noop("errors", "test", "Oops") == {"Oops", "test"}
-    assert Translator.dgettext_noop("errors", "Oops") == {"Oops", nil}
-    assert Translator.gettext_noop("Hello %{name}!") == {"Hello %{name}!", nil}
+    assert Translator.dpgettext_noop("errors", "test", "Oops") == "Oops"
+    assert Translator.dgettext_noop("errors", "Oops") == "Oops"
+    assert Translator.gettext_noop("Hello %{name}!") == "Hello %{name}!"
   end
 
   test "(d)(p)ngettext_noop" do
     assert Translator.dpngettext_noop("errors", "test", "One error", "%{count} errors") ==
-             {"One error", "%{count} errors", "test"}
+             {"One error", "%{count} errors"}
 
     assert Translator.dngettext_noop("errors", "One error", "%{count} errors") ==
-             {"One error", "%{count} errors", nil}
+             {"One error", "%{count} errors"}
 
     assert Translator.ngettext_noop("One message", "%{count} messages") ==
-             {"One message", "%{count} messages", nil}
+             {"One message", "%{count} messages"}
 
     assert Translator.pngettext_noop("test", "One message", "%{count} messages") ==
-             {"One message", "%{count} messages", "test"}
+             {"One message", "%{count} messages"}
   end
 
   # Actual Gettext functions (not the ones generated in the modules that `use

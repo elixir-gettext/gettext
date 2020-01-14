@@ -91,7 +91,7 @@ defmodule Gettext.Compiler do
           )
         end
 
-        {msgid, msgctxt}
+        msgid
       end
 
       defmacro dgettext_noop(domain, msgid) do
@@ -131,7 +131,7 @@ defmodule Gettext.Compiler do
           )
         end
 
-        {:{}, [], [msgid, msgid_plural, msgctxt]}
+        {msgid, msgid_plural}
       end
 
       defmacro dngettext_noop(domain, msgid, msgid_plural) do
@@ -169,13 +169,13 @@ defmodule Gettext.Compiler do
 
       defmacro dpgettext(domain, msgctxt, msgid, bindings \\ Macro.escape(%{})) do
         quote do
-          {msgid, msgctxt} =
+          msgid =
             unquote(__MODULE__).dpgettext_noop(unquote(domain), unquote(msgctxt), unquote(msgid))
 
           Gettext.dpgettext(
             unquote(__MODULE__),
             unquote(domain),
-            msgctxt,
+            unquote(msgctxt),
             msgid,
             unquote(bindings)
           )
@@ -207,7 +207,7 @@ defmodule Gettext.Compiler do
 
       defmacro dpngettext(domain, msgctxt, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
         quote do
-          {msgid, msgid_plural, msgctxt} =
+          {msgid, msgid_plural} =
             unquote(__MODULE__).dpngettext_noop(
               unquote(domain),
               unquote(msgctxt),
@@ -218,7 +218,7 @@ defmodule Gettext.Compiler do
           Gettext.dpngettext(
             unquote(__MODULE__),
             unquote(domain),
-            msgctxt,
+            unquote(msgctxt),
             msgid,
             msgid_plural,
             unquote(n),
