@@ -472,6 +472,9 @@ defmodule Gettext do
       This reduces compilation times and beam file sizes for large projects.
       This option requires Elixir v1.6.
 
+    * `:allowed_locales` - a list of locales to bundle in the backend.
+      Defaults to all the locales discovered in the `:priv` directory
+
   ### Mix tasks configuration
 
   You can configure Gettext Mix tasks under the `:gettext` key in the

@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.18.0
+
+* Add `:allowed_locales` to restrict the locales bundled in the backend
+
 ## v0.17.4
 
 * Do not change the return types of `*_noop` macros (regression in v0.17.2 and v0.17.3)

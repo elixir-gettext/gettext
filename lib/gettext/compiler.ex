@@ -33,7 +33,8 @@ defmodule Gettext.Compiler do
     priv = Keyword.get(opts, :priv, @default_priv)
     translations_dir = Application.app_dir(otp_app, priv)
     external_file = String.replace(Path.join(".compile", priv), "/", "_")
-    known_locales = known_locales(translations_dir)
+    known_po_files = known_po_files(translations_dir, opts)
+    known_locales = Enum.map(known_po_files, & &1[:locale]) |> Enum.uniq()
 
     default_locale =
       opts[:default_locale] || quote(do: Application.fetch_env!(:gettext, :default_locale))
@@ -62,7 +63,7 @@ defmodule Gettext.Compiler do
       def lgettext(locale, domain, msgctxt \\ nil, msgid, bindings)
       def lngettext(locale, domain, msgctxt \\ nil, msgid, msgid_plural, n, bindings)
 
-      unquote(compile_po_files(env, translations_dir, opts))
+      unquote(compile_po_files(env, known_po_files, opts))
 
       # Catch-all clauses.
       def lgettext(locale, domain, msgctxt, msgid, bindings),
@@ -353,13 +354,12 @@ defmodule Gettext.Compiler do
 
   # Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
   # and `lngettext/6` function clauses.
-  defp compile_po_files(env, dir, opts) do
+  defp compile_po_files(env, known_po_files, opts) do
     plural_mod = Keyword.get(opts, :plural_forms, Gettext.Plural)
-    po_files = po_files_in_dir(dir)
 
     if Keyword.get(opts, :one_module_per_locale, false) do
       {quoted, locales} =
-        Enum.map_reduce(po_files, %{}, &compile_parallel_po_file(env, &1, &2, plural_mod))
+        Enum.map_reduce(known_po_files, %{}, &compile_parallel_po_file(env, &1, &2, plural_mod))
 
       locales
       |> Enum.map(&Kernel.ParallelCompiler.async(fn -> create_locale_module(env, &1) end))
@@ -367,7 +367,7 @@ defmodule Gettext.Compiler do
 
       quoted
     else
-      Enum.map(po_files, &compile_serial_po_file(env, &1, plural_mod))
+      Enum.map(known_po_files, &compile_serial_po_file(env, &1, plural_mod))
     end
   end
 
@@ -377,9 +377,9 @@ defmodule Gettext.Compiler do
     :ok
   end
 
-  defp compile_serial_po_file(env, path, plural_mod) do
+  defp compile_serial_po_file(env, po_file, plural_mod) do
     {locale, domain, singular_fun, plural_fun, quoted} =
-      compile_po_file(:defp, path, env, plural_mod)
+      compile_po_file(:defp, po_file, env, plural_mod)
 
     quote do
       unquote(quoted)
@@ -394,9 +394,9 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp compile_parallel_po_file(env, path, locales, plural_mod) do
+  defp compile_parallel_po_file(env, po_file, locales, plural_mod) do
     {locale, domain, singular_fun, plural_fun, locale_module_quoted} =
-      compile_po_file(:def, path, env, plural_mod)
+      compile_po_file(:def, po_file, env, plural_mod)
 
     module = :"#{env.module}.T_#{locale}"
 
@@ -417,8 +417,8 @@ defmodule Gettext.Compiler do
 
   # Compiles a .po file into a list of lgettext/5 (for translations) and
   # lngettext/7 (for plural translations) clauses.
-  defp compile_po_file(kind, path, env, plural_mod) do
-    {locale, domain} = locale_and_domain_from_path(path)
+  defp compile_po_file(kind, po_file, env, plural_mod) do
+    %{locale: locale, domain: domain, path: path} = po_file
     %PO{translations: translations, file: file} = PO.parse_file!(path)
 
     singular_fun = :"#{locale}_#{domain}_lgettext"
@@ -629,12 +629,19 @@ defmodule Gettext.Compiler do
     |> Path.wildcard()
   end
 
-  # Returns all the locales in `translations_dir` (which are the locales known
-  # by the compiled backend).
-  defp known_locales(translations_dir) do
+  # Returns the known the PO files in `translations_dir` with their locale and domain
+  # If allowed_locales is configured, it removes all the PO files that do not belong
+  # to those locales
+  defp known_po_files(translations_dir, opts) do
     case File.ls(translations_dir) do
-      {:ok, files} ->
-        Enum.filter(files, &File.dir?(Path.join(translations_dir, &1)))
+      {:ok, _} ->
+        translations_dir
+        |> po_files_in_dir()
+        |> Enum.map(fn path ->
+          {locale, domain} = locale_and_domain_from_path(path)
+          %{locale: locale, path: path, domain: domain}
+        end)
+        |> maybe_restrict_locales(opts[:allowed_locales])
 
       {:error, :enoent} ->
         []
@@ -642,5 +649,14 @@ defmodule Gettext.Compiler do
       {:error, reason} ->
         raise File.Error, reason: reason, action: "list directory", path: translations_dir
     end
+  end
+
+  defp maybe_restrict_locales(po_files, nil) do
+    po_files
+  end
+
+  defp maybe_restrict_locales(po_files, allowed_locales) when is_list(allowed_locales) do
+    allowed_locales = MapSet.new(allowed_locales)
+    Enum.filter(po_files, &MapSet.member?(allowed_locales, &1[:locale]))
   end
 end
