@@ -214,6 +214,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp write_file(path, contents, stats) do
+    File.mkdir_p!(Path.dirname(path))
     File.write!(path, contents)
     Mix.shell().info("Wrote #{path} (#{format_stats(stats)})")
   end
