@@ -473,7 +473,9 @@ defmodule Gettext do
       This option requires Elixir v1.6.
 
     * `:allowed_locales` - a list of locales to bundle in the backend.
-      Defaults to all the locales discovered in the `:priv` directory
+      Defaults to all the locales discovered in the `:priv` directory.
+      This option can be useful in development to reduce compile-time
+      by compiling only a subset of all available locales.
 
   ### Mix tasks configuration
 
