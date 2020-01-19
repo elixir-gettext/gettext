@@ -6,6 +6,10 @@ defmodule GettextTest.TranslatorWithCustomPriv do
   use Gettext, otp_app: :test_application, priv: "translations"
 end
 
+defmodule GettextTest.TranslatorWithAllowedLocales do
+  use Gettext, otp_app: :test_application, priv: "translations", allowed_locales: ["es"]
+end
+
 defmodule GettextTest.TranslatorWithCustomPluralForms do
   defmodule Plural do
     @behaviour Gettext.Plural
@@ -40,11 +44,13 @@ defmodule GettextTest do
 
   alias GettextTest.Translator
   alias GettextTest.TranslatorWithCustomPriv
+  alias GettextTest.TranslatorWithAllowedLocales
   alias GettextTest.TranslatorWithCustomPluralForms
   alias GettextTest.HandleMissingTranslation
 
   require Translator
   require TranslatorWithCustomPriv
+  require TranslatorWithAllowedLocales
 
   test "the default locale is \"en\"" do
     assert Gettext.get_locale() == "en"
@@ -133,6 +139,14 @@ defmodule GettextTest do
 
     assert TranslatorWithCustomPriv.lgettext("it", "errors", nil, "Invalid email address", %{}) ==
              {:ok, "Indirizzo email non valido"}
+  end
+
+  test "allowed_locales ignores other locales" do
+    assert TranslatorWithAllowedLocales.lgettext("it", "default", nil, "Hello world", %{}) ==
+             {:default, "Hello world"}
+
+    assert TranslatorWithAllowedLocales.lgettext("es", "default", nil, "Hello world", %{}) ==
+             {:ok, "Hola mundo"}
   end
 
   test "using a custom Gettext.Plural module" do
@@ -700,7 +714,8 @@ defmodule GettextTest do
 
   test "known_locales/1: returns all the locales for which a backend has PO files" do
     assert Gettext.known_locales(Translator) == ["it"]
-    assert Gettext.known_locales(TranslatorWithCustomPriv) == ["it"]
+    assert Gettext.known_locales(TranslatorWithCustomPriv) == ["es", "it"]
+    assert Gettext.known_locales(TranslatorWithAllowedLocales) == ["es"]
   end
 
   test "a warning is issued in l(n)gettext when the domain contains slashes" do
