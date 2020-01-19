@@ -430,7 +430,6 @@ defmodule Gettext.Compiler do
       quote do
         unquote(translations)
 
-        # We ignore the msgctxt in the handle_missing_translation.
         Kernel.unquote(kind)(unquote(singular_fun)(msgctxt, msgid, bindings)) do
           unquote(env.module).handle_missing_translation(
             unquote(locale),
@@ -473,19 +472,33 @@ defmodule Gettext.Compiler do
     msgid = IO.iodata_to_binary(t.msgid)
     msgstr = IO.iodata_to_binary(t.msgstr)
     msgctxt = t.msgctxt && IO.iodata_to_binary(t.msgctxt)
+    keys = Interpolation.keys(msgstr)
 
-    # Only actually generate this function clause if the msgstr is not empty. If
-    # it's empty, not generating this clause (by returning `nil` from this `if`)
-    # means that the dynamic clause will be executed, returning `{:default,
-    # msgid}` (with interpolation and so on).
-    if msgstr != "" do
-      quote do
-        Kernel.unquote(kind)(
-          unquote(singular_fun)(unquote(msgctxt), unquote(msgid), var!(bindings))
-        ) do
-          unquote(compile_interpolation(msgstr, :translation))
+    case msgstr do
+      # Only actually generate this function clause if the msgstr is not empty.
+      # If it is empty, it will trigger the missing translation case.
+      "" ->
+        nil
+
+      # If the msgid is the same as msgstr, simply return it without allocating
+      # a new string.
+      ^msgid when keys == [] ->
+        quote do
+          Kernel.unquote(kind)(
+            unquote(singular_fun)(unquote(msgctxt), unquote(msgid) = msgid, _)
+          ) do
+            {:ok, msgid}
+          end
         end
-      end
+
+      _ ->
+        quote do
+          Kernel.unquote(kind)(
+            unquote(singular_fun)(unquote(msgctxt), unquote(msgid), var!(bindings))
+          ) do
+            unquote(compile_interpolation(msgstr, :translation))
+          end
+        end
     end
   end
 
@@ -509,8 +522,8 @@ defmodule Gettext.Compiler do
     # function clause. The reason we do this is the same as for the
     # `%Translation{}` clause.
     unless Enum.any?(msgstr, &match?({_form, ""}, &1)) do
-      # We use flat_map here because clauses can only be defined in blocks, so
-      # when quoted they are a list.
+      # We use flat_map here because clauses can only be defined in blocks,
+      # so when quoted they are a list.
       clauses =
         Enum.flat_map(msgstr, fn {form, str} ->
           quote do: (unquote(form) -> unquote(compile_interpolation(str, :plural_translation)))
@@ -612,13 +625,12 @@ defmodule Gettext.Compiler do
   # current `__MODULE__`. Heavily inspired by Chris McCord's "linguist", see
   # https://github.com/chrismccord/linguist/blob/master/lib/linguist/compiler.ex#L70
   defp compile_interpolatable_string(str) do
-    Enum.reduce(Interpolation.to_interpolatable(str), "", fn
-      key, acc when is_atom(key) ->
-        quote do: unquote(acc) <> to_string(unquote(Macro.var(key, __MODULE__)))
-
-      str, acc ->
-        quote do: unquote(acc) <> unquote(str)
+    parts = Enum.map(Interpolation.to_interpolatable(str), fn
+      key when is_atom(key) -> quote do: to_string(unquote(Macro.var(key, __MODULE__)))::binary
+      str -> str
     end)
+
+    {:<<>>, [], parts}
   end
 
   # Returns all the PO files in `translations_dir` (under "canonical" paths,
