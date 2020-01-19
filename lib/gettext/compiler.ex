@@ -591,8 +591,8 @@ defmodule Gettext.Compiler do
 
   defp compile_interpolation(str, translation_type, keys) do
     match = compile_interpolation_match(keys)
-    interpolation = compile_interpolatable_string(str)
     interpolatable = Interpolation.to_interpolatable(str)
+    interpolation = compile_interpolatable_string(interpolatable)
 
     all_bindings_clause = quote do: (unquote(match) -> {:ok, unquote(interpolation)})
 
@@ -620,12 +620,10 @@ defmodule Gettext.Compiler do
     {:%{}, [], Enum.map(keys, &{&1, Macro.var(&1, __MODULE__)})}
   end
 
-  # Compiles a string into a sequence of applications of the `<>` operator.
-  # `%{var}` patterns are turned into `var` variables, namespaced inside the
-  # current `__MODULE__`. Heavily inspired by Chris McCord's "linguist", see
-  # https://github.com/chrismccord/linguist/blob/master/lib/linguist/compiler.ex#L70
-  defp compile_interpolatable_string(str) do
-    parts = Enum.map(Interpolation.to_interpolatable(str), fn
+  # Compiles a string into a binary with `%{var}` patterns turned into `var`
+  # variables, namespaced inside the current `__MODULE__`.
+  defp compile_interpolatable_string(interpolatable) do
+    parts = Enum.map(interpolatable, fn
       key when is_atom(key) -> quote do: to_string(unquote(Macro.var(key, __MODULE__)))::binary
       str -> str
     end)
