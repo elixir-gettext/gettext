@@ -521,6 +521,18 @@ defmodule Gettext do
     defexception [:message]
   end
 
+  defmodule PluralFormError do
+    @enforce_keys [:form, :locale, :file, :line]
+    defexception [:form, :locale, :file, :line]
+
+    @type t() :: %__MODULE__{}
+
+    def message(%{form: form, locale: locale, file: file, line: line}) do
+      "plural form #{form} is required for locale #{inspect(locale)} " <>
+        "but is missing for translation compiled from #{file}:#{line}"
+    end
+  end
+
   defmodule MissingBindingsError do
     @moduledoc """
     An error message raised for missing bindings errors.
@@ -540,9 +552,8 @@ defmodule Gettext do
           missing: missing
         }) do
       "missing Gettext bindings: #{inspect(missing)} (backend #{inspect(backend)}, " <>
-        "locale #{inspect(locale)}, domain #{inspect(domain)}, msgctxt #{inspect(msgctxt)}, msgid #{
-          inspect(msgid)
-        })"
+        "locale #{inspect(locale)}, domain #{inspect(domain)}, msgctxt #{inspect(msgctxt)}, " <>
+        "msgid #{inspect(msgid)})"
     end
   end
 

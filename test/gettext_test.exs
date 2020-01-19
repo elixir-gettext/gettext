@@ -205,7 +205,7 @@ defmodule GettextTest do
     msgid = "should be at least %{count} character(s)"
     msgid_plural = "should be at least %{count} character(s)"
 
-    assert_raise Gettext.Error,
+    assert_raise Gettext.PluralFormError,
                  ~r/plural form 2 is required for locale \"ru\" but is missing/,
                  fn ->
                    # Dynamic module to avoid warnings.
