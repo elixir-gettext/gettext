@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Compile.GettextTest do
     Mix.Project.push(MyProject)
     File.rm_rf!(@po_path)
     File.rm_rf!(Path.join(Mix.Project.app_path(), ".compile_tmp_gettext_foo"))
+    File.rm_rf!(Path.join(Mix.Project.app_path(), ".compile_tmp_gettext_bar"))
 
     on_exit(fn ->
       Mix.Project.pop()
@@ -66,7 +67,7 @@ defmodule Mix.Tasks.Compile.GettextTest do
              ["tmp/gettext/foo/en/LC_MESSAGES/hello.po"]
 
     # Touch existing .po file
-    touch_po("foo/en/LC_MESSAGES/hello.po")
+    touch_po_after_manifest("foo/en/LC_MESSAGES/hello.po", ".compile_tmp_gettext_foo")
     assert run([]) == {:ok, []}
 
     assert read_manifest(".compile_tmp_gettext_foo") ==
@@ -84,9 +85,11 @@ defmodule Mix.Tasks.Compile.GettextTest do
     end
   end
 
-  defp touch_po(path) do
-    path = Path.join(@po_path, path)
-    touch_po(path, File.stat!(path).mtime)
+  defp touch_po_after_manifest(po_path, manifest_path) do
+    po_path = Path.join(@po_path, po_path)
+    manifest_path = Path.join(Mix.Project.app_path(), manifest_path)
+    latest_time = [File.stat!(po_path).mtime, File.stat!(manifest_path).mtime] |> Enum.max()
+    touch_po(po_path, latest_time)
   end
 
   defp touch_po(path, current) do
