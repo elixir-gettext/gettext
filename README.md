@@ -1,6 +1,6 @@
 # Gettext
 
-[![Build Status](https://travis-ci.org/elixir-gettext/gettext.svg?branch=master)](https://travis-ci.org/elixir-gettext/gettext)
+![](https://github.com/elixir-gettext/gettext/workflows/CI/badge.svg)
 
 Gettext is an **internationalization** (i18n) and **localization** (l10n) system commonly used for writing multilingual programs. Gettext is a standard for i18n in different communities, meaning there is a great set of tooling for developers and translators. This project is an implementation of the Gettext system in Elixir.
 
