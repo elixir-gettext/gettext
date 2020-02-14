@@ -12,7 +12,7 @@ defmodule Gettext.PO.SyntaxError do
 
     msg =
       if file = opts[:file] do
-        file = Path.basename(file)
+        file = Path.relative_to_cwd(file)
         "#{file}:#{line}: #{reason}"
       else
         "#{line}: #{reason}"
