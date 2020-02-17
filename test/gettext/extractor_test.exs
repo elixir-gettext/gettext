@@ -206,7 +206,7 @@ defmodule Gettext.ExtractorTest do
       assert t2.msgid == ["new translation"]
     end
 
-    test "order can be alphabetical if desired" do
+    test "translations can be ordered alphabetically through the :sort_by_msgid option" do
       # Old and new translations are mixed together and ordered alphabetically.
       foo_translation = %Translation{msgid: ["foo"], references: [{"foo.ex", 1}]}
       bar_translation = %Translation{msgid: ["bar"], references: [{"bar.ex", 1}]}
