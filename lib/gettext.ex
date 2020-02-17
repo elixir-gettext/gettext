@@ -514,7 +514,7 @@ defmodule Gettext do
     * `:sort_by_msgid` - a boolean that modifies the sorting behavior.
       By default, the order of existing translations in a POT file is kept, and new
       translations are appended to the file. If `:sort_by_msgid` is set to true,
-      existing and new translations will be mixed and be sorted alphabetically by msgid.
+      existing and new translations will be mixed and sorted alphabetically by msgid.
   """
 
   defmodule Error do
