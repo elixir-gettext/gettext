@@ -65,7 +65,7 @@ defmodule Gettext.ExtractorTest do
       msgstr ""
       """)
 
-      message = "syntax_error.pot:3: syntax error before: msgid"
+      message = "tmp/syntax_error.pot:3: syntax error before: msgid"
 
       assert_raise Gettext.PO.SyntaxError, message, fn ->
         Extractor.merge_pot_files([{path, %PO{}}], [path], [])
