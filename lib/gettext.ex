@@ -511,6 +511,10 @@ defmodule Gettext do
       reference comments will not be written when extracting translations or merging
       translations, and the ones already found in files will be discarded.
 
+    * `:sort_by_msgid` - a boolean that modifies the sorting behavior.
+      By default, the order of existing translations in a POT file is kept, and new
+      translations are appended to the file. If `:sort_by_msgid` is set to true,
+      existing and new translations will be mixed and sorted alphabetically by msgid.
   """
 
   defmodule Error do

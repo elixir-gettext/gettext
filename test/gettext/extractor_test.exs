@@ -3,6 +3,7 @@ defmodule Gettext.ExtractorTest do
   alias Gettext.Extractor
   alias Gettext.PO
   alias Gettext.PO.Translation
+  alias Gettext.PO.PluralTranslation
 
   @pot_path "../../tmp/" |> Path.expand(__DIR__) |> Path.relative_to_cwd()
 
@@ -203,6 +204,40 @@ defmodule Gettext.ExtractorTest do
       assert t1.msgid == [msgid]
       assert t1.references == [{"live_streaming.ex", 40}]
       assert t2.msgid == ["new translation"]
+    end
+
+    test "order can be alphabetical if desired" do
+      # Old and new translations are mixed together and ordered alphabetically.
+      foo_translation = %Translation{msgid: ["foo"], references: [{"foo.ex", 1}]}
+      bar_translation = %Translation{msgid: ["bar"], references: [{"bar.ex", 1}]}
+
+      baz_translation = %PluralTranslation{
+        msgid: ["baz"],
+        msgid_plural: ["bazs"],
+        references: [{"baz.ex", 1}]
+      }
+
+      qux_translation = %Translation{msgid: ["qux"], references: [{"bar.ex", 1}]}
+
+      po1 = %PO{
+        translations: [
+          foo_translation,
+          qux_translation,
+          bar_translation
+        ]
+      }
+
+      po2 = %PO{
+        translations: [
+          baz_translation,
+          foo_translation,
+          bar_translation
+        ]
+      }
+
+      %PO{translations: translations} = Extractor.merge_template(po1, po2, sort_by_msgid: true)
+
+      assert Enum.map(translations, &Enum.at(&1.msgid, 0)) == ~w(bar baz foo qux)
     end
   end
 
