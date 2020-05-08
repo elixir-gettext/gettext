@@ -2,6 +2,7 @@
 
 ## v0.18.0
 
+* Allow sorting strings by `msgid`
 * Add `:allowed_locales` to restrict the locales bundled in the backend
 
 ## v0.17.4
