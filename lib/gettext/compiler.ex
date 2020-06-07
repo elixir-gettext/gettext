@@ -39,6 +39,7 @@ defmodule Gettext.Compiler do
 
     default_locale =
       opts[:default_locale] || quote(do: Application.fetch_env!(:gettext, :default_locale))
+
     default_domain = opts[:default_domain] || @default_domain
 
     Module.put_attribute(env.module, :gettext_default_domain, default_domain)
@@ -108,6 +109,7 @@ defmodule Gettext.Compiler do
 
       defmacro gettext_noop(msgid) do
         domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpgettext_noop(unquote(domain), nil, unquote(msgid))
         end
@@ -115,6 +117,7 @@ defmodule Gettext.Compiler do
 
       defmacro pgettext_noop(msgid, context) do
         domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpgettext_noop(unquote(domain), unquote(context), unquote(msgid))
         end
@@ -155,6 +158,7 @@ defmodule Gettext.Compiler do
 
       defmacro pngettext_noop(msgctxt, msgid, msgid_plural) do
         domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpngettext_noop(
             unquote(domain),
@@ -167,6 +171,7 @@ defmodule Gettext.Compiler do
 
       defmacro ngettext_noop(msgid, msgid_plural) do
         domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpngettext_noop(
             unquote(domain),
@@ -200,6 +205,7 @@ defmodule Gettext.Compiler do
 
       defmacro pgettext(msgctxt, msgid, bindings \\ Macro.escape(%{})) do
         domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpgettext(
             unquote(domain),
@@ -212,6 +218,7 @@ defmodule Gettext.Compiler do
 
       defmacro gettext(msgid, bindings \\ Macro.escape(%{})) do
         domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpgettext(unquote(domain), nil, unquote(msgid), unquote(bindings))
         end
@@ -254,6 +261,7 @@ defmodule Gettext.Compiler do
 
       defmacro ngettext(msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
         domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpngettext(
             unquote(domain),
@@ -268,6 +276,7 @@ defmodule Gettext.Compiler do
 
       defmacro pngettext(msgctxt, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
         domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpngettext(
             unquote(domain),
