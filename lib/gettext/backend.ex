@@ -140,7 +140,8 @@ defmodule Gettext.Backend do
   @macrocallback pgettext(msgctxt :: String.t(), msgid :: String.t()) :: Macro.t()
 
   @doc """
-  Same as `dgettext("default", msgid, %{})`.
+  Same as `dgettext("default", msgid, %{})`, but will use a per-backend
+  configured default domain if provided.
 
   See also `Gettext.gettext/3`.
   """
@@ -242,7 +243,8 @@ defmodule Gettext.Backend do
                  ) :: Macro.t()
 
   @doc """
-  Same as `dngettext("default", msgid, msgid_plural, n, bindings)`.
+  Same as `dngettext("default", msgid, msgid_plural, n, bindings)`, but will
+  use a per-backend configured default domain if provided.
 
   See also `Gettext.ngettext/5`.
   """
@@ -305,7 +307,8 @@ defmodule Gettext.Backend do
                  ) :: Macro.t()
 
   @doc """
-  Same as `dngettext_noop("default", msgid, mgsid_plural)`.
+  Same as `dngettext_noop("default", msgid, mgsid_plural)`, but will use a
+  per-backend configured default domain if provided.
   """
   @macrocallback ngettext_noop(msgid :: String.t(), msgid_plural :: String.t()) :: Macro.t()
 

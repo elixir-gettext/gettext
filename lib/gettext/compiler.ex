@@ -11,6 +11,7 @@ defmodule Gettext.Compiler do
   require Logger
 
   @default_priv "priv/gettext"
+  @default_domain "default"
   @po_wildcard "*/LC_MESSAGES/*.po"
 
   @doc false
@@ -39,6 +40,10 @@ defmodule Gettext.Compiler do
     default_locale =
       opts[:default_locale] || quote(do: Application.fetch_env!(:gettext, :default_locale))
 
+    default_domain = opts[:default_domain] || @default_domain
+
+    Module.put_attribute(env.module, :gettext_default_domain, default_domain)
+
     quote do
       @behaviour Gettext.Backend
 
@@ -48,6 +53,7 @@ defmodule Gettext.Compiler do
       def __gettext__(:otp_app), do: unquote(otp_app)
       def __gettext__(:known_locales), do: unquote(known_locales)
       def __gettext__(:default_locale), do: unquote(default_locale)
+      def __gettext__(:default_domain), do: unquote(default_domain)
 
       # The manifest lives in the root of the priv
       # directory that contains .po/.pot files.
@@ -102,14 +108,18 @@ defmodule Gettext.Compiler do
       end
 
       defmacro gettext_noop(msgid) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          unquote(__MODULE__).dpgettext_noop("default", nil, unquote(msgid))
+          unquote(__MODULE__).dpgettext_noop(unquote(domain), nil, unquote(msgid))
         end
       end
 
       defmacro pgettext_noop(msgid, context) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          unquote(__MODULE__).dpgettext_noop("default", unquote(context), unquote(msgid))
+          unquote(__MODULE__).dpgettext_noop(unquote(domain), unquote(context), unquote(msgid))
         end
       end
 
@@ -147,9 +157,11 @@ defmodule Gettext.Compiler do
       end
 
       defmacro pngettext_noop(msgctxt, msgid, msgid_plural) do
+        domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpngettext_noop(
-            "default",
+            unquote(domain),
             unquote(msgctxt),
             unquote(msgid),
             unquote(msgid_plural)
@@ -158,9 +170,11 @@ defmodule Gettext.Compiler do
       end
 
       defmacro ngettext_noop(msgid, msgid_plural) do
+        domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpngettext_noop(
-            "default",
+            unquote(domain),
             nil,
             unquote(msgid),
             unquote(msgid_plural)
@@ -190,9 +204,11 @@ defmodule Gettext.Compiler do
       end
 
       defmacro pgettext(msgctxt, msgid, bindings \\ Macro.escape(%{})) do
+        domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpgettext(
-            "default",
+            unquote(domain),
             unquote(msgctxt),
             unquote(msgid),
             unquote(bindings)
@@ -201,8 +217,10 @@ defmodule Gettext.Compiler do
       end
 
       defmacro gettext(msgid, bindings \\ Macro.escape(%{})) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          unquote(__MODULE__).dpgettext("default", nil, unquote(msgid), unquote(bindings))
+          unquote(__MODULE__).dpgettext(unquote(domain), nil, unquote(msgid), unquote(bindings))
         end
       end
 
@@ -242,9 +260,11 @@ defmodule Gettext.Compiler do
       end
 
       defmacro ngettext(msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+        domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpngettext(
-            "default",
+            unquote(domain),
             nil,
             unquote(msgid),
             unquote(msgid_plural),
@@ -255,9 +275,11 @@ defmodule Gettext.Compiler do
       end
 
       defmacro pngettext(msgctxt, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+        domain = __gettext__(:default_domain)
+
         quote do
           unquote(__MODULE__).dpngettext(
-            "default",
+            unquote(domain),
             unquote(msgctxt),
             unquote(msgid),
             unquote(msgid_plural),
