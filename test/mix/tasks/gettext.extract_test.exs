@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
       end
 
       def application() do
-        []
+        [extra_applications: [:logger, :gettext]]
       end
     end
     """)

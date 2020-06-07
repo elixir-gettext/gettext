@@ -42,8 +42,6 @@ defmodule Gettext.Compiler do
 
     default_domain = opts[:default_domain] || @default_domain
 
-    Module.put_attribute(env.module, :gettext_default_domain, default_domain)
-
     quote do
       @behaviour Gettext.Backend
 

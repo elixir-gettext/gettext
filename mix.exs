@@ -31,7 +31,7 @@ defmodule Gettext.Mixfile do
 
   def application do
     [
-      applications: [:logger],
+      extra_applications: [:logger],
       env: [default_locale: "en"],
       mod: {Gettext.Application, []}
     ]
