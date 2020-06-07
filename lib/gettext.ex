@@ -42,8 +42,9 @@ defmodule Gettext do
         3
       )
 
-  The arguments for the Gettext macros and their order can be derived from
-  their names. For `dpgettext/4` the arguments are: `domain`, `context`, `msgid`, `bindings` (default to `%{}`).
+  The arguments for the Gettext macros and their order can be derived froe
+  their names. For `dpgettext/4` the arguments are: `domain`, `context`,
+  `msgid`, `bindings` (default to `%{}`).
 
   Translations are looked up from `.po` files. In the following sections we will
   explore exactly what are those files before we explore the "Gettext API" in
@@ -151,6 +152,18 @@ defmodule Gettext do
   it makes it hard to track which locale each backend is using:
 
       config :my_app, MyApp.Gettext, default_locale: "fr"
+
+  ### Default Domain
+
+  Each backend can be configured with a specific `:default_domain`
+  that replaces `"default"` in `gettext/2`, `pgettext/3`, and `ngettext/4`
+  for that backend.
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app, default_domain: "messages"
+      end
+
+      config :my_app, MyApp.Gettext, default_domain: "translations"
 
   ## Gettext API
 
@@ -274,7 +287,10 @@ defmodule Gettext do
       MyApp.Gettext.dgettext("errors", "Error!")
       #=> "Errore!"
 
-  When `gettext` or `ngettext` are used, the `"default"` domain is used.
+  When backend `gettext`, `ngettext`, or `pgettext` are used, the backend's
+  default domain is used (which defaults to "default"). The `Gettext`
+  functions accepting a backend (`gettext/3`, `ngettext/5`, and `pgettext/4`)
+  _always_ use a domain of "default".
 
   ## Contexts
 

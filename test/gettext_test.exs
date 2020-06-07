@@ -23,6 +23,10 @@ defmodule GettextTest.TranslatorWithCustomPluralForms do
   use Gettext, otp_app: :test_application, plural_forms: Plural
 end
 
+defmodule GettextTest.TranslatorWithDefaultDomain do
+  use Gettext, otp_app: :test_application, default_domain: "errors"
+end
+
 defmodule GettextTest.HandleMissingTranslation do
   use Gettext, otp_app: :test_application
 
@@ -46,11 +50,13 @@ defmodule GettextTest do
   alias GettextTest.TranslatorWithCustomPriv
   alias GettextTest.TranslatorWithAllowedLocales
   alias GettextTest.TranslatorWithCustomPluralForms
+  alias GettextTest.TranslatorWithDefaultDomain
   alias GettextTest.HandleMissingTranslation
 
   require Translator
   require TranslatorWithCustomPriv
   require TranslatorWithAllowedLocales
+  require TranslatorWithDefaultDomain
 
   test "the default locale is \"en\"" do
     assert Gettext.get_locale() == "en"
@@ -107,6 +113,11 @@ defmodule GettextTest do
     assert TranslatorWithCustomPriv.__gettext__(:otp_app) == :test_application
   end
 
+  test "__gettext__(:default_domain): returns the default domain for the given backend" do
+    assert Translator.__gettext__(:default_domain) == "default"
+    assert TranslatorWithDefaultDomain.__gettext__(:default_domain) == "errors"
+  end
+
   test "found translations return {:ok, translation}" do
     assert Translator.lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "Ciao mondo"}
 
@@ -139,6 +150,13 @@ defmodule GettextTest do
 
     assert TranslatorWithCustomPriv.lgettext("it", "errors", nil, "Invalid email address", %{}) ==
              {:ok, "Indirizzo email non valido"}
+  end
+
+  test "a custom default_domain can be set for a backend" do
+    alias TranslatorWithDefaultDomain, as: T
+    Gettext.put_locale("it")
+    assert T.gettext("Invalid email address") == "Indirizzo email non valido"
+    assert T.gettext("Hello world") == "Hello world"
   end
 
   test "allowed_locales ignores other locales" do
