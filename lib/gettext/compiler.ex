@@ -366,7 +366,7 @@ defmodule Gettext.Compiler do
   @spec warn_if_domain_contains_slashes(binary) :: :ok
   def warn_if_domain_contains_slashes(domain) do
     if String.contains?(domain, "/") do
-      Logger.error(fn -> ["Slashes in domains are not supported: ", inspect(domain)] end)
+      _ = Logger.error(fn -> ["Slashes in domains are not supported: ", inspect(domain)] end)
     end
 
     :ok
@@ -581,12 +581,13 @@ defmodule Gettext.Compiler do
   defp warn_if_missing_plural_forms(locale, plural_mod, translation, file) do
     Enum.each(0..(plural_mod.nplurals(locale) - 1), fn form ->
       unless Map.has_key?(translation.msgstr, form) do
-        Logger.error([
-          "#{file}:#{translation.po_source_line}: translation is missing plural form ",
-          Integer.to_string(form),
-          " which is required by the locale ",
-          inspect(locale)
-        ])
+        _ =
+          Logger.error([
+            "#{file}:#{translation.po_source_line}: translation is missing plural form ",
+            Integer.to_string(form),
+            " which is required by the locale ",
+            inspect(locale)
+          ])
       end
     end)
   end

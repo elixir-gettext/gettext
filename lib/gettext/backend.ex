@@ -98,7 +98,7 @@ defmodule Gettext.Backend do
                  ) :: Macro.t()
 
   @doc """
-  Same as `dpgettext(domain, msgid, %{})`.
+  Same as `dpgettext(domain, msgctxt, msgid, %{})`.
 
   See also `Gettext.dpgettext/5`.
   """

@@ -733,6 +733,7 @@ defmodule Gettext do
 
       Gettext.dgettext(MyApp.Gettext, "errors", "signup form", "%{name} is not a valid name", name: "Meg")
       #=> "Meg non è un nome valido"
+
   """
   @spec dpgettext(module, binary, binary | nil, binary, bindings) :: binary
   def dpgettext(backend, domain, msgctxt, msgid, bindings \\ %{})
