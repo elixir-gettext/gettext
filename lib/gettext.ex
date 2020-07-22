@@ -735,6 +735,8 @@ defmodule Gettext do
       #=> "Meg non è un nome valido"
   """
   @spec dpgettext(module, binary, binary | nil, binary, bindings) :: binary
+  def dpgettext(backend, domain, msgctxt, msgid, bindings \\ %{})
+
   def dpgettext(backend, domain, msgctxt, msgid, bindings) when is_list(bindings) do
     dpgettext(backend, domain, msgctxt, msgid, Map.new(bindings))
   end
