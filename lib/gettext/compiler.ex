@@ -399,15 +399,6 @@ defmodule Gettext.Compiler do
         Task.await(task, :infinity)
         quoted
       end)
-
-      #{quoted, locales} =
-        #Enum.map_reduce(known_po_files, %{}, &compile_parallel_po_file(env, &1, &2, plural_mod))
-
-      #locales
-      #|> Enum.map(&Kernel.ParallelCompiler.async(fn -> create_locale_module(env, &1) end))
-      #|> Enum.each(&Task.await(&1, :infinity))
-
-      #quoted
     else
       Enum.map(known_po_files, &compile_serial_po_file(env, &1, plural_mod))
     end
