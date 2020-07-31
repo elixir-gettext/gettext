@@ -387,12 +387,15 @@ defmodule Gettext.Compiler do
             %{},
             &compile_parallel_po_file(env, &1, &2, plural_mod)
           )
+
         {quoted, locale}
       end)
       |> Enum.map(fn {quoted, locale} ->
-        task = Kernel.ParallelCompiler.async(fn ->
-                create_locale_module(env, hd(Enum.to_list(locale)))
-              end)
+        task =
+          Kernel.ParallelCompiler.async(fn ->
+            create_locale_module(env, hd(Enum.to_list(locale)))
+          end)
+
         {task, quoted}
       end)
       |> Enum.map(fn {task, quoted} ->
