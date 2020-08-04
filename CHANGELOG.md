@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.18.1
+
+* Allow default domain to be configurable
+* Improve parallelism when compiling modules
+
 ## v0.18.0
 
 * Allow sorting strings by `msgid`
