@@ -16,21 +16,8 @@ defmodule Gettext.Compiler do
 
   @doc false
   defmacro __before_compile__(env) do
-    compile_time_opts = Module.get_attribute(env.module, :gettext_opts)
-
-    # :otp_app is only supported in "use Gettext" (because we need it to get the Mix config).
-    {otp_app, compile_time_opts} = Keyword.pop(compile_time_opts, :otp_app)
-
-    if is_nil(otp_app) do
-      # We're using Keyword.fetch!/2 to raise below.
-      Keyword.fetch!(compile_time_opts, :otp_app)
-    end
-
-    # Options given to "use Gettext" have higher precedence than options set
-    # throught Mix.Config.
-    mix_config_opts = Application.get_env(otp_app, env.module, [])
-    opts = Keyword.merge(mix_config_opts, compile_time_opts)
-
+    opts = Module.get_attribute(env.module, :gettext_opts)
+    otp_app = Keyword.fetch!(opts, :otp_app)
     priv = Keyword.get(opts, :priv, @default_priv)
     translations_dir = Application.app_dir(otp_app, priv)
     external_file = String.replace(Path.join(".compile", priv), "/", "_")

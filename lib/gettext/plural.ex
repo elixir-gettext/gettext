@@ -70,6 +70,10 @@ defmodule Gettext.Plural do
         use Gettext, otp_app: :my_app, plural_forms: MyApp.Plural
       end
 
+  **Note**: set `:plural_forms` in your `config/config.exs` and
+  not in `config/runtime.exs`, as this configuration is read when
+  compiling your backends.
+
   Notice that tasks such as `mix gettext.merge` use the plural
   backend configured under the `:gettext` application, so generally
   speaking the first format is preferred.

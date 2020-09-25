@@ -584,10 +584,15 @@ defmodule Gettext do
 
   @doc false
   defmacro __using__(opts) do
+    env_fun =
+      if function_exported?(Application, :compile_env, 3), do: :compile_env, else: :get_env
+
     quote do
       require Logger
 
-      @gettext_opts unquote(opts)
+      opts = unquote(opts)
+      otp_app = Keyword.fetch!(opts, :otp_app)
+      @gettext_opts Keyword.merge(opts, Application.unquote(env_fun)(otp_app, __MODULE__, []))
       @before_compile Gettext.Compiler
 
       def handle_missing_bindings(exception, incomplete) do
