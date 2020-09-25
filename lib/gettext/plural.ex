@@ -52,15 +52,32 @@ defmodule Gettext.Plural do
         def plural(locale, n), do: Gettext.Plural.plural(locale, n)
       end
 
-      defmodule MyApp.Gettext do
-        use Gettext, otp_app: :my_app, plural_forms: MyApp.Plural
-      end
-
   The mathematical expressions used in this module to determine the plural form
   of a given number of elements are taken from [this
   page](http://localization-guide.readthedocs.org/en/latest/l10n/pluralforms.html#f2)
   as well as from [Mozilla's guide on "Localization and
   plurals"](https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals).
+
+  Now that we have defined our custom plural forms, we can use them
+  in two ways. You can set it for all `:gettext` backends in your
+  config files:
+
+      config :gettext, :plural_forms, MyApp.Plural
+
+  Or to each specific backend:
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app, plural_forms: MyApp.Plural
+      end
+
+  Notice that tasks such as `mix gettext.merge` use the plural
+  backend configured under the `:gettext` application, so generally
+  speaking the first format is preferred.
+
+  Note some tasks also allow the number of plural forms to be given
+  explicitly, for example:
+
+      mix gettext.merge priv/gettext --locale=gsw_CH --plural-forms=2
 
   ### Unknown locales
 

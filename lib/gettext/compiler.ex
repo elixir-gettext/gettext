@@ -375,7 +375,9 @@ defmodule Gettext.Compiler do
   # Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
   # and `lngettext/6` function clauses.
   defp compile_po_files(env, known_po_files, opts) do
-    plural_mod = Keyword.get(opts, :plural_forms, Gettext.Plural)
+    plural_mod =
+      Keyword.get(opts, :plural_forms) ||
+        Application.get_env(:gettext, :plural_forms, Gettext.Plural)
 
     if Keyword.get(opts, :one_module_per_locale, false) do
       known_po_files

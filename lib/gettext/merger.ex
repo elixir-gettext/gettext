@@ -219,7 +219,8 @@ defmodule Gettext.Merger do
 
   defp put_plural_forms_opt(opts, headers, locale) do
     Keyword.put_new_lazy(opts, :plural_forms, fn ->
-      read_plural_forms_from_headers(headers) || Gettext.Plural.nplurals(locale)
+      read_plural_forms_from_headers(headers) ||
+        Application.get_env(:gettext, :plural_forms, Gettext.Plural).nplurals(locale)
     end)
   end
 

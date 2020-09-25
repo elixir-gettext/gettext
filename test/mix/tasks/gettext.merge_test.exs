@@ -110,6 +110,61 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     assert String.starts_with?(new_po, "## \"msgid\"s in this file come from POT")
   end
 
+  test "passing a dir and a --locale opt will update/create PO files in the locale dir with custom plural forms" do
+    write_file("new.pot", """
+    msgid "new"
+    msgstr ""
+    """)
+
+    output =
+      capture_io(fn ->
+        run([@priv_path, "--locale", "it", "--plural-forms", "3"])
+      end)
+
+    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/new.po"
+    new_po = read_file("it/LC_MESSAGES/new.po")
+
+    assert new_po =~ ~S"""
+           msgid ""
+           msgstr ""
+           "Language: it\n"
+           "Plural-Forms: nplurals=3\n"
+
+           msgid "new"
+           msgstr ""
+           """
+  end
+
+
+  test "passing a dir and a --locale opt will update/create PO files in the locale dir with app env plural forms" do
+    Application.put_env(:gettext, :plural_forms, GettextTest.CustomPlural)
+
+    write_file("new.pot", """
+    msgid "new"
+    msgstr ""
+    """)
+
+    output =
+      capture_io(fn ->
+        run([@priv_path, "--locale", "elv"])
+      end)
+
+    assert output =~ "Wrote tmp/gettext.merge/elv/LC_MESSAGES/new.po"
+    new_po = read_file("elv/LC_MESSAGES/new.po")
+
+    assert new_po =~ ~S"""
+           msgid ""
+           msgstr ""
+           "Language: elv\n"
+           "Plural-Forms: nplurals=2\n"
+
+           msgid "new"
+           msgstr ""
+           """
+  after
+    Application.put_env(:gettext, :plural_forms, Gettext.Plural)
+  end
+
   test "passing just a dir merges with PO files in every locale" do
     write_file("fr/LC_MESSAGES/foo.po", "")
     write_file("it/LC_MESSAGES/foo.po", "")

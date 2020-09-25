@@ -11,16 +11,7 @@ defmodule GettextTest.TranslatorWithAllowedLocales do
 end
 
 defmodule GettextTest.TranslatorWithCustomPluralForms do
-  defmodule Plural do
-    @behaviour Gettext.Plural
-    def nplurals("elv"), do: 2
-    def nplurals(other), do: Gettext.Plural.nplurals(other)
-    # Opposite of Italian (where 1 is singular, everything else is plural)
-    def plural("it", 1), do: 1
-    def plural("it", _), do: 0
-  end
-
-  use Gettext, otp_app: :test_application, plural_forms: Plural
+  use Gettext, otp_app: :test_application, plural_forms: GettextTest.CustomPlural
 end
 
 defmodule GettextTest.TranslatorWithDefaultDomain do
@@ -175,6 +166,24 @@ defmodule GettextTest do
 
     assert T.lngettext("it", "default", nil, "One new email", "%{count} new emails", 2, %{}) ==
              {:ok, "Una nuova email"}
+  end
+
+  test "using a custom Gettext.Plural module from app environment" do
+    Application.put_env(:gettext, :plural_forms, GettextTest.CustomPlural)
+
+    defmodule TranslatorWithAppPluralForms do
+      use Gettext, otp_app: :test_application
+    end
+
+    alias TranslatorWithAppPluralForms, as: T
+
+    assert T.lngettext("it", "default", nil, "One new email", "%{count} new emails", 1, %{}) ==
+             {:ok, "1 nuove email"}
+
+    assert T.lngettext("it", "default", nil, "One new email", "%{count} new emails", 2, %{}) ==
+             {:ok, "Una nuova email"}
+  after
+    Application.put_env(:gettext, :plural_forms, Gettext.Plural)
   end
 
   test "translations can be pluralized" do
