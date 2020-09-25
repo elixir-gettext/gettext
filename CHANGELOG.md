@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.18.2
+
+* Allow plural forms to be set for the gettext application
+* Use Application.compile_env if available
+
 ## v0.18.1
 
 * Allow default domain to be configurable

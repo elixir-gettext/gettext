@@ -1,7 +1,7 @@
 defmodule Gettext.Mixfile do
   use Mix.Project
 
-  @version "0.18.1"
+  @version "0.18.2"
 
   @description "Internationalization and localization through gettext"
   @repo_url "https://github.com/elixir-gettext/gettext"
