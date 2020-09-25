@@ -135,7 +135,6 @@ defmodule Mix.Tasks.Gettext.MergeTest do
            """
   end
 
-
   test "passing a dir and a --locale opt will update/create PO files in the locale dir with app env plural forms" do
     Application.put_env(:gettext, :plural_forms, GettextTest.CustomPlural)
 
