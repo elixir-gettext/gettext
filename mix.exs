@@ -39,7 +39,7 @@ defmodule Gettext.Mixfile do
   def hex_package do
     [
       maintainers: ["Andrea Leopardi", "José Valim"],
-      licenses: ["Apache 2.0"],
+      licenses: ["Apache-2.0"],
       links: %{"GitHub" => @repo_url},
       files: ~w(lib src/gettext_po_parser.yrl mix.exs *.md)
     ]
