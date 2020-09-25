@@ -4,7 +4,7 @@ defmodule Gettext.Mixfile do
   @version "0.18.1"
 
   @description "Internationalization and localization through gettext"
-  @repo_url "https://github.com/elixir-lang/gettext"
+  @repo_url "https://github.com/elixir-gettext/gettext"
 
   def project do
     [
