@@ -366,31 +366,24 @@ defmodule Gettext.Compiler do
       Keyword.get(opts, :plural_forms) ||
         Application.get_env(:gettext, :plural_forms, Gettext.Plural)
 
-    if Keyword.get(opts, :one_module_per_locale, false) do
-      known_po_files
-      |> Enum.group_by(&Map.get(&1, :locale))
-      |> Stream.map(fn {_locale, files} ->
-        {quoted, locale} =
-          Enum.map_reduce(
-            files,
-            %{},
-            &compile_parallel_po_file(env, &1, &2, plural_mod)
-          )
+    if one_module_per_locale = Keyword.get(opts, :one_module_per_locale, false) do
+      grouped_locales = Enum.group_by(known_po_files, &Map.get(&1, :locale))
 
-        {quoted, locale}
-      end)
-      |> Enum.map(fn {quoted, locale} ->
-        task =
+      if one_module_per_locale == :serial do
+        Enum.map(grouped_locales, fn {_locale, files} ->
+          compile_parallel_po_files(env, files, plural_mod)
+        end)
+      else
+        grouped_locales
+        |> Enum.map(fn {_locale, files} ->
           Kernel.ParallelCompiler.async(fn ->
-            create_locale_module(env, hd(Enum.to_list(locale)))
+            compile_parallel_po_files(env, files, plural_mod)
           end)
-
-        {task, quoted}
-      end)
-      |> Enum.map(fn {task, quoted} ->
-        Task.await(task, :infinity)
-        quoted
-      end)
+        end)
+        |> Enum.map(fn task ->
+          Task.await(task, :infinity)
+        end)
+      end
     else
       Enum.map(known_po_files, &compile_serial_po_file(env, &1, plural_mod))
     end
@@ -417,6 +410,14 @@ defmodule Gettext.Compiler do
         unquote(plural_fun)(msgctxt, msgid, msgid_plural, n, bindings)
       end
     end
+  end
+
+  defp compile_parallel_po_files(env, files, plural_mod) do
+    {quoted, locale} =
+      Enum.map_reduce(files, %{}, &compile_parallel_po_file(env, &1, &2, plural_mod))
+
+    create_locale_module(env, hd(Enum.to_list(locale)))
+    quoted
   end
 
   defp compile_parallel_po_file(env, po_file, locales, plural_mod) do

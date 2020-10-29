@@ -754,43 +754,79 @@ defmodule GettextTest do
     assert log =~ ~s(Slashes in domains are not supported: "sub/dir/domain")
   end
 
-  if function_exported?(Kernel.ParallelCompiler, :async, 1) do
-    defmodule TranslatorWithOneModulePerLocale do
-      use Gettext, otp_app: :test_application, one_module_per_locale: true
-    end
+  defmodule TranslatorWithOneModulePerLocaleParallel do
+    use Gettext, otp_app: :test_application, one_module_per_locale: true
+  end
 
-    test "may define one module per locale" do
-      import TranslatorWithOneModulePerLocale, only: [lgettext: 5, lngettext: 7]
-      assert Code.ensure_loaded?(TranslatorWithOneModulePerLocale.T_it)
+  test "may define one module per locale in parallel" do
+    import TranslatorWithOneModulePerLocaleParallel, only: [lgettext: 5, lngettext: 7]
+    assert Code.ensure_loaded?(TranslatorWithOneModulePerLocaleParallel.T_it)
 
-      # Found on default domain.
-      assert lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "Ciao mondo"}
+    # Found on default domain.
+    assert lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "Ciao mondo"}
 
-      # Found on errors domain.
-      assert lgettext("it", "errors", nil, "Invalid email address", %{}) ==
-               {:ok, "Indirizzo email non valido"}
+    # Found on errors domain.
+    assert lgettext("it", "errors", nil, "Invalid email address", %{}) ==
+             {:ok, "Indirizzo email non valido"}
 
-      # Found with plural form.
-      assert lngettext(
-               "it",
-               "errors",
-               nil,
-               "There was an error",
-               "There were %{count} errors",
-               1,
-               %{}
-             ) ==
-               {:ok, "C'è stato un errore"}
+    # Found with plural form.
+    assert lngettext(
+             "it",
+             "errors",
+             nil,
+             "There was an error",
+             "There were %{count} errors",
+             1,
+             %{}
+           ) ==
+             {:ok, "C'è stato un errore"}
 
-      # Unknown msgid.
-      assert lgettext("it", "default", nil, "nonexistent", %{}) == {:default, "nonexistent"}
+    # Unknown msgid.
+    assert lgettext("it", "default", nil, "nonexistent", %{}) == {:default, "nonexistent"}
 
-      # Unknown domain.
-      assert lgettext("it", "unknown", nil, "Hello world", %{}) == {:default, "Hello world"}
+    # Unknown domain.
+    assert lgettext("it", "unknown", nil, "Hello world", %{}) == {:default, "Hello world"}
 
-      # Unknown locale.
-      assert lgettext("pt_BR", "nonexistent", nil, "Hello world", %{}) ==
-               {:default, "Hello world"}
-    end
+    # Unknown locale.
+    assert lgettext("pt_BR", "nonexistent", nil, "Hello world", %{}) ==
+             {:default, "Hello world"}
+  end
+
+    defmodule TranslatorWithOneModulePerLocaleSerial do
+    use Gettext, otp_app: :test_application, one_module_per_locale: :serial
+  end
+
+  test "may define one module per locale in serial" do
+    import TranslatorWithOneModulePerLocaleParallel, only: [lgettext: 5, lngettext: 7]
+    assert Code.ensure_loaded?(TranslatorWithOneModulePerLocaleSerial.T_it)
+
+    # Found on default domain.
+    assert lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "Ciao mondo"}
+
+    # Found on errors domain.
+    assert lgettext("it", "errors", nil, "Invalid email address", %{}) ==
+             {:ok, "Indirizzo email non valido"}
+
+    # Found with plural form.
+    assert lngettext(
+             "it",
+             "errors",
+             nil,
+             "There was an error",
+             "There were %{count} errors",
+             1,
+             %{}
+           ) ==
+             {:ok, "C'è stato un errore"}
+
+    # Unknown msgid.
+    assert lgettext("it", "default", nil, "nonexistent", %{}) == {:default, "nonexistent"}
+
+    # Unknown domain.
+    assert lgettext("it", "unknown", nil, "Hello world", %{}) == {:default, "Hello world"}
+
+    # Unknown locale.
+    assert lgettext("pt_BR", "nonexistent", nil, "Hello world", %{}) ==
+             {:default, "Hello world"}
   end
 end

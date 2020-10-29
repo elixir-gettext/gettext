@@ -486,7 +486,10 @@ defmodule Gettext do
     * `:one_module_per_locale` - instead of bundling all locales into a single
       module, this option makes Gettext build one internal module per locale.
       This reduces compilation times and beam file sizes for large projects.
-      This option requires Elixir v1.6.
+      It can be set to either `:parallel`, so the compilation of each locale
+      is done in parallel, or to `:serial`, so each locale module is compiled
+      at a time. Parallel compilation is preferred but requires more memory.
+      Setting it to `true` is equivalent to `:parallel`.
 
     * `:allowed_locales` - a list of locales to bundle in the backend.
       Defaults to all the locales discovered in the `:priv` directory.
