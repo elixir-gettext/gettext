@@ -111,6 +111,7 @@ It is also possible to both extract and merge translations in one step with `mix
 ## License
 
 Copyright 2015 Plataformatec
+Copyright 2020 Dashbit
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
