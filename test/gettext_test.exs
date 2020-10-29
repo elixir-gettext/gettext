@@ -6,8 +6,12 @@ defmodule GettextTest.TranslatorWithCustomPriv do
   use Gettext, otp_app: :test_application, priv: "translations"
 end
 
-defmodule GettextTest.TranslatorWithAllowedLocales do
+defmodule GettextTest.TranslatorWithAllowedLocalesString do
   use Gettext, otp_app: :test_application, priv: "translations", allowed_locales: ["es"]
+end
+
+defmodule GettextTest.TranslatorWithAllowedLocalesAtom do
+  use Gettext, otp_app: :test_application, priv: "translations", allowed_locales: [:es]
 end
 
 defmodule GettextTest.TranslatorWithCustomPluralForms do
@@ -39,14 +43,14 @@ defmodule GettextTest do
 
   alias GettextTest.Translator
   alias GettextTest.TranslatorWithCustomPriv
-  alias GettextTest.TranslatorWithAllowedLocales
+  alias GettextTest.TranslatorWithAllowedLocalesString
+  alias GettextTest.TranslatorWithAllowedLocalesAtom
   alias GettextTest.TranslatorWithCustomPluralForms
   alias GettextTest.TranslatorWithDefaultDomain
   alias GettextTest.HandleMissingTranslation
 
   require Translator
   require TranslatorWithCustomPriv
-  require TranslatorWithAllowedLocales
   require TranslatorWithDefaultDomain
 
   test "the default locale is \"en\"" do
@@ -150,11 +154,23 @@ defmodule GettextTest do
     assert T.gettext("Hello world") == "Hello world"
   end
 
-  test "allowed_locales ignores other locales" do
-    assert TranslatorWithAllowedLocales.lgettext("it", "default", nil, "Hello world", %{}) ==
+  test "allowed_locales ignores other locales as strings" do
+    require TranslatorWithAllowedLocalesString
+
+    assert TranslatorWithAllowedLocalesString.lgettext("it", "default", nil, "Hello world", %{}) ==
              {:default, "Hello world"}
 
-    assert TranslatorWithAllowedLocales.lgettext("es", "default", nil, "Hello world", %{}) ==
+    assert TranslatorWithAllowedLocalesString.lgettext("es", "default", nil, "Hello world", %{}) ==
+             {:ok, "Hola mundo"}
+  end
+
+  test "allowed_locales ignores other locales as atom" do
+    require TranslatorWithAllowedLocalesAtom
+
+    assert TranslatorWithAllowedLocalesAtom.lgettext("it", "default", nil, "Hello world", %{}) ==
+             {:default, "Hello world"}
+
+    assert TranslatorWithAllowedLocalesAtom.lgettext("es", "default", nil, "Hello world", %{}) ==
              {:ok, "Hola mundo"}
   end
 
@@ -742,7 +758,8 @@ defmodule GettextTest do
   test "known_locales/1: returns all the locales for which a backend has PO files" do
     assert Gettext.known_locales(Translator) == ["it"]
     assert Gettext.known_locales(TranslatorWithCustomPriv) == ["es", "it"]
-    assert Gettext.known_locales(TranslatorWithAllowedLocales) == ["es"]
+    assert Gettext.known_locales(TranslatorWithAllowedLocalesAtom) == ["es"]
+    assert Gettext.known_locales(TranslatorWithAllowedLocalesString) == ["es"]
   end
 
   test "a warning is issued in l(n)gettext when the domain contains slashes" do
@@ -792,7 +809,7 @@ defmodule GettextTest do
              {:default, "Hello world"}
   end
 
-    defmodule TranslatorWithOneModulePerLocaleSerial do
+  defmodule TranslatorWithOneModulePerLocaleSerial do
     use Gettext, otp_app: :test_application, one_module_per_locale: :serial
   end
 

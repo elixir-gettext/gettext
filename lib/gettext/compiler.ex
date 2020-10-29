@@ -698,7 +698,7 @@ defmodule Gettext.Compiler do
   end
 
   defp maybe_restrict_locales(po_files, allowed_locales) when is_list(allowed_locales) do
-    allowed_locales = MapSet.new(allowed_locales)
+    allowed_locales = MapSet.new(Enum.map(allowed_locales, &to_string/1))
     Enum.filter(po_files, &MapSet.member?(allowed_locales, &1[:locale]))
   end
 end
