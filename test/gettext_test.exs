@@ -771,13 +771,16 @@ defmodule GettextTest do
     assert log =~ ~s(Slashes in domains are not supported: "sub/dir/domain")
   end
 
-  defmodule TranslatorWithOneModulePerLocaleParallel do
-    use Gettext, otp_app: :test_application, one_module_per_locale: true
+  defmodule TranslatorWithOneModulePerLocale do
+    use Gettext,
+      otp_app: :test_application,
+      split_module_by: [:locale],
+      split_module_compilation: :parallel
   end
 
-  test "may define one module per locale in parallel" do
-    import TranslatorWithOneModulePerLocaleParallel, only: [lgettext: 5, lngettext: 7]
-    assert Code.ensure_loaded?(TranslatorWithOneModulePerLocaleParallel.T_it)
+  test "may define one module per locale" do
+    import TranslatorWithOneModulePerLocale, only: [lgettext: 5, lngettext: 7]
+    assert Code.ensure_loaded?(TranslatorWithOneModulePerLocale.T_it)
 
     # Found on default domain.
     assert lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "Ciao mondo"}
@@ -809,13 +812,16 @@ defmodule GettextTest do
              {:default, "Hello world"}
   end
 
-  defmodule TranslatorWithOneModulePerLocaleSerial do
-    use Gettext, otp_app: :test_application, one_module_per_locale: :serial
+  defmodule TranslatorWithOneModulePerLocaleDomain do
+    use Gettext,
+      otp_app: :test_application,
+      split_module_by: [:locale, :domain],
+      split_module_compilation: :serial
   end
 
-  test "may define one module per locale in serial" do
-    import TranslatorWithOneModulePerLocaleParallel, only: [lgettext: 5, lngettext: 7]
-    assert Code.ensure_loaded?(TranslatorWithOneModulePerLocaleSerial.T_it)
+  test "may define one module per locale and domain" do
+    import TranslatorWithOneModulePerLocaleDomain, only: [lgettext: 5, lngettext: 7]
+    assert Code.ensure_loaded?(TranslatorWithOneModulePerLocaleDomain.T_it_default)
 
     # Found on default domain.
     assert lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "Ciao mondo"}

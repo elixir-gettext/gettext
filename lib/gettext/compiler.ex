@@ -366,36 +366,53 @@ defmodule Gettext.Compiler do
       Keyword.get(opts, :plural_forms) ||
         Application.get_env(:gettext, :plural_forms, Gettext.Plural)
 
-    if one_module_per_locale = Keyword.get(opts, :one_module_per_locale, false) do
-      grouped_locales = Enum.group_by(known_po_files, &Map.get(&1, :locale))
+    opts =
+      if opts[:one_module_per_locale] do
+        IO.warn(
+          ":one_module_per_locale is deprecatead, please use split_module_by: [:locale] instead"
+        )
 
-      if one_module_per_locale == :serial do
-        Enum.map(grouped_locales, fn {_locale, files} ->
-          compile_parallel_po_files(env, files, plural_mod)
-        end)
+        Keyword.put_new(opts, :split_module_by, [:locale])
       else
-        grouped_locales
-        |> Enum.map(fn {_locale, files} ->
-          Kernel.ParallelCompiler.async(fn ->
-            compile_parallel_po_files(env, files, plural_mod)
-          end)
-        end)
-        |> Enum.map(fn task ->
-          Task.await(task, :infinity)
-        end)
+        opts
       end
-    else
-      Enum.map(known_po_files, &compile_serial_po_file(env, &1, plural_mod))
+
+    case List.wrap(opts[:split_module_by]) do
+      [] ->
+        Enum.map(known_po_files, &compile_unified_po_file(env, &1, plural_mod))
+
+      split ->
+        grouped = Enum.group_by(known_po_files, &split_module_name(env, &1, split))
+
+        case Keyword.get(opts, :split_module_compilation, :parallel) do
+          :serial ->
+            Enum.map(grouped, fn {module, files} ->
+              compile_split_po_files(env, module, files, plural_mod)
+            end)
+
+          :parallel ->
+            grouped
+            |> Enum.map(fn {module, files} ->
+              Kernel.ParallelCompiler.async(fn ->
+                compile_split_po_files(env, module, files, plural_mod)
+              end)
+            end)
+            |> Enum.map(fn task ->
+              Task.await(task, :infinity)
+            end)
+        end
     end
   end
 
-  defp create_locale_module(env, {module, translations}) do
-    exprs = [quote(do: @moduledoc(false)) | translations]
-    Module.create(module, block(exprs), env)
-    :ok
+  defp split_module_name(env, po_file, split) do
+    String.to_atom(
+      "#{env.module}.T" <>
+        if(:locale in split, do: "_" <> po_file.locale, else: "") <>
+        if(:domain in split, do: "_" <> po_file.domain, else: "")
+    )
   end
 
-  defp compile_serial_po_file(env, po_file, plural_mod) do
+  defp compile_unified_po_file(env, po_file, plural_mod) do
     {locale, domain, singular_fun, plural_fun, quoted} =
       compile_po_file(:defp, po_file, env, plural_mod)
 
@@ -412,19 +429,17 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp compile_parallel_po_files(env, files, plural_mod) do
-    {quoted, locale} =
-      Enum.map_reduce(files, %{}, &compile_parallel_po_file(env, &1, &2, plural_mod))
+  defp compile_split_po_files(env, module, files, plural_mod) do
+    {current, split} =
+      Enum.reduce(files, {[], []}, &compile_split_po_file(env, module, plural_mod, &1, &2))
 
-    create_locale_module(env, hd(Enum.to_list(locale)))
-    quoted
+    create_split_module(env, module, split)
+    current
   end
 
-  defp compile_parallel_po_file(env, po_file, locales, plural_mod) do
-    {locale, domain, singular_fun, plural_fun, locale_module_quoted} =
+  defp compile_split_po_file(env, module, plural_mod, po_file, {acc1, acc2}) do
+    {locale, domain, singular_fun, plural_fun, split_module_quoted} =
       compile_po_file(:def, po_file, env, plural_mod)
-
-    module = :"#{env.module}.T_#{locale}"
 
     current_module_quoted =
       quote do
@@ -437,8 +452,13 @@ defmodule Gettext.Compiler do
         end
       end
 
-    locales = Map.update(locales, module, [locale_module_quoted], &[locale_module_quoted | &1])
-    {current_module_quoted, locales}
+    {[current_module_quoted | acc1], [split_module_quoted | acc2]}
+  end
+
+  defp create_split_module(env, module, translations) do
+    exprs = [quote(do: @moduledoc(false)) | translations]
+    Module.create(module, block(exprs), env)
+    :ok
   end
 
   # Compiles a .po file into a list of lgettext/5 (for translations) and
