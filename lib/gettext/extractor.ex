@@ -266,7 +266,7 @@ defmodule Gettext.Extractor do
     ## translations that can't be statically extracted.
     ##
     ## Run "mix gettext.extract" to bring this file up to
-    ## date. Leave "msgstr"s empty as changing them here as no
+    ## date. Leave "msgstr"s empty as changing them here has no
     ## effect: edit them in PO (.po) files instead.
     """
   end
