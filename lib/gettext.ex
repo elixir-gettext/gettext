@@ -42,7 +42,7 @@ defmodule Gettext do
         3
       )
 
-  The arguments for the Gettext macros and their order can be derived froe
+  The arguments for the Gettext macros and their order can be derived from
   their names. For `dpgettext/4` the arguments are: `domain`, `context`,
   `msgid`, `bindings` (default to `%{}`).
 
@@ -186,8 +186,8 @@ defmodule Gettext do
     * `pgettext/3`
     * `dpgettext/4`
     * `ngettext/4`
-    * `dngettext/5`
-    * `pngettext/5`
+    * `dngettext/6`
+    * `pngettext/6`
     * `dpngettext/6`
     * all macros above with a `_noop` suffix (and without accepting bindings), for
       example `pgettext_noop/2`

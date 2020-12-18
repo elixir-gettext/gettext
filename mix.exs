@@ -23,7 +23,9 @@ defmodule Gettext.Mixfile do
       docs: [
         source_ref: "v#{@version}",
         main: "Gettext",
-        source_url: @repo_url
+        source_url: @repo_url,
+        extras: ["CHANGELOG.md"],
+        skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
       ]
     ]
   end
@@ -40,8 +42,11 @@ defmodule Gettext.Mixfile do
     [
       maintainers: ["Andrea Leopardi", "José Valim"],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => @repo_url},
-      files: ~w(lib src/gettext_po_parser.yrl mix.exs *.md)
+      files: ~w(lib src/gettext_po_parser.yrl mix.exs *.md),
+      links: %{
+        "Changelog" => "https://hexdocs.pm/gettext/changelog.html",
+        "GitHub" => @repo_url
+      }
     ]
   end
 

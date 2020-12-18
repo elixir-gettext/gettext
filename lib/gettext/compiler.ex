@@ -322,7 +322,7 @@ defmodule Gettext.Compiler do
   end
 
   @doc """
-  Appends the given comment to the list of extrated comments in the process dictionary.
+  Appends the given comment to the list of extracted comments in the process dictionary.
   """
   @spec append_extracted_comment(binary) :: :ok
   def append_extracted_comment(comment) do
