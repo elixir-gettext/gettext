@@ -26,7 +26,7 @@ defmodule Gettext.Merger do
   `old` will kept as long as they match with translations in `new`; all other
   translations will be discarded (as `new` is considered to be the reference).
 
-  The `Gettext.PO` struct that this function returns is *alway* meant to be a PO
+  The `Gettext.PO` struct that this function returns is *always* meant to be a PO
   file, not a POT file.
 
   `new` can be:
