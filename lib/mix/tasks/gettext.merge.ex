@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   Translations in the updated PO/POT file that have an exact match (a
   translation with the same msgid) in the old PO file are merged as described
-  above. When a translation in the update PO/POT files has no match in the old
+  above. When a translation in the updated PO/POT files has no match in the old
   PO file, a fuzzy match for that translation is attempted. For example, assume
   we have this POT file:
 
@@ -90,11 +90,11 @@ defmodule Mix.Tasks.Gettext.Merge do
       files.
 
     * `--fuzzy-threshold` - a float between `0` and `1` which represents the
-      miminum Jaro distance needed for two translations to be considered a fuzzy
+      minimum Jaro distance needed for two translations to be considered a fuzzy
       match. Overrides the global `:fuzzy_threshold` option (see the docs for
       `Gettext` for more information on this option).
 
-    * `--plural-forms` - a integer strictly greater than `0`. If this is passed,
+    * `--plural-forms` - an integer strictly greater than `0`. If this is passed,
       new translations in the target PO files will have this number of empty
       plural forms. See the "Plural forms" section above.
 
