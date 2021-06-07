@@ -88,16 +88,18 @@ defmodule Gettext.Plural do
   Trying to call `Gettext.Plural` functions with unknown locales will result in
   a `Gettext.Plural.UnknownLocaleError` exception.
 
-  ### Language and country
+  ### Language and territory
 
-  Often, a locale is composed as a language and country couple, such as
+  Often, a locale is composed as a language and territory couple, such as
   `en_US`. The default implementation for `Gettext.Plural` handles `xx_YY` by
   forwarding it to `xx` (except for *just Brazilian Portuguese*, `pt_BR`, which
   is not forwarded to `pt` as pluralization rules slightly differ). We treat the
-  underscore as a separator according to ISO 15897. Sometimes, a dash `-` is
-  used as a separator (for example, `en-US`): this is not forwarded to `en` in the
-  default `Gettext.Plural` (and it will raise an `Gettext.Plural.UnknownLocaleError`
-  exception).
+  underscore as a separator according to
+  [ISO 15897](https://en.wikipedia.org/wiki/ISO/IEC_15897). Sometimes, a dash `-` is
+  used as a separator (for example [BCP47](https://en.wikipedia.org/wiki/IETF_language_tag)
+  locales use this as in `en-US`): this is not forwarded to `en` in the default
+  `Gettext.Plural` (and it will raise an `Gettext.Plural.UnknownLocaleError` exception
+  if there are no translations for `en-US`).
 
   ## Examples
 
@@ -502,7 +504,7 @@ defmodule Gettext.Plural do
 
   # Match-all clause.
   def nplurals(locale) do
-    recall_if_country_or_raise(locale, &nplurals/1)
+    recall_if_territory_or_raise(locale, &nplurals/1)
   end
 
   # Plural form of groupable languages.
@@ -670,12 +672,12 @@ defmodule Gettext.Plural do
 
   # Match-all clause.
   def plural(locale, n) do
-    recall_if_country_or_raise(locale, &plural(&1, n))
+    recall_if_territory_or_raise(locale, &plural(&1, n))
   end
 
-  defp recall_if_country_or_raise(locale, fun) do
+  defp recall_if_territory_or_raise(locale, fun) do
     case String.split(locale, "_", parts: 2, trim: true) do
-      [lang, _country] -> fun.(lang)
+      [lang, _territory] -> fun.(lang)
       _other -> raise UnknownLocaleError, locale
     end
   end
