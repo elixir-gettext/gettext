@@ -14,7 +14,7 @@ defmodule Gettext.PluralTest do
     assert plural("pt_BR", 1) == 0
   end
 
-  test "locale with a country" do
+  test "locale with a territory" do
     # The _XX in en_XX gets stripped and en_XX is pluralized as en.
     assert nplurals("en_XX") == nplurals("en")
     assert plural("en_XX", 100) == plural("en", 100)
@@ -25,7 +25,7 @@ defmodule Gettext.PluralTest do
     assert_raise UnknownLocaleError, message, fn -> nplurals("wat") end
     assert_raise UnknownLocaleError, message, fn -> plural("wat", 1) end
 
-    # This happens with dash as the country/locale separator
+    # This happens with dash as the territory/locale separator
     # (https://en.wikipedia.org/wiki/IETF_language_tag).
     message = ~r/unknown locale "en-us"/
     assert_raise UnknownLocaleError, message, fn -> nplurals("en-us") end

@@ -12,11 +12,11 @@ defmodule Gettext.Backend do
 
   For example, if something like this is called:
 
-      MyApp.Gettext.gettext("Hello %{name}, welcome to %{country}", name: "Jane", country: "Italy")
+      MyApp.Gettext.gettext("Hello %{name}, welcome to %{territory}", name: "Jane", territory: "Italy")
 
   and our `it/LC_MESSAGES/default.po` looks like this:
 
-      msgid "Hello %{name}, welcome to %{country}"
+      msgid "Hello %{name}, welcome to %{territory}"
       msgstr "Ciao %{name}, benvenuto in %{cowntry}" # (typo)
 
   then Gettext will call:
@@ -29,8 +29,8 @@ defmodule Gettext.Backend do
         backend: MyApp.Gettext,
         domain: "default",
         locale: "it",
-        msgid: "Hello %{name}, welcome to %{country}",
-        bindings: [:country],
+        msgid: "Hello %{name}, welcome to %{territory}",
+        bindings: [:territory],
       }
 
   The return value of the `c:handle_missing_bindings/2` callback is used as the
