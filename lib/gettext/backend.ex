@@ -12,16 +12,16 @@ defmodule Gettext.Backend do
 
   For example, if something like this is called:
 
-      MyApp.Gettext.gettext("Hello %{name}, welcome to %{territory}", name: "Jane", territory: "Italy")
+      MyApp.Gettext.gettext("Hello %{name}, your favorite color is %{color}", name: "Jane", color: "blue")
 
   and our `it/LC_MESSAGES/default.po` looks like this:
 
-      msgid "Hello %{name}, welcome to %{territory}"
-      msgstr "Ciao %{name}, benvenuto in %{cowntry}" # (typo)
+      msgid "Hello %{name}, your favorite color is %{color}"
+      msgstr "Ciao %{name}, il tuo colore preferito è %{colour}" # (typo)
 
   then Gettext will call:
 
-      MyApp.Gettext.handle_missing_bindings(exception, "Ciao Jane, benvenuto in %{cowntry}")
+      MyApp.Gettext.handle_missing_bindings(exception, "Ciao Jane, il tuo colore preferito è %{colour}")
 
   where `exception` is a struct that looks like this:
 
@@ -29,8 +29,8 @@ defmodule Gettext.Backend do
         backend: MyApp.Gettext,
         domain: "default",
         locale: "it",
-        msgid: "Hello %{name}, welcome to %{territory}",
-        bindings: [:territory],
+        msgid: "Ciao %{name}, il tuo colore preferito è %{colour}",
+        bindings: [:colour],
       }
 
   The return value of the `c:handle_missing_bindings/2` callback is used as the
