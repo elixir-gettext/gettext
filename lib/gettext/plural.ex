@@ -11,7 +11,7 @@ defmodule Gettext.Plural do
   > For a given language, there is a grammatical rule on how to change words
   > depending on the number qualifying the word. Different languages can have
   > different rules.
-  [[source]](https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals)
+  [[source]](https://udn.realityripple.com/docs/Mozilla/Localization/Localization_and_Plurals)
 
   Such grammatical rules define a number of **plural forms**. For example,
   English has two plural forms: one for when there is just one element (the
@@ -56,7 +56,7 @@ defmodule Gettext.Plural do
   of a given number of elements are taken from [this
   page](http://localization-guide.readthedocs.org/en/latest/l10n/pluralforms.html#f2)
   as well as from [Mozilla's guide on "Localization and
-  plurals"](https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals).
+  plurals"](https://udn.realityripple.com/docs/Mozilla/Localization/Localization_and_Plurals).
 
   Now that we have defined our custom plural forms, we can use them
   in two ways. You can set it for all `:gettext` backends in your
