@@ -54,25 +54,32 @@ defmodule Gettext.Backend do
   @doc """
   Default handling for translations with a missing translation.
 
-  When a Gettext function/macro is called with a string to translate into a locale but that
-  locale doesn't provide a translation for that string, this callback is invoked. `msgid` is the
-  string that Gettext tried to translate.
+  When a Gettext function/macro is called with a string to translate
+  into a locale but that locale doesn't provide a translation for that
+  string, this callback is invoked. `msgid` is the string that Gettext
+  tried to translate.
 
-  This function should return `{:ok, translated}` if a translation can be fetched or constructed
-  for the given string, or `{:default, msgid}` otherwise.
+  This function should return `{:ok, translated}` if a translation can be
+  fetched or constructed for the given string. If you cannot find a
+  translation, it should return `{:default, translated}`, where the
+  translated string defaults to the interpolated msgid. You can, however,
+  customize the default to, for example, pick the translation from the
+  default locale. The important is to return `:default` instead of `:ok`
+  whenever the result does not quite match the requested locale.
   """
   @callback handle_missing_translation(
               Gettext.locale(),
               domain :: String.t(),
               msgid :: String.t(),
               bindings :: map()
-            ) :: {:ok | :default, String.t()}
+            ) ::
+              {:ok, String.t()} | {:default, String.t()} | {:missing_bindings, String.t(), [atom]}
 
   @doc """
   Default handling for plural translations with a missing translation.
 
-  Same as `c:handle_missing_translation/4`, but for plural translations. In this case, `n` is
-  the number used for pluralizing the translated string.
+  Same as `c:handle_missing_translation/4`, but for plural translations.
+  In this case, `n` is the number used for pluralizing the translated string.
   """
   @callback handle_missing_plural_translation(
               Gettext.locale(),
@@ -81,7 +88,8 @@ defmodule Gettext.Backend do
               msgid_plural :: String.t(),
               n :: non_neg_integer(),
               bindings :: map()
-            ) :: {:ok | :default, String.t()}
+            ) ::
+              {:ok, String.t()} | {:default, String.t()} | {:missing_bindings, String.t(), [atom]}
 
   @doc """
   Translates the given `msgid` with a given context (`msgctxt`) in the given `domain`.

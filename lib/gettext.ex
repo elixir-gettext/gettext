@@ -1082,8 +1082,4 @@ defmodule Gettext do
 
     backend.handle_missing_bindings(exception, incomplete)
   end
-
-  defp handle_backend_result({:error, reason}, _backend, _locale, _domain, _msgctxt, _msgid) do
-    raise Error, reason
-  end
 end
