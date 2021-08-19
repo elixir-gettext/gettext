@@ -9,6 +9,11 @@ msgid_plural "You have %{count} messages, %{name}"
 msgstr[0] "Hai un messaggio, %{name}"
 msgstr[1] "Hai %{count} messaggi, %{name}"
 
+msgid "Month"
+msgid_plural "%{count} months"
+msgstr[0] "Mese"
+msgstr[1] "%{count} mesi"
+
 msgctxt "test"
 msgid "You have one message, %{name}"
 msgid_plural "You have %{count} messages, %{name}"

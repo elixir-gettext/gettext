@@ -907,7 +907,7 @@ defmodule Gettext do
 
   """
   @spec dngettext(module, binary, binary, binary, non_neg_integer, bindings) :: binary
-  def dngettext(backend, domain, msgid, msgid_plural, n, bindings),
+  def dngettext(backend, domain, msgid, msgid_plural, n, bindings \\ %{}),
     do: dpngettext(backend, domain, nil, msgid, msgid_plural, n, bindings)
 
   @doc """
