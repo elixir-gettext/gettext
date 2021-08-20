@@ -566,6 +566,13 @@ defmodule GettextTest do
              2,
              %{name: "James"}
            ) == "Hai 2 messaggi, James"
+
+    assert Translator.dngettext(
+             "interpolations",
+             "Month",
+             "%{count} months",
+             2
+           ) == "2 mesi"
   end
 
   @ngettext_msgid "One new email"
@@ -663,6 +670,9 @@ defmodule GettextTest do
 
     assert Gettext.dngettext(Translator, "interpolations", msgid, msgid_plural, 5, %{name: "Meg"}) ==
              "Hai 5 messaggi, Meg"
+
+    assert Gettext.dngettext(Translator, "interpolations", "Month", "%{count} months", 5) ==
+             "5 mesi"
   end
 
   test "dpngettext/6" do
