@@ -58,6 +58,14 @@ defmodule Gettext.MergerTest do
       assert t.comments == ["# existing comment"]
     end
 
+    test "when translations match, existing translator flags are preserved" do
+      old_po = %PO{translations: [%Translation{msgid: "foo", flags: MapSet.new(["fuzzy"])}]}
+      new_pot = %PO{translations: [%Translation{msgid: "foo"}]}
+
+      assert {%PO{translations: [t]}, _stats} = Merger.merge(old_po, new_pot, "en", @opts)
+      assert MapSet.member?(t.flags, "fuzzy")
+    end
+
     test "when translations match, existing extracted comments are replaced by new ones" do
       old_po = %PO{
         translations: [

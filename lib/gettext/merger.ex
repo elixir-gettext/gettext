@@ -151,7 +151,7 @@ defmodule Gettext.Merger do
       msgstr: old.msgstr,
       comments: old.comments,
       extracted_comments: new.extracted_comments,
-      flags: new.flags,
+      flags: MapSet.union(old.flags, new.flags),
       references: new.references
     }
   end
@@ -164,7 +164,7 @@ defmodule Gettext.Merger do
       msgstr: old.msgstr,
       comments: old.comments,
       extracted_comments: new.extracted_comments,
-      flags: new.flags,
+      flags: MapSet.union(old.flags, new.flags),
       references: new.references
     }
   end
