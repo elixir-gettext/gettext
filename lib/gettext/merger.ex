@@ -141,7 +141,7 @@ defmodule Gettext.Merger do
   # msgstr: new.msgstr should be empty since it comes from a POT file
   # comments: new has no translator comments as it comes from POT
   # extracted_comments: we should take the new most recent ones
-  # flags: we should take the new flags
+  # flags: we should take the new flags and preserve the fuzzy flag
   # references: new contains the updated and most recent references
 
   defp merge_two_translations(%Translation{} = old, %Translation{} = new) do
@@ -151,7 +151,7 @@ defmodule Gettext.Merger do
       msgstr: old.msgstr,
       comments: old.comments,
       extracted_comments: new.extracted_comments,
-      flags: new.flags,
+      flags: merge_flags(old.flags, new.flags),
       references: new.references
     }
   end
@@ -164,9 +164,17 @@ defmodule Gettext.Merger do
       msgstr: old.msgstr,
       comments: old.comments,
       extracted_comments: new.extracted_comments,
-      flags: new.flags,
+      flags: merge_flags(old.flags, new.flags),
       references: new.references
     }
+  end
+
+  defp merge_flags(%MapSet{} = old, %MapSet{} = new) do
+    if MapSet.member?(old, "fuzzy") do
+      MapSet.put(new, "fuzzy")
+    else
+      new
+    end
   end
 
   @doc """
