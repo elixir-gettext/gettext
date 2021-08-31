@@ -186,7 +186,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     pot_dir
     |> Path.join("*.pot")
     |> Path.wildcard()
-    |> Task.async_stream(merger, ordered: false, timeout: 10_000)
+    |> Task.async_stream(merger, ordered: false, timeout: 60_000)
     |> Stream.run()
 
     warn_for_po_without_pot(po_dir, pot_dir)
