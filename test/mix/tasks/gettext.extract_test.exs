@@ -11,19 +11,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
   end
 
   test "extracting and extracting with --merge" do
-    write_file("mix.exs", """
-    defmodule MyApp.MixProject do
-      use Mix.Project
-
-      def project() do
-        [app: :my_app, version: "0.1.0"]
-      end
-
-      def application() do
-        [extra_applications: [:logger, :gettext]]
-      end
-    end
-    """)
+    create_test_mix_file()
 
     write_file("lib/my_app.ex", """
     defmodule MyApp.Gettext do
@@ -71,6 +59,95 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
            msgid "other"
            msgstr ""
            """
+  end
+
+  test "--check-unextracted should fail if no POT files have been created" do
+    create_test_mix_file()
+
+    write_file("lib/my_app.ex", """
+    defmodule MyApp.Gettext do
+      use Gettext, otp_app: :my_app
+    end
+
+    defmodule MyApp do
+      require MyApp.Gettext
+      def foo(), do: MyApp.Gettext.gettext("hello")
+    end
+    """)
+
+    expected_message = """
+    mix gettext.extract failed due to --check-unextracted.
+    The following POT files were not extracted or are out of date:
+      * priv/gettext/default.pot
+    """
+
+    capture_io(fn ->
+      assert_raise Mix.Error, expected_message, fn ->
+        Mix.Project.in_project(:my_app, tmp_path("/"), fn _module ->
+          run(["--check-unextracted"])
+        end)
+      end
+    end)
+  end
+
+  test "--check-unextracted should fail if POT files are outdated" do
+    create_test_mix_file()
+
+    write_file("lib/my_app.ex", """
+    defmodule MyApp.Gettext do
+      use Gettext, otp_app: :my_app
+    end
+
+    defmodule MyApp do
+      require MyApp.Gettext
+      def foo(), do: MyApp.Gettext.gettext("hello")
+    end
+    """)
+
+    capture_io(fn ->
+      Mix.Project.in_project(:my_app, tmp_path("/"), fn _module -> run([]) end)
+    end)
+
+    write_file("lib/my_app.ex", """
+    defmodule MyApp.Gettext do
+    use Gettext, otp_app: :my_app
+    end
+
+    defmodule MyApp do
+    require MyApp.Gettext
+    def foo(), do: MyApp.Gettext.gettext("new text")
+    end
+    """)
+
+    expected_message = """
+    mix gettext.extract failed due to --check-unextracted.
+    The following POT files were not extracted or are out of date:
+      * priv/gettext/default.pot
+    """
+
+    capture_io(fn ->
+      assert_raise Mix.Error, expected_message, fn ->
+        Mix.Project.in_project(:my_app, tmp_path("/"), fn _module ->
+          run(["--check-unextracted"])
+        end)
+      end
+    end)
+  end
+
+  defp create_test_mix_file do
+    write_file("mix.exs", """
+    defmodule MyApp.MixProject do
+      use Mix.Project
+
+      def project() do
+        [app: :my_app, version: "0.1.0"]
+      end
+
+      def application() do
+        [extra_applications: [:logger, :gettext]]
+      end
+    end
+    """)
   end
 
   defp write_file(path, contents) do
