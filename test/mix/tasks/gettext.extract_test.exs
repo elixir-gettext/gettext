@@ -5,25 +5,19 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
   @priv_path "../../../tmp/gettext.extract" |> Path.expand(__DIR__) |> Path.relative_to_cwd()
 
+  setup_all do
+    # To suppress the `redefining module MyApp` warnings for the test modules
+    Code.compiler_options(ignore_module_conflict: true)
+    :ok
+  end
+
   setup do
     File.rm_rf!(@priv_path)
     :ok
   end
 
   test "extracting and extracting with --merge" do
-    write_file("mix.exs", """
-    defmodule MyApp.MixProject do
-      use Mix.Project
-
-      def project() do
-        [app: :my_app, version: "0.1.0"]
-      end
-
-      def application() do
-        [extra_applications: [:logger, :gettext]]
-      end
-    end
-    """)
+    create_test_mix_file()
 
     write_file("lib/my_app.ex", """
     defmodule MyApp.Gettext do
@@ -71,6 +65,110 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
            msgid "other"
            msgstr ""
            """
+  end
+
+  test "--check-up-to-date should fail if no POT files have been created" do
+    create_test_mix_file()
+
+    write_file("lib/my_app.ex", """
+    defmodule MyApp.Gettext do
+    use Gettext, otp_app: :my_app
+    end
+
+    defmodule MyApp do
+    require MyApp.Gettext
+    def foo(), do: MyApp.Gettext.gettext("hello")
+    end
+    """)
+
+    write_file("lib/other.ex", """
+    defmodule MyApp.Other do
+      require MyApp.Gettext
+      def foo(), do: MyApp.Gettext.dgettext("my_domain", "other")
+    end
+    """)
+
+    expected_message = """
+    mix gettext.extract failed due to --check-up-to-date.
+    The following POT files were not extracted or are out of date:
+      * priv/gettext/my_domain.pot
+      * priv/gettext/default.pot
+    """
+
+    capture_io(fn ->
+      assert_raise Mix.Error, expected_message, fn ->
+        Mix.Project.in_project(:my_app, tmp_path("/"), fn _module ->
+          run(["--check-up-to-date"])
+        end)
+      end
+    end)
+  end
+
+  test "--check-up-to-date should fail if POT files are outdated" do
+    create_test_mix_file()
+
+    write_file("lib/my_app.ex", """
+    defmodule MyApp.Gettext do
+    use Gettext, otp_app: :my_app
+    end
+
+    defmodule MyApp do
+    require MyApp.Gettext
+    def foo(), do: MyApp.Gettext.gettext("hello")
+    end
+    """)
+
+    write_file("lib/other.ex", """
+    defmodule MyApp.Other do
+      require MyApp.Gettext
+      def foo(), do: MyApp.Gettext.dgettext("my_domain", "other")
+    end
+    """)
+
+    capture_io(fn ->
+      Mix.Project.in_project(:my_app, tmp_path("/"), fn _module -> run([]) end)
+    end)
+
+    write_file("lib/my_app.ex", """
+    defmodule MyApp.Gettext do
+    use Gettext, otp_app: :my_app
+    end
+
+    defmodule MyApp do
+    require MyApp.Gettext
+    def foo(), do: MyApp.Gettext.gettext("new text")
+    end
+    """)
+
+    expected_message = """
+    mix gettext.extract failed due to --check-up-to-date.
+    The following POT files were not extracted or are out of date:
+      * priv/gettext/default.pot
+    """
+
+    capture_io(fn ->
+      assert_raise Mix.Error, expected_message, fn ->
+        Mix.Project.in_project(:my_app, tmp_path("/"), fn _module ->
+          run(["--check-up-to-date"])
+        end)
+      end
+    end)
+  end
+
+  defp create_test_mix_file do
+    write_file("mix.exs", """
+    defmodule MyApp.MixProject do
+      use Mix.Project
+
+      def project() do
+        [app: :my_app, version: "0.1.0"]
+      end
+
+      def application() do
+        [extra_applications: [:logger, :gettext]]
+      end
+    end
+    """)
   end
 
   defp write_file(path, contents) do

@@ -14,6 +14,13 @@ defmodule Mix.Tasks.Gettext.Extract do
   and `:priv` options given by Gettext modules when they call `use Gettext`. One
   POT file is generated for each translation domain.
 
+  If you would like to verify that your POT files are up to date with the
+  current state of the codebase, you can provide the `--check-up-to-date`
+  flag. Note that this validation will fail even when the same calls to gettext
+  only change location in the codebase:
+
+      mix gettext.extract --check-up-to-date
+
   It is possible to give the `--merge` option to perform merging
   for every Gettext backend updated during merge:
 
@@ -27,7 +34,7 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   """
 
-  @switches [merge: :boolean]
+  @switches [merge: :boolean, check_up_to_date: :boolean]
 
   def run(args) do
     Application.ensure_all_started(:gettext)
@@ -36,6 +43,14 @@ defmodule Mix.Tasks.Gettext.Extract do
     {opts, _} = OptionParser.parse!(args, switches: @switches)
     pot_files = extract(mix_config[:app], mix_config[:gettext] || [])
 
+    if opts[:check_up_to_date] do
+      run_up_to_date_check(pot_files)
+    else
+      run_translation_extraction(pot_files, opts, args)
+    end
+  end
+
+  defp run_translation_extraction(pot_files, opts, args) do
     for {path, contents} <- pot_files do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)
@@ -47,6 +62,41 @@ defmodule Mix.Tasks.Gettext.Extract do
     end
 
     :ok
+  end
+
+  defp run_up_to_date_check(pot_files) do
+    pot_files
+    |> Enum.reduce([], fn {path, contents}, not_extracted_acc ->
+      cond do
+        not File.exists?(path) ->
+          [path | not_extracted_acc]
+
+        not file_contents_match?(path, contents) ->
+          [path | not_extracted_acc]
+
+        true ->
+          not_extracted_acc
+      end
+    end)
+    |> check!()
+  end
+
+  defp file_contents_match?(path, contents) do
+    File.read!(path) == contents
+  end
+
+  defp check!([]), do: :ok
+
+  defp check!(not_extracted) do
+    Mix.raise("""
+    mix gettext.extract failed due to --check-up-to-date.
+    The following POT files were not extracted or are out of date:
+    #{to_bullet_list(not_extracted)}
+    """)
+  end
+
+  defp to_bullet_list(files) do
+    Enum.map_join(files, "\n", &"  * #{&1 |> to_string() |> Path.relative_to_cwd()}")
   end
 
   defp extract(app, gettext_config) do
