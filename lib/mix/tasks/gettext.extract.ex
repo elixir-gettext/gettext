@@ -16,7 +16,8 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   If you would like to verify that your POT files are up to date with the
   current state of the codebase, you can provide the `--check-up-to-date`
-  flag. Note that this validation will fail even when the same calls to gettext
+  flag. This is particularly useful for automated checks and in CI systems.
+  This validation will fail even when the same calls to gettext
   only change location in the codebase:
 
       mix gettext.extract --check-up-to-date
@@ -65,38 +66,21 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp run_up_to_date_check(pot_files) do
-    pot_files
-    |> Enum.reduce([], fn {path, contents}, not_extracted_acc ->
-      cond do
-        not File.exists?(path) ->
-          [path | not_extracted_acc]
+    not_extracted_paths =
+      for {path, contents} <- pot_files,
+          not File.exists?(path) or File.read!(path) != contents,
+          do: path
 
-        not file_contents_match?(path, contents) ->
-          [path | not_extracted_acc]
+    if not_extracted_paths == [] do
+      :ok
+    else
+      Mix.raise("""
+      mix gettext.extract failed due to --check-up-to-date.
+      The following POT files were not extracted or are out of date:
 
-        true ->
-          not_extracted_acc
-      end
-    end)
-    |> check!()
-  end
-
-  defp file_contents_match?(path, contents) do
-    File.read!(path) == contents
-  end
-
-  defp check!([]), do: :ok
-
-  defp check!(not_extracted) do
-    Mix.raise("""
-    mix gettext.extract failed due to --check-up-to-date.
-    The following POT files were not extracted or are out of date:
-    #{to_bullet_list(not_extracted)}
-    """)
-  end
-
-  defp to_bullet_list(files) do
-    Enum.map_join(files, "\n", &"  * #{&1 |> to_string() |> Path.relative_to_cwd()}")
+      #{Enum.map_join(not_extracted_paths, "\n", &"  * #{&1 |> Path.relative_to_cwd()}")}
+      """)
+    end
   end
 
   defp extract(app, gettext_config) do

@@ -91,8 +91,9 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     expected_message = """
     mix gettext.extract failed due to --check-up-to-date.
     The following POT files were not extracted or are out of date:
-      * priv/gettext/my_domain.pot
+
       * priv/gettext/default.pot
+      * priv/gettext/my_domain.pot
     """
 
     capture_io(fn ->
@@ -143,6 +144,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     expected_message = """
     mix gettext.extract failed due to --check-up-to-date.
     The following POT files were not extracted or are out of date:
+
       * priv/gettext/default.pot
     """
 
