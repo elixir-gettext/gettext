@@ -27,8 +27,6 @@ defmodule Gettext.PO do
           file: nil | Path.t()
         }
 
-  @wrapping_column 80
-  @reference_comment_length String.length("#:")
   @bom <<0xEF, 0xBB, 0xBF>>
 
   @doc """
@@ -267,40 +265,10 @@ defmodule Gettext.PO do
   end
 
   defp dump_references(references) do
-    # This function outputs a bunch of #: comments with as many references on
-    # each line as there can be under @reference_wrapping_column columns.
-    wrapping_column = @wrapping_column - @reference_comment_length
+    # This function outputs a line of #: comments for each reference
 
     references
-    |> chunk_references_by_line(wrapping_column, _line_length = 0, _chunk = [], _acc = [])
-    |> Enum.map(fn line -> ["#:", line, ?\n] end)
-  end
-
-  defp chunk_references_by_line([], _wrapping_col, _line_length, _chunk_acc = [], acc) do
-    Enum.reverse(acc)
-  end
-
-  defp chunk_references_by_line([], _wrapping_col, _line_length, _chunk_acc = chunk_acc, acc) do
-    acc = [Enum.reverse(chunk_acc) | acc]
-    Enum.reverse(acc)
-  end
-
-  defp chunk_references_by_line([{file, line} | rest], wrapping_col, line_length, chunk_acc, acc) do
-    ref = " #{file}:#{line}"
-    ref_length = String.length(ref)
-
-    cond do
-      ref_length + line_length > wrapping_col and chunk_acc == [] ->
-        chunk_references_by_line(rest, wrapping_col, 0, [ref], acc)
-
-      ref_length + line_length > wrapping_col ->
-        acc = [Enum.reverse(chunk_acc) | acc]
-        chunk_references_by_line(rest, wrapping_col, 0, [ref], acc)
-
-      true ->
-        new_line_length = line_length + ref_length
-        chunk_references_by_line(rest, wrapping_col, new_line_length, [ref | chunk_acc], acc)
-    end
+    |> Enum.map(fn {file, line} -> ["#: ", file, ?:, Integer.to_string(line), ?\n] end)
   end
 
   defp dump_flags(flags) do

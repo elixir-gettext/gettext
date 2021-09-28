@@ -284,7 +284,8 @@ defmodule Gettext.ExtractorTest do
        #. some other comment
        #. one more comment
        #, elixir-format
-       #: foo.ex:16 foo.ex:19
+       #: foo.ex:16
+       #: foo.ex:19
        msgid "foo"
        msgstr ""
 
