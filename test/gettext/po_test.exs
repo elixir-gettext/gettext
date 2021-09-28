@@ -338,11 +338,13 @@ defmodule Gettext.POTest do
       }
 
       assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
-             #: foo.ex:1 lib/bar.ex:2
+             #: foo.ex:1
+             #: lib/bar.ex:2
              msgid "foo"
              msgstr "bar"
 
-             #: lib/with spaces.ex:1 lib/with other spaces.ex:2
+             #: lib/with spaces.ex:1
+             #: lib/with other spaces.ex:2
              msgid "foo"
              msgid_plural "foos"
              msgstr[0] ""
@@ -385,7 +387,8 @@ defmodule Gettext.POTest do
       }
 
       assert IO.iodata_to_binary(PO.dump(po)) == ~S"""
-             #: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.ex:1 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ex:1
+             #: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.ex:1
+             #: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ex:1
              #: cccccccccccccccccccccccccccccc.ex:1
              msgid "foo"
              msgstr "bar"
