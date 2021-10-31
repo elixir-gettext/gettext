@@ -378,7 +378,10 @@ defmodule Gettext.Compiler do
 
     case List.wrap(opts[:split_module_by]) do
       [] ->
-        Enum.map(known_po_files, &compile_unified_po_file(env, &1, plural_mod))
+        Enum.map(
+          known_po_files,
+          &compile_unified_po_file(env, &1, plural_mod, opts[:interpolation])
+        )
 
       split ->
         grouped = Enum.group_by(known_po_files, &split_module_name(env, &1, split))
@@ -386,14 +389,14 @@ defmodule Gettext.Compiler do
         case Keyword.get(opts, :split_module_compilation, :parallel) do
           :serial ->
             Enum.map(grouped, fn {module, files} ->
-              compile_split_po_files(env, module, files, plural_mod)
+              compile_split_po_files(env, module, files, plural_mod, opts[:interpolation])
             end)
 
           :parallel ->
             grouped
             |> Enum.map(fn {module, files} ->
               Kernel.ParallelCompiler.async(fn ->
-                compile_split_po_files(env, module, files, plural_mod)
+                compile_split_po_files(env, module, files, plural_mod, opts[:interpolation])
               end)
             end)
             |> Enum.map(fn task ->
@@ -411,9 +414,9 @@ defmodule Gettext.Compiler do
     )
   end
 
-  defp compile_unified_po_file(env, po_file, plural_mod) do
+  defp compile_unified_po_file(env, po_file, plural_mod, interpolation_module) do
     {locale, domain, singular_fun, plural_fun, quoted} =
-      compile_po_file(:defp, po_file, env, plural_mod)
+      compile_po_file(:defp, po_file, env, plural_mod, interpolation_module)
 
     quote do
       unquote(quoted)
@@ -428,17 +431,21 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp compile_split_po_files(env, module, files, plural_mod) do
+  defp compile_split_po_files(env, module, files, plural_mod, interpolation_module) do
     {current, split} =
-      Enum.reduce(files, {[], []}, &compile_split_po_file(env, module, plural_mod, &1, &2))
+      Enum.reduce(
+        files,
+        {[], []},
+        &compile_split_po_file(env, module, plural_mod, &1, interpolation_module, &2)
+      )
 
     create_split_module(env, module, split)
     current
   end
 
-  defp compile_split_po_file(env, module, plural_mod, po_file, {acc1, acc2}) do
+  defp compile_split_po_file(env, module, plural_mod, po_file, interpolation_module, {acc1, acc2}) do
     {locale, domain, singular_fun, plural_fun, split_module_quoted} =
-      compile_po_file(:def, po_file, env, plural_mod)
+      compile_po_file(:def, po_file, env, plural_mod, interpolation_module)
 
     current_module_quoted =
       quote do
@@ -462,13 +469,25 @@ defmodule Gettext.Compiler do
 
   # Compiles a .po file into a list of lgettext/5 (for translations) and
   # lngettext/7 (for plural translations) clauses.
-  defp compile_po_file(kind, po_file, env, plural_mod) do
+  defp compile_po_file(kind, po_file, env, plural_mod, interpolation_module) do
     %{locale: locale, domain: domain, path: path} = po_file
     %PO{translations: translations, file: file} = PO.parse_file!(path)
 
     singular_fun = :"#{locale}_#{domain}_lgettext"
     plural_fun = :"#{locale}_#{domain}_lngettext"
-    mapper = &compile_translation(kind, locale, &1, singular_fun, plural_fun, file, plural_mod)
+
+    mapper =
+      &compile_translation(
+        kind,
+        locale,
+        &1,
+        singular_fun,
+        plural_fun,
+        file,
+        plural_mod,
+        interpolation_module
+      )
+
     translations = block(Enum.map(translations, mapper))
 
     quoted =
@@ -512,7 +531,8 @@ defmodule Gettext.Compiler do
          singular_fun,
          _plural_fun,
          _file,
-         _plural_mod
+         _plural_mod,
+         interpolation_module
        ) do
     msgid = IO.iodata_to_binary(t.msgid)
     msgstr = IO.iodata_to_binary(t.msgstr)
@@ -529,8 +549,13 @@ defmodule Gettext.Compiler do
           Kernel.unquote(kind)(
             unquote(singular_fun)(unquote(msgctxt), unquote(msgid), bindings)
           ) do
-            require Gettext.Interpolation
-            Gettext.Interpolation.compile_interpolate(:translation, unquote(msgstr), bindings)
+            require unquote(interpolation_module)
+
+            unquote(interpolation_module).compile_interpolate(
+              :translation,
+              unquote(msgstr),
+              bindings
+            )
           end
         end
     end
@@ -543,7 +568,8 @@ defmodule Gettext.Compiler do
          _singular_fun,
          plural_fun,
          file,
-         plural_mod
+         plural_mod,
+         interpolation_module
        ) do
     warn_if_missing_plural_forms(locale, plural_mod, t, file)
 
@@ -562,9 +588,9 @@ defmodule Gettext.Compiler do
         Enum.flat_map(msgstr, fn {form, str} ->
           quote do
             unquote(form) ->
-              require Gettext.Interpolation
+              require unquote(interpolation_module)
 
-              Gettext.Interpolation.compile_interpolate(
+              unquote(interpolation_module).compile_interpolate(
                 :plural_translation,
                 unquote(str),
                 var!(bindings)

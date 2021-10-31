@@ -496,6 +496,9 @@ defmodule Gettext do
       This option can be useful in development to reduce compile-time
       by compiling only a subset of all available locales.
 
+    * `:interpolation` - the name of a module that implements the
+      `Gettext.Interpolation` behaviour. Default: `Gettext.Interpolation.Default`
+
   ### Mix tasks configuration
 
   You can configure Gettext Mix tasks under the `:gettext` key in the
@@ -595,7 +598,13 @@ defmodule Gettext do
 
       opts = unquote(opts)
       otp_app = Keyword.fetch!(opts, :otp_app)
-      @gettext_opts Keyword.merge(opts, Application.unquote(env_fun)(otp_app, __MODULE__, []))
+
+      @gettext_opts opts
+                    |> Keyword.merge(Application.unquote(env_fun)(otp_app, __MODULE__, []))
+                    |> Keyword.put_new(:interpolation, Gettext.Interpolation.Default)
+
+      @interpolation Keyword.fetch!(@gettext_opts, :interpolation)
+
       @before_compile Gettext.Compiler
 
       def handle_missing_bindings(exception, incomplete) do
@@ -606,22 +615,18 @@ defmodule Gettext do
       defoverridable handle_missing_bindings: 2
 
       def handle_missing_translation(_locale, domain, msgid, bindings) do
-        import Gettext.Interpolation, only: [runtime_interpolate: 2]
-
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
 
-        with {:ok, interpolated} <- runtime_interpolate(msgid, bindings),
+        with {:ok, interpolated} <- @interpolation.runtime_interpolate(msgid, bindings),
              do: {:default, interpolated}
       end
 
       def handle_missing_plural_translation(_locale, domain, msgid, msgid_plural, n, bindings) do
-        import Gettext.Interpolation, only: [runtime_interpolate: 2]
-
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
         string = if n == 1, do: msgid, else: msgid_plural
         bindings = Map.put(bindings, :count, n)
 
-        with {:ok, interpolated} <- runtime_interpolate(string, bindings),
+        with {:ok, interpolated} <- @interpolation.runtime_interpolate(string, bindings),
              do: {:default, interpolated}
       end
 

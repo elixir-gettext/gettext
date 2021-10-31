@@ -1,9 +1,9 @@
-defmodule Gettext.InterpolationTest do
+defmodule Gettext.Interpolation.DefaultTest do
   use ExUnit.Case, async: true
 
-  doctest Gettext.Interpolation
+  doctest Gettext.Interpolation.Default
 
-  alias Gettext.Interpolation
+  alias Gettext.Interpolation.Default, as: Interpolation
 
   require Interpolation
 
