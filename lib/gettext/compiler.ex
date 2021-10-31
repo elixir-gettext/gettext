@@ -2,7 +2,6 @@ defmodule Gettext.Compiler do
   @moduledoc false
 
   alias Gettext.{
-    Interpolation,
     PO,
     PO.Translation,
     PO.PluralTranslation
@@ -518,7 +517,6 @@ defmodule Gettext.Compiler do
     msgid = IO.iodata_to_binary(t.msgid)
     msgstr = IO.iodata_to_binary(t.msgstr)
     msgctxt = t.msgctxt && IO.iodata_to_binary(t.msgctxt)
-    keys = Interpolation.keys(msgstr)
 
     case msgstr do
       # Only actually generate this function clause if the msgstr is not empty.
@@ -526,23 +524,13 @@ defmodule Gettext.Compiler do
       "" ->
         nil
 
-      # If the msgid is the same as msgstr, simply return it without allocating
-      # a new string.
-      ^msgid when keys == [] ->
-        quote do
-          Kernel.unquote(kind)(
-            unquote(singular_fun)(unquote(msgctxt), unquote(msgid) = msgid, _)
-          ) do
-            {:ok, msgid}
-          end
-        end
-
       _ ->
         quote do
           Kernel.unquote(kind)(
-            unquote(singular_fun)(unquote(msgctxt), unquote(msgid), var!(bindings))
+            unquote(singular_fun)(unquote(msgctxt), unquote(msgid), bindings)
           ) do
-            unquote(compile_interpolation(msgstr, :translation))
+            require Gettext.Interpolation
+            Gettext.Interpolation.compile_interpolate(unquote(msgstr), bindings)
           end
         end
     end
@@ -572,7 +560,11 @@ defmodule Gettext.Compiler do
       # so when quoted they are a list.
       clauses =
         Enum.flat_map(msgstr, fn {form, str} ->
-          quote do: (unquote(form) -> unquote(compile_interpolation(str, :plural_translation)))
+          quote do
+            unquote(form) ->
+              require Gettext.Interpolation
+              Gettext.Interpolation.compile_interpolate(unquote(str), var!(bindings))
+          end
         end)
 
       error_clause =
@@ -620,67 +612,6 @@ defmodule Gettext.Compiler do
 
   defp block(contents) when is_list(contents) do
     {:__block__, [], contents}
-  end
-
-  # Compiles a string into a full-blown `case` statement which interpolates the
-  # string based on some bindings or returns an error in case those bindings are
-  # missing. Note that the `bindings` variable is assumed to be in the scope by
-  # the quoted code that is returned.
-  defp compile_interpolation(str, translation_type) do
-    compile_interpolation(str, translation_type, Interpolation.keys(str))
-  end
-
-  defp compile_interpolation(str, _translation_type, [] = _keys) do
-    quote do
-      _ = var!(bindings)
-      {:ok, unquote(str)}
-    end
-  end
-
-  defp compile_interpolation(str, translation_type, keys) do
-    match = compile_interpolation_match(keys)
-    interpolatable = Interpolation.to_interpolatable(str)
-    interpolation = compile_interpolatable_string(interpolatable)
-
-    all_bindings_clause = quote do: (unquote(match) -> {:ok, unquote(interpolation)})
-
-    dynamic_interpolation_clause =
-      quote do
-        %{} -> Gettext.Interpolation.interpolate(unquote(interpolatable), var!(bindings))
-      end
-
-    clauses =
-      if keys == [:count] and translation_type == :plural_translation do
-        all_bindings_clause
-      else
-        all_bindings_clause ++ dynamic_interpolation_clause
-      end
-
-    quote do
-      case var!(bindings), do: unquote(clauses)
-    end
-  end
-
-  # Compiles a list of atoms into a "match" map. For example `[:foo, :bar]` gets
-  # compiled to `%{foo: foo, bar: bar}`. All generated variables are under the
-  # current `__MODULE__`.
-  defp compile_interpolation_match(keys) do
-    {:%{}, [], Enum.map(keys, &{&1, Macro.var(&1, __MODULE__)})}
-  end
-
-  # Compiles a string into a binary with `%{var}` patterns turned into `var`
-  # variables, namespaced inside the current `__MODULE__`.
-  defp compile_interpolatable_string(interpolatable) do
-    parts =
-      Enum.map(interpolatable, fn
-        key when is_atom(key) ->
-          quote do: to_string(unquote(Macro.var(key, __MODULE__))) :: binary
-
-        str ->
-          str
-      end)
-
-    {:<<>>, [], parts}
   end
 
   # Returns all the PO files in `translations_dir` (under "canonical" paths,
