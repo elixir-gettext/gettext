@@ -36,6 +36,27 @@ defmodule GettextTest.HandleMissingTranslation do
   end
 end
 
+defmodule GettextTest.TranslatorWithDuckInterpolator.Interpolator do
+  @behaviour Gettext.Interpolation
+
+  @impl Gettext.Interpolation
+  def runtime_interpolate(message, bindings),
+    do: {:ok, "quack #{message} #{inspect(bindings)} quack"}
+
+  @impl Gettext.Interpolation
+  defmacro compile_interpolate(_translation_type, message, bindings) do
+    quote do
+      {:ok, "quack #{unquote(message)} #{inspect(unquote(bindings))} quack"}
+    end
+  end
+end
+
+defmodule GettextTest.TranslatorWithDuckInterpolator do
+  use Gettext,
+    otp_app: :test_application,
+    interpolation: GettextTest.TranslatorWithDuckInterpolator.Interpolator
+end
+
 defmodule GettextTest do
   use ExUnit.Case
 
@@ -861,5 +882,11 @@ defmodule GettextTest do
     # Unknown locale.
     assert lgettext("pt_BR", "nonexistent", nil, "Hello world", %{}) ==
              {:default, "Hello world"}
+  end
+
+  test "uses custom interpolator" do
+    import GettextTest.TranslatorWithDuckInterpolator, only: [gettext: 1]
+
+    assert "quack foo %{} quack" = gettext("foo")
   end
 end
