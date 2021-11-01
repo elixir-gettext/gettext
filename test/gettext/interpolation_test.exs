@@ -1,23 +1,30 @@
 defmodule Gettext.InterpolationTest do
   use ExUnit.Case, async: true
+
   doctest Gettext.Interpolation
+
   alias Gettext.Interpolation
 
-  test "interpolate/2" do
+  require Interpolation
+
+  test "runtime_interpolate/2" do
     interpolatable = Interpolation.to_interpolatable("%{a} %{b} %{c}")
 
-    assert Interpolation.interpolate(interpolatable, %{a: 1, b: :two, c: "thr ee"}) ==
+    assert Interpolation.runtime_interpolate(interpolatable, %{a: 1, b: :two, c: "thr ee"}) ==
              {:ok, "1 two thr ee"}
 
-    assert Interpolation.interpolate(interpolatable, %{a: "a"}) ==
+    assert Interpolation.runtime_interpolate(interpolatable, %{a: "a"}) ==
              {:missing_bindings, "a %{b} %{c}", [:b, :c]}
 
     interpolatable = Interpolation.to_interpolatable("%{a} %{a} %{a}")
 
-    assert Interpolation.interpolate(interpolatable, %{a: "foo"}) == {:ok, "foo foo foo"}
+    assert Interpolation.runtime_interpolate(interpolatable, %{a: "foo"}) == {:ok, "foo foo foo"}
 
-    assert Interpolation.interpolate(interpolatable, %{b: "bar"}) ==
+    assert Interpolation.runtime_interpolate(interpolatable, %{b: "bar"}) ==
              {:missing_bindings, "%{a} %{a} %{a}", [:a]}
+
+    assert Interpolation.runtime_interpolate("%{a} %{b} %{c}", %{a: "a"}) ==
+             {:missing_bindings, "a %{b} %{c}", [:b, :c]}
   end
 
   test "to_interpolatable/1" do
@@ -55,5 +62,56 @@ defmodule Gettext.InterpolationTest do
     # With a list of segments as its argument
     assert Interpolation.keys(["Hello ", :name, " it's ", :time, " goodbye ", :name]) ==
              [:name, :time]
+  end
+
+  describe "compile_interpolate/3" do
+    test "interpolates complete bindings" do
+      assert {:ok, "Hello World!"} ==
+               Interpolation.compile_interpolate(:translation, "Hello %{name}!", %{name: "World"})
+    end
+
+    test "interpolates incomplete bindings" do
+      assert {:missing_bindings, "Hello %{name}!", [:name]} ==
+               Interpolation.compile_interpolate(:translation, "Hello %{name}!", %{
+                 unused: "binding"
+               })
+    end
+
+    test "interpolates no bindings" do
+      assert {:missing_bindings, "Hello %{name}!", [:name]} ==
+               Interpolation.compile_interpolate(:translation, "Hello %{name}!", %{})
+    end
+
+    test "rejects dynamic message" do
+      assert_raise RuntimeError, fn ->
+        Code.eval_quoted(
+          quote do
+            require Interpolation
+
+            Interpolation.compile_interpolate(
+              :translation,
+              "dynamic message " <> inspect(make_ref()),
+              %{}
+            )
+          end
+        )
+      end
+    end
+
+    test "optimizes plural translation without count" do
+      translate = fn bindings ->
+        Interpolation.compile_interpolate(
+          :plural_translation,
+          "%{count} shoes",
+          bindings
+        )
+      end
+
+      assert_raise MatchError, fn ->
+        translate.(%{})
+      end
+
+      assert {:ok, "7 shoes"} = translate.(%{count: 7})
+    end
   end
 end

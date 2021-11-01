@@ -65,12 +65,11 @@ defmodule Gettext.Interpolation do
   defp prepend_if_not_empty(string, list), do: [string | list]
 
   @doc """
-  Interpolate an interpolatable with the given bindings.
+  Interpolate a message or interpolatable with the given bindings.
 
-  This function takes an interpolatable list (like the ones returned by
-  `to_interpolatable/1`) and some bindings and returns an `{:ok,
+  This function takes a message and some bindings and returns an `{:ok,
   interpolated_string}` tuple if interpolation is successful. If it encounters
-  an atom in `interpolatable` that is missing from `bindings`, it returns
+  a binding in the message that is missing from `bindings`, it returns
   `{:missing_bindings, incomplete_string, missing_bindings}` where
   `incomplete_string` is the string with only the present bindings interpolated
   and `missing_bindings` is a list of atoms representing bindings that are in
@@ -79,17 +78,29 @@ defmodule Gettext.Interpolation do
   ## Examples
 
       iex> msgid = "Hello %{name}, you have %{count} unread messages"
+      iex> good_bindings = %{name: "José", count: 3}
+      iex> Gettext.Interpolation.runtime_interpolate(msgid, good_bindings)
+      {:ok, "Hello José, you have 3 unread messages"}
+      iex> Gettext.Interpolation.runtime_interpolate(msgid, %{name: "José"})
+      {:missing_bindings, "Hello José, you have %{count} unread messages", [:count]}
+
+      iex> msgid = "Hello %{name}, you have %{count} unread messages"
       iex> interpolatable = Gettext.Interpolation.to_interpolatable(msgid)
       iex> good_bindings = %{name: "José", count: 3}
-      iex> Gettext.Interpolation.interpolate(interpolatable, good_bindings)
+      iex> Gettext.Interpolation.runtime_interpolate(interpolatable, good_bindings)
       {:ok, "Hello José, you have 3 unread messages"}
-      iex> Gettext.Interpolation.interpolate(interpolatable, %{name: "José"})
+      iex> Gettext.Interpolation.runtime_interpolate(interpolatable, %{name: "José"})
       {:missing_bindings, "Hello José, you have %{count} unread messages", [:count]}
 
   """
-  @spec interpolate(interpolatable, map) ::
+  @spec runtime_interpolate(message :: String.t(), bindings :: map) ::
           {:ok, String.t()} | {:missing_bindings, String.t(), [atom]}
-  def interpolate(interpolatable, bindings)
+  def runtime_interpolate(message, %{} = bindings) when is_binary(message),
+    do: message |> to_interpolatable() |> runtime_interpolate(bindings)
+
+  @spec runtime_interpolate(interpolatable :: interpolatable(), bindings :: map) ::
+          {:ok, String.t()} | {:missing_bindings, String.t(), [atom]}
+  def runtime_interpolate(interpolatable, bindings)
       when is_list(interpolatable) and is_map(bindings) do
     interpolate(interpolatable, bindings, [], [])
   end
@@ -148,4 +159,77 @@ defmodule Gettext.Interpolation do
 
   def keys(interpolatable) when is_list(interpolatable),
     do: interpolatable |> Enum.filter(&is_atom/1) |> Enum.uniq()
+
+  @doc """
+  Compile a static message to interpolate with dynamic bindings.
+
+  This macro takes a static message and some dynamic bindings. The generated
+  code will return an `{:ok, interpolated_string}` tuple if the interpolation
+  is successful. If it encounters a binding in the message that is missing from
+  `bindings`, it returns `{:missing_bindings, incomplete_string, missing_bindings}`,
+  where `incomplete_string` is the string with only the present bindings interpolated
+  and `missing_bindings` is a list of atoms representing bindings that are in
+  `interpolatable` but not in `bindings`.
+  """
+  defmacro compile_interpolate(translation_type, message, bindings) do
+    unless is_binary(message) do
+      raise """
+      #{__MODULE__}.compile_interpolate/3 can only be used at compile time with static messages.
+      Alternatively use #{__MODULE__}.runtime_interpolate/2.
+      """
+    end
+
+    interpolatable = to_interpolatable(message)
+    keys = keys(interpolatable)
+    match_clause = match_clause(keys)
+    compile_string = compile_string(interpolatable)
+
+    case {keys, translation_type} do
+      # If no keys are in the message, the message can be returned without interpolation
+      {[], _translation_type} ->
+        quote do: {:ok, unquote(message)}
+
+      # If the message only contains the key `count` and it is a plural translation,
+      # gettext ensures that `count` is always set. Therefore the dynamic interpolation
+      # will never be needed.
+      {[:count], :plural_translation} ->
+        quote do
+          unquote(match_clause) = unquote(bindings)
+          {:ok, unquote(compile_string)}
+        end
+
+      {_keys, _translation_type} ->
+        quote do
+          case unquote(bindings) do
+            unquote(match_clause) ->
+              {:ok, unquote(compile_string)}
+
+            %{} = other_bindings ->
+              unquote(__MODULE__).runtime_interpolate(unquote(interpolatable), other_bindings)
+          end
+        end
+    end
+  end
+
+  # Compiles a list of atoms into a "match" map. For example `[:foo, :bar]` gets
+  # compiled to `%{foo: foo, bar: bar}`. All generated variables are under the
+  # current `__MODULE__`.
+  defp match_clause(keys) do
+    {:%{}, [], Enum.map(keys, &{&1, Macro.var(&1, __MODULE__)})}
+  end
+
+  # Compiles a string into a binary with `%{var}` patterns turned into `var`
+  # variables, namespaced inside the current `__MODULE__`.
+  defp compile_string(interpolatable) do
+    parts =
+      Enum.map(interpolatable, fn
+        key when is_atom(key) ->
+          quote do: to_string(unquote(Macro.var(key, __MODULE__))) :: binary
+
+        str ->
+          str
+      end)
+
+    {:<<>>, [], parts}
+  end
 end
