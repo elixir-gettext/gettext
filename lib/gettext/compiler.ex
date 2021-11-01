@@ -530,7 +530,7 @@ defmodule Gettext.Compiler do
             unquote(singular_fun)(unquote(msgctxt), unquote(msgid), bindings)
           ) do
             require Gettext.Interpolation
-            Gettext.Interpolation.compile_interpolate(unquote(msgstr), bindings)
+            Gettext.Interpolation.compile_interpolate(:translation, unquote(msgstr), bindings)
           end
         end
     end
@@ -563,7 +563,12 @@ defmodule Gettext.Compiler do
           quote do
             unquote(form) ->
               require Gettext.Interpolation
-              Gettext.Interpolation.compile_interpolate(unquote(str), var!(bindings))
+
+              Gettext.Interpolation.compile_interpolate(
+                :plural_translation,
+                unquote(str),
+                var!(bindings)
+              )
           end
         end)
 

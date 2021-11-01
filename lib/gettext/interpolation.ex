@@ -171,25 +171,34 @@ defmodule Gettext.Interpolation do
   and `missing_bindings` is a list of atoms representing bindings that are in
   `interpolatable` but not in `bindings`.
   """
-  defmacro compile_interpolate(message, bindings) do
+  defmacro compile_interpolate(translation_type, message, bindings) do
     unless is_binary(message) do
       raise """
-      #{__MODULE__}.compile_interpolate/2 can only be used at compile time with static messages.
+      #{__MODULE__}.compile_interpolate/3 can only be used at compile time with static messages.
       Alternatively use #{__MODULE__}.runtime_interpolate/2.
       """
     end
 
     interpolatable = to_interpolatable(message)
     keys = keys(interpolatable)
+    match_clause = match_clause(keys)
+    compile_string = compile_string(interpolatable)
 
-    case keys do
-      [] ->
+    case {keys, translation_type} do
+      # If no keys are in the message, the message can be returned without interpolation
+      {[], _translation_type} ->
         quote do: {:ok, unquote(message)}
 
-      _ ->
-        match_clause = match_clause(keys)
-        compile_string = compile_string(interpolatable)
+      # If the message only contains the key `count` and it is a plural translation,
+      # gettext ensures that `count` is always set. Therefore the dynamic interpolation
+      # will never be needed.
+      {[:count], :plural_translation} ->
+        quote do
+          unquote(match_clause) = unquote(bindings)
+          {:ok, unquote(compile_string)}
+        end
 
+      {_keys, _translation_type} ->
         quote do
           case unquote(bindings) do
             unquote(match_clause) ->

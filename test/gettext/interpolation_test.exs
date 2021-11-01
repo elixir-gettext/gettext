@@ -64,20 +64,22 @@ defmodule Gettext.InterpolationTest do
              [:name, :time]
   end
 
-  describe "compile_interpolate/2" do
+  describe "compile_interpolate/3" do
     test "interpolates complete bindings" do
       assert {:ok, "Hello World!"} ==
-               Interpolation.compile_interpolate("Hello %{name}!", %{name: "World"})
+               Interpolation.compile_interpolate(:translation, "Hello %{name}!", %{name: "World"})
     end
 
     test "interpolates incomplete bindings" do
       assert {:missing_bindings, "Hello %{name}!", [:name]} ==
-               Interpolation.compile_interpolate("Hello %{name}!", %{unused: "binding"})
+               Interpolation.compile_interpolate(:translation, "Hello %{name}!", %{
+                 unused: "binding"
+               })
     end
 
     test "interpolates no bindings" do
       assert {:missing_bindings, "Hello %{name}!", [:name]} ==
-               Interpolation.compile_interpolate("Hello %{name}!", %{})
+               Interpolation.compile_interpolate(:translation, "Hello %{name}!", %{})
     end
 
     test "rejects dynamic message" do
@@ -85,10 +87,31 @@ defmodule Gettext.InterpolationTest do
         Code.eval_quoted(
           quote do
             require Interpolation
-            Interpolation.compile_interpolate("dynamic message " <> inspect(make_ref()), %{})
+
+            Interpolation.compile_interpolate(
+              :translation,
+              "dynamic message " <> inspect(make_ref()),
+              %{}
+            )
           end
         )
       end
+    end
+
+    test "optimizes plural translation without count" do
+      translate = fn bindings ->
+        Interpolation.compile_interpolate(
+          :plural_translation,
+          "%{count} shoes",
+          bindings
+        )
+      end
+
+      assert_raise MatchError, fn ->
+        translate.(%{})
+      end
+
+      assert {:ok, "7 shoes"} = translate.(%{count: 7})
     end
   end
 end
