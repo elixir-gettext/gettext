@@ -20,7 +20,7 @@ defmodule Gettext.Extractor do
     PO.PluralTranslation
   }
 
-  @extracted_translations_flag "elixir-format"
+  @extracted_translations_flag "ex-autogen"
 
   @doc """
   Enables translation extraction.
@@ -152,7 +152,8 @@ defmodule Gettext.Extractor do
       msgctxt: if(msgctxt != nil, do: [msgctxt], else: nil),
       msgid_plural: [msgid_plural],
       msgstr: %{0 => [""], 1 => [""]},
-      flags: MapSet.new([@extracted_translations_flag]),
+      # TODO: Get Format Flag dynamically when extracting
+      flags: MapSet.new([@extracted_translations_flag, "elixir-format"]),
       references: [{Path.relative_to_cwd(file), line}],
       extracted_comments: extracted_comments
     }
@@ -163,7 +164,8 @@ defmodule Gettext.Extractor do
       msgid: [msgid],
       msgctxt: if(msgctxt != nil, do: [msgctxt], else: nil),
       msgstr: [""],
-      flags: MapSet.new([@extracted_translations_flag]),
+      # TODO: Get Format Flag dynamically when extracting
+      flags: MapSet.new([@extracted_translations_flag, "elixir-format"]),
       references: [{Path.relative_to_cwd(file), line}],
       extracted_comments: extracted_comments
     }

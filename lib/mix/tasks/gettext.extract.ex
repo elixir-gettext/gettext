@@ -14,6 +14,10 @@ defmodule Mix.Tasks.Gettext.Extract do
   and `:priv` options given by Gettext modules when they call `use Gettext`. One
   POT file is generated for each translation domain.
 
+  All automatically extracted translations are assigned the `ex-autogen` flag.
+  If a translation from the POT is no longer present and has the `ex-autogen`
+  flag, the translation will be removed.
+
   If you would like to verify that your POT files are up to date with the
   current state of the codebase, you can provide the `--check-up-to-date`
   flag. This is particularly useful for automated checks and in CI systems.

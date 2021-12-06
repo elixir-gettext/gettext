@@ -283,13 +283,13 @@ defmodule Gettext.ExtractorTest do
        #. some comment
        #. some other comment
        #. one more comment
-       #, elixir-format
+       #, elixir-format, ex-autogen
        #: foo.ex:16
        #: foo.ex:19
        msgid "foo"
        msgstr ""
 
-       #, elixir-format
+       #, elixir-format, ex-autogen
        #: foo.ex:21
        msgctxt "test"
        msgid "context based translation"
@@ -300,7 +300,7 @@ defmodule Gettext.ExtractorTest do
        msgid ""
        msgstr ""
 
-       #, elixir-format
+       #, elixir-format, ex-autogen
        #: foo.ex:17
        msgid "one error"
        msgid_plural "%{count} errors"
@@ -312,7 +312,7 @@ defmodule Gettext.ExtractorTest do
        msgid ""
        msgstr ""
 
-       #, elixir-format
+       #, elixir-format, ex-autogen
        #: foo.ex:20
        msgid "hi"
        msgstr ""
