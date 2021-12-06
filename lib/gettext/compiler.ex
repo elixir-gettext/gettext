@@ -28,6 +28,8 @@ defmodule Gettext.Compiler do
 
     default_domain = opts[:default_domain] || @default_domain
 
+    interpolation = opts[:interpolation] || Gettext.Interpolation.Default
+
     quote do
       @behaviour Gettext.Backend
 
@@ -38,6 +40,7 @@ defmodule Gettext.Compiler do
       def __gettext__(:known_locales), do: unquote(known_locales)
       def __gettext__(:default_locale), do: unquote(default_locale)
       def __gettext__(:default_domain), do: unquote(default_domain)
+      def __gettext__(:interpolation), do: unquote(interpolation)
 
       # The manifest lives in the root of the priv
       # directory that contains .po/.pot files.

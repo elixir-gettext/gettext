@@ -49,6 +49,9 @@ defmodule GettextTest.TranslatorWithDuckInterpolator.Interpolator do
       {:ok, "quack #{unquote(message)} #{inspect(unquote(bindings))} quack"}
     end
   end
+
+  @impl Gettext.Interpolation
+  def message_format, do: "duck-format"
 end
 
 defmodule GettextTest.TranslatorWithDuckInterpolator do

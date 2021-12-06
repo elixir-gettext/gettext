@@ -212,4 +212,7 @@ defmodule Gettext.Interpolation.Default do
 
     {:<<>>, [], parts}
   end
+
+  @impl Gettext.Interpolation
+  def message_format, do: "elixir-format"
 end
