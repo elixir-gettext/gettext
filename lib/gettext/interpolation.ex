@@ -14,4 +14,10 @@ defmodule Gettext.Interpolation do
                    message :: String.t(),
                    bindings :: map()
                  ) :: Macro.t()
+
+  @doc """
+  Defines the gettext message format
+  https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html#index-msgstr
+  """
+  @callback message_format :: String.t()
 end
