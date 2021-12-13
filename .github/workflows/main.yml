@@ -31,8 +31,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - erlang: 23.0
-            elixir: 1.11.2
+          - erlang: 24.1
+            elixir: 1.13
           - erlang: 22.2
             elixir: 1.10.1
           - erlang: 22.1
