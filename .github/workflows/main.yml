@@ -56,4 +56,4 @@ jobs:
         run: mix deps.get
 
       - name: Run tests
-        run: mix test --trace
+        run: mix test
