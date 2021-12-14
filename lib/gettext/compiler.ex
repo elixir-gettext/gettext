@@ -611,7 +611,7 @@ defmodule Gettext.Compiler do
               line: unquote(t.po_source_line)
         end
 
-      quote do
+      quote generated: true do
         Kernel.unquote(kind)(
           unquote(plural_fun)(
             unquote(msgctxt),
