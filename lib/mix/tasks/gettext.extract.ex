@@ -106,8 +106,8 @@ defmodule Mix.Tasks.Gettext.Extract do
     # "compile" is a no-op and running "compile.elixir" will work because we
     # manually reenabled it.
     Mix.Task.reenable("compile.elixir")
-    Mix.Task.run("compile", ["--force"])
-    Mix.Task.run("compile.elixir")
+    Mix.Task.run("compile")
+    Mix.Task.run("compile.elixir", ["--force"])
   end
 
   defp make_old_if_exists(path) do
