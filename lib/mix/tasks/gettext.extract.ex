@@ -107,7 +107,7 @@ defmodule Mix.Tasks.Gettext.Extract do
     # manually reenabled it.
     Mix.Task.reenable("compile.elixir")
     Mix.Task.run("compile", ["--force"])
-    Mix.Task.run("compile.elixir", ["--force"])
+    Mix.Task.run("compile.elixir")
   end
 
   defp make_old_if_exists(path) do
