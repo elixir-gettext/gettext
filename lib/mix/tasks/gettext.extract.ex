@@ -47,6 +47,8 @@ defmodule Mix.Tasks.Gettext.Extract do
     mix_config = Mix.Project.config()
     {opts, _} = OptionParser.parse!(args, switches: @switches)
     pot_files = extract(mix_config[:app], mix_config[:gettext] || [])
+    IO.inspect(pot_files, label: "pot_files")
+    IO.inspect(opts, label: "opts")
 
     if opts[:check_up_to_date] do
       run_up_to_date_check(pot_files)
@@ -104,8 +106,8 @@ defmodule Mix.Tasks.Gettext.Extract do
     # "compile" is a no-op and running "compile.elixir" will work because we
     # manually reenabled it.
     Mix.Task.reenable("compile.elixir")
-    Mix.Task.run("compile")
-    Mix.Task.run("compile.elixir")
+    Mix.Task.run("compile", ["--force"])
+    Mix.Task.run("compile.elixir", ["--force"])
   end
 
   defp make_old_if_exists(path) do
