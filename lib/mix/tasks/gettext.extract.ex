@@ -47,8 +47,6 @@ defmodule Mix.Tasks.Gettext.Extract do
     mix_config = Mix.Project.config()
     {opts, _} = OptionParser.parse!(args, switches: @switches)
     pot_files = extract(mix_config[:app], mix_config[:gettext] || [])
-    IO.inspect(pot_files, label: "pot_files")
-    IO.inspect(opts, label: "opts")
 
     if opts[:check_up_to_date] do
       run_up_to_date_check(pot_files)
