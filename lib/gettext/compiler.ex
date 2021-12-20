@@ -371,7 +371,7 @@ defmodule Gettext.Compiler do
     opts =
       if opts[:one_module_per_locale] do
         IO.warn(
-          ":one_module_per_locale is deprecatead, please use split_module_by: [:locale] instead"
+          ":one_module_per_locale is deprecated, please use split_module_by: [:locale] instead"
         )
 
         Keyword.put_new(opts, :split_module_by, [:locale])
