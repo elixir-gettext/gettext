@@ -664,6 +664,9 @@ defmodule Gettext do
   The locale is stored in the process dictionary. `locale` must be a string; if
   it's not, an `ArgumentError` exception is raised.
 
+  The return value is the previous value of the current
+  process's locale.
+
   ## Examples
 
       Gettext.put_locale("pt_BR")
@@ -672,7 +675,7 @@ defmodule Gettext do
       #=> "pt_BR"
 
   """
-  @spec put_locale(locale) :: nil
+  @spec put_locale(locale) :: locale | nil
   def put_locale(locale) when is_binary(locale), do: Process.put(Gettext, locale)
 
   def put_locale(locale),
@@ -707,6 +710,9 @@ defmodule Gettext do
   The locale is stored in the process dictionary. `locale` must be a string; if
   it's not, an `ArgumentError` exception is raised.
 
+  The return value is the previous value of the current
+  process's locale.
+
   ## Examples
 
       Gettext.put_locale(MyApp.Gettext, "pt_BR")
@@ -715,7 +721,7 @@ defmodule Gettext do
       #=> "pt_BR"
 
   """
-  @spec put_locale(backend, locale) :: nil
+  @spec put_locale(backend, locale) :: locale | nil
   def put_locale(backend, locale) when is_binary(locale), do: Process.put(backend, locale)
 
   def put_locale(_backend, locale),
