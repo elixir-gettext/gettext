@@ -20,7 +20,7 @@ defmodule Gettext.Extractor do
     PO.PluralTranslation
   }
 
-  @extracted_translations_flag "ex-autogen"
+  @extracted_translations_flag "elixir-autogen"
 
   @doc """
   Enables translation extraction.
@@ -334,12 +334,20 @@ defmodule Gettext.Extractor do
     ensure_empty_msgstr!(old)
     ensure_empty_msgstr!(new)
 
+    # Take all flags from `old` and only the `@extracted_translations_flag` flag from `new`
+    # to avoid re-adding manually removed flags.
+    flags =
+      new.flags
+      |> MapSet.intersection(MapSet.new([@extracted_translations_flag]))
+      |> MapSet.union(old.flags)
+      # Delete the renamed `ex-autogen` flag since it is no longer used
+      |> MapSet.delete("ex-autogen")
+
     %Translation{
       msgid: old.msgid,
       msgstr: old.msgstr,
       msgctxt: new.msgctxt,
-      # The new in-memory translation has no new flags.
-      flags: old.flags,
+      flags: flags,
       # The new in-memory translation has no comments since it was extracted
       # from the source code.
       comments: old.comments,

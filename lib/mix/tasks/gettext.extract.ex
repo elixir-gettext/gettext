@@ -14,9 +14,18 @@ defmodule Mix.Tasks.Gettext.Extract do
   and `:priv` options given by Gettext modules when they call `use Gettext`. One
   POT file is generated for each translation domain.
 
-  All automatically extracted translations are assigned the `ex-autogen` flag.
-  If a translation from the POT is no longer present and has the `ex-autogen`
+  All automatically extracted translations are assigned the `elixir-autogen` flag.
+  If a translation from the POT is no longer present and has the `elixir-autogen`
   flag, the translation will be removed.
+
+  Before `v0.19.0`, the `elixir-format` flag was used to detect automatically
+  extracted translations. This has been deprecated in `v0.19.0`. When extracting
+  with the newest version, the new `elixir-autogen` flag will be added to all
+  automatically extracted translations.
+
+  All translations will be assigned a format flag. When using the default
+  interpolation module, that flag is `elixir-format`. With other interpolation
+  modules, the flag name is defined by that implementation.
 
   If you would like to verify that your POT files are up to date with the
   current state of the codebase, you can provide the `--check-up-to-date`
