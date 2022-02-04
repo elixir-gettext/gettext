@@ -340,8 +340,6 @@ defmodule Gettext.Extractor do
       new.flags
       |> MapSet.intersection(MapSet.new([@extracted_translations_flag]))
       |> MapSet.union(old.flags)
-      # Delete the renamed `ex-autogen` flag since it is no longer used
-      |> MapSet.delete("ex-autogen")
 
     %Translation{
       msgid: old.msgid,
