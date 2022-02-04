@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.19.1
+
+  * Rename `ex-autogen` to `elixir-autogen` and make sure `elixir-autogen` is added to existing translations
+
 ## v0.19.0
 
   * Remove the `:one_module_per_locale` option in favor of  `:split_module_by`
