@@ -13,7 +13,7 @@ jobs:
         uses: erlef/setup-elixir@v1
         with:
           otp-version: 23.0
-          elixir-version: 1.11.2
+          elixir-version: 1.13.1
 
       - name: Install dependencies
         run: mix deps.get

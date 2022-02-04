@@ -590,8 +590,8 @@ defmodule Gettext do
 
   @doc false
   defmacro __using__(opts) do
-    env_fun =
-      if function_exported?(Application, :compile_env, 3), do: :compile_env, else: :get_env
+    # From Elixir v1.13 onwards, use compile_env
+    env_fun = if function_exported?(Module, :attributes_in, 1), do: :compile_env, else: :get_env
 
     quote do
       require Logger

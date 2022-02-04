@@ -2,6 +2,7 @@
 
 ## v0.19.1
 
+  * Fix warnings on Elixir v1.14+
   * Rename `ex-autogen` to `elixir-autogen` and make sure `elixir-autogen` is added to existing translations
 
 ## v0.19.0
