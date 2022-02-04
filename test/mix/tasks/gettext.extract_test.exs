@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     assert output =~ "Extracted priv/gettext/default.pot"
 
     assert read_file("priv/gettext/default.pot") =~ """
-           #, elixir-format, ex-autogen
+           #, elixir-autogen, elixir-format
            #: lib/my_app.ex:7
            msgid "hello"
            msgstr ""
@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     end)
 
     assert read_file("priv/gettext/it/LC_MESSAGES/my_domain.po") == """
-           #, elixir-format, ex-autogen
+           #, elixir-autogen, elixir-format
            #: lib/other.ex:3
            msgid "other"
            msgstr ""
