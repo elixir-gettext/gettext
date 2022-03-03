@@ -70,6 +70,25 @@ defmodule Gettext.Backend do
   @callback handle_missing_translation(
               Gettext.locale(),
               domain :: String.t(),
+              msgctxt :: String.t(),
+              msgid :: String.t(),
+              bindings :: map()
+            ) ::
+              {:ok, String.t()} | {:default, String.t()} | {:missing_bindings, String.t(), [atom]}
+
+  @doc """
+  Fallback handling for missing translations.
+
+  Same as `c:handle_missing_translation/5`, but without msgctxt. This is kept
+  for compatibility with older versions of this library.
+
+  The default implementation of `c:handle_missing_translation/5` will call this
+  function, so users implementing the 4-argument callback will still get the same
+  results. However, they are encouraged to switch to the new 5-argument version.
+  """
+  @callback handle_missing_translation(
+              Gettext.locale(),
+              domain :: String.t(),
               msgid :: String.t(),
               bindings :: map()
             ) ::
@@ -78,8 +97,29 @@ defmodule Gettext.Backend do
   @doc """
   Default handling for plural translations with a missing translation.
 
-  Same as `c:handle_missing_translation/4`, but for plural translations.
+  Same as `c:handle_missing_translation/5`, but for plural translations.
   In this case, `n` is the number used for pluralizing the translated string.
+  """
+  @callback handle_missing_plural_translation(
+              Gettext.locale(),
+              domain :: String.t(),
+              msgctxt :: String.t(),
+              msgid :: String.t(),
+              msgid_plural :: String.t(),
+              n :: non_neg_integer(),
+              bindings :: map()
+            ) ::
+              {:ok, String.t()} | {:default, String.t()} | {:missing_bindings, String.t(), [atom]}
+
+  @doc """
+  Fallback handling for missing translations.
+
+  Same as `c:handle_missing_plural_translation/7`, but without msgctxt. This is kept
+  for compatibility with older versions of this library.
+
+  The default implementation of `c:handle_missing_plural_translation/7` will call this
+  function, so users implementing the 6-argument callback will still get the same
+  results. However, they are encouraged to switch to the new 7-argument version.
   """
   @callback handle_missing_plural_translation(
               Gettext.locale(),

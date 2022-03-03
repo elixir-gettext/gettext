@@ -36,6 +36,20 @@ defmodule GettextTest.HandleMissingTranslation do
   end
 end
 
+defmodule GettextTest.HandleMissingTranslationWithContext do
+  use Gettext, otp_app: :test_application
+
+  def handle_missing_translation(locale, domain, msgctxt, msgid, bindings) do
+    send(self(), {locale, domain, msgctxt, msgid, bindings})
+    super(locale, domain, msgctxt, msgid, bindings)
+  end
+
+  def handle_missing_plural_translation(locale, domain, msgctxt, msgid, msgid_plural, n, bindings) do
+    send(self(), {locale, domain, msgctxt, msgid, msgid_plural, n, bindings})
+    super(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)
+  end
+end
+
 defmodule GettextTest.TranslatorWithDuckInterpolator.Interpolator do
   @behaviour Gettext.Interpolation
 
@@ -72,6 +86,7 @@ defmodule GettextTest do
   alias GettextTest.TranslatorWithCustomPluralForms
   alias GettextTest.TranslatorWithDefaultDomain
   alias GettextTest.HandleMissingTranslation
+  alias GettextTest.HandleMissingTranslationWithContext
 
   require Translator
   require TranslatorWithCustomPriv
@@ -376,6 +391,17 @@ defmodule GettextTest do
     assert_receive {"pl", "foo", ^msgid, ^bindings}
   end
 
+  test "lgettext/5: fallbacks to handle_missing_translation with msgctxt" do
+    msgctxt = "some context"
+    msgid = "Hello %{name}"
+    bindings = %{name: "Jane"}
+
+    assert HandleMissingTranslationWithContext.lgettext("pl", "foo", msgctxt, msgid, bindings) ==
+             {:default, "Hello Jane"}
+
+    assert_receive {"pl", "foo", ^msgctxt, ^msgid, ^bindings}
+  end
+
   test "lngettext/6: default handle_missing_binding preserves key" do
     msgid = "You have one message, %{name}"
     msgid_plural = "You have %{count} messages, %{name}"
@@ -407,6 +433,26 @@ defmodule GettextTest do
              {:default, "Hello Jane"}
 
     assert_receive {"pl", "foo", ^msgid, ^msgid_plural, 4, ^bindings}
+  end
+
+  test "lngettext/6: fallbacks to handle_missing_plural_translation with context" do
+    msgctxt = "some context"
+    msgid = "Hello %{name}"
+    msgid_plural = "Hello %{name}"
+    bindings = %{name: "Jane"}
+
+    assert HandleMissingTranslationWithContext.lngettext(
+             "pl",
+             "foo",
+             msgctxt,
+             msgid,
+             msgid_plural,
+             4,
+             bindings
+           ) ==
+             {:default, "Hello Jane"}
+
+    assert_receive {"pl", "foo", ^msgctxt, ^msgid, ^msgid_plural, 4, ^bindings}
   end
 
   test "dgettext/3: binary msgid at compile-time" do

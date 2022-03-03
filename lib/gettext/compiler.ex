@@ -60,10 +60,19 @@ defmodule Gettext.Compiler do
 
       # Catch-all clauses.
       def lgettext(locale, domain, msgctxt, msgid, bindings),
-        do: handle_missing_translation(locale, domain, msgid, bindings)
+        do: handle_missing_translation(locale, domain, msgctxt, msgid, bindings)
 
       def lngettext(locale, domain, msgctxt, msgid, msgid_plural, n, bindings),
-        do: handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings)
+        do:
+          handle_missing_plural_translation(
+            locale,
+            domain,
+            msgctxt,
+            msgid,
+            msgid_plural,
+            n,
+            bindings
+          )
     end
   end
 
