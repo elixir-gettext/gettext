@@ -904,4 +904,69 @@ defmodule GettextTest do
 
     assert "quack foo %{} quack" = gettext("foo")
   end
+
+  defmodule GettextTest.TranslatorWithRuntimeRepo do
+    use Gettext,
+      otp_app: :test_application,
+      repo: GettextTest.PersistentTermRepo
+  end
+
+  defmodule GettextTest.PersistentTermRepo do
+    @behaviour Gettext.Repo
+
+    use Agent
+
+    def start_link(_opts) do
+      Agent.start_link(fn -> nil end, name: __MODULE__)
+    end
+
+    def set_msgstr(msgstr) do
+      Agent.update(__MODULE__, fn _ -> msgstr end)
+    end
+
+    def get_msgstr do
+      case Agent.get(__MODULE__, & &1) do
+        nil -> {:error, :translation_not_found}
+        msgstr -> {:ok, msgstr}
+      end
+    end
+
+    @impl Gettext.Repo
+    def get_translation(_locale, _domain, _msgctxt, _msgid) do
+      get_msgstr()
+    end
+
+    @impl Gettext.Repo
+    def get_plural_translation(_locale, _domain, _msgctxt, _msgid, _plural_form) do
+      get_msgstr()
+    end
+  end
+
+  test "uses runtime repo" do
+    import GettextTest.TranslatorWithRuntimeRepo, only: [lgettext: 5, lngettext: 7]
+
+    {:ok, repo} = GettextTest.PersistentTermRepo.start_link([])
+
+    get_singular = fn -> lgettext("it", "default", nil, "Hello world", %{}) end
+
+    get_plural = fn ->
+      lngettext(
+        "it",
+        "errors",
+        nil,
+        "There was an error",
+        "There were %{count} errors",
+        1,
+        %{}
+      )
+    end
+
+    assert get_singular.() == {:ok, "Ciao mondo"}
+    assert get_plural.() == {:ok, "C'è stato un errore"}
+
+    GettextTest.PersistentTermRepo.set_msgstr("Runtime")
+
+    assert get_singular.() == {:ok, "Runtime"}
+    assert get_plural.() == {:ok, "Runtime"}
+  end
 end
