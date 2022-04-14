@@ -1,13 +1,11 @@
 defmodule Gettext.Compiler do
   @moduledoc false
 
-  alias Gettext.{
-    PO,
-    PO.Translation,
-    PO.PluralTranslation
-  }
-
   require Logger
+
+  alias Expo.Message
+  alias Expo.Messages
+  alias Expo.Po
 
   @default_priv "priv/gettext"
   @default_domain "default"
@@ -358,7 +356,7 @@ defmodule Gettext.Compiler do
   @spec append_extracted_comment(binary) :: :ok
   def append_extracted_comment(comment) do
     existing = Process.get(:gettext_comments, [])
-    Process.put(:gettext_comments, ["#. " <> comment | existing])
+    Process.put(:gettext_comments, [" " <> comment | existing])
     :ok
   end
 
@@ -503,10 +501,14 @@ defmodule Gettext.Compiler do
   # lngettext/7 (for plural translations) clauses.
   defp compile_po_file(kind, po_file, env, plural_mod, interpolation_module) do
     %{locale: locale, domain: domain, path: path} = po_file
-    %PO{translations: translations, file: file} = PO.parse_file!(path)
+    %Messages{messages: messages, file: file} = Po.parse_file!(path)
 
     singular_fun = :"#{locale}_#{domain}_lgettext"
     plural_fun = :"#{locale}_#{domain}_lngettext"
+
+    # Remove obsolete translations (not needed at runtime)
+    # TODO: Resolve when implementing https://github.com/elixir-gettext/gettext/issues/210
+    messages = Enum.filter(messages, &match?(%{obsolete: false}, &1))
 
     mapper =
       &compile_translation(
@@ -520,11 +522,11 @@ defmodule Gettext.Compiler do
         interpolation_module
       )
 
-    translations = block(Enum.map(translations, mapper))
+    messages = block(Enum.map(messages, mapper))
 
     quoted =
       quote do
-        unquote(translations)
+        unquote(messages)
 
         Kernel.unquote(kind)(unquote(singular_fun)(msgctxt, msgid, bindings)) do
           unquote(env.module).handle_missing_translation(
@@ -561,7 +563,7 @@ defmodule Gettext.Compiler do
   defp compile_translation(
          kind,
          _locale,
-         %Translation{} = t,
+         %Message.Singular{} = t,
          singular_fun,
          _plural_fun,
          _file,
@@ -598,7 +600,7 @@ defmodule Gettext.Compiler do
   defp compile_translation(
          kind,
          locale,
-         %PluralTranslation{} = t,
+         %Message.Plural{} = t,
          _singular_fun,
          plural_fun,
          file,
@@ -614,7 +616,7 @@ defmodule Gettext.Compiler do
 
     # If any of the msgstrs is empty, then we skip the generation of this
     # function clause. The reason we do this is the same as for the
-    # `%Translation{}` clause.
+    # `%Message.Singular{}` clause.
     unless Enum.any?(msgstr, &match?({_form, ""}, &1)) do
       # We use flat_map here because clauses can only be defined in blocks,
       # so when quoted they are a list.
@@ -639,7 +641,7 @@ defmodule Gettext.Compiler do
               form: form,
               locale: unquote(locale),
               file: unquote(file),
-              line: unquote(t.po_source_line)
+              line: unquote(Message.source_line_number(t, :msgid))
         end
 
       quote generated: true do
@@ -666,7 +668,7 @@ defmodule Gettext.Compiler do
       unless Map.has_key?(translation.msgstr, form) do
         _ =
           Logger.error([
-            "#{file}:#{translation.po_source_line}: translation is missing plural form ",
+            "#{file}:#{Message.source_line_number(translation, :msgid)}: translation is missing plural form ",
             Integer.to_string(form),
             " which is required by the locale ",
             inspect(locale)

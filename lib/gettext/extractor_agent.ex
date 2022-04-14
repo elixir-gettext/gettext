@@ -2,6 +2,8 @@ defmodule Gettext.ExtractorAgent do
   @moduledoc false
   use Agent
 
+  alias Expo.Message
+
   @name __MODULE__
 
   # :translations is a map where keys are Gettext backends and values
@@ -9,7 +11,7 @@ defmodule Gettext.ExtractorAgent do
   # translation_id => translation.
   # :backends is just a list of backends that call `use Gettext`.
   @initial_state %{
-    translations: %{},
+    messages: %{},
     backends: [],
     extracting?: false
   }
@@ -34,15 +36,15 @@ defmodule Gettext.ExtractorAgent do
     Agent.get(@name, & &1.extracting?)
   end
 
-  @spec add_translation(module(), String.t(), Gettext.PO.translation()) :: :ok
+  @spec add_translation(backend :: module(), domain :: String.t(), Message.t()) :: :ok
   def add_translation(backend, domain, translation) do
-    key = Gettext.PO.Translations.key(translation)
+    key = Message.key(translation)
 
     Agent.cast(@name, fn state ->
       # Initialize the given backend to an empty map if it wasn't there.
-      state = update_in(state.translations, &Map.put_new(&1, backend, %{}))
+      state = update_in(state.messages, &Map.put_new(&1, backend, %{}))
 
-      update_in(state, [:translations, backend, domain], fn translations ->
+      update_in(state, [:messages, backend, domain], fn translations ->
         Map.update(translations || %{}, key, translation, &merge_translations(&1, translation))
       end)
     end)
@@ -60,7 +62,7 @@ defmodule Gettext.ExtractorAgent do
 
   def pop_translations(backends) do
     Agent.get_and_update(@name, fn state ->
-      get_and_update_in(state.translations, &Map.split(&1, backends))
+      get_and_update_in(state.messages, &Map.split(&1, backends))
     end)
   end
 

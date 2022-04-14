@@ -1,13 +1,13 @@
 defmodule Gettext.Merger do
   @moduledoc false
 
-  alias Gettext.PO
-  alias Gettext.PO.Translation
-  alias Gettext.PO.PluralTranslation
+  alias Expo.Po
+  alias Expo.Message
+  alias Expo.Messages
   alias Gettext.Fuzzy
 
   @new_po_informative_comment """
-  ## "msgid"s in this file come from POT (.pot) files.
+  # "msgid"s in this file come from POT (.pot) files.
   ##
   ## Do not add, change, or remove "msgid"s manually here as
   ## they're tied to the ones in the corresponding POT file
@@ -49,18 +49,20 @@ defmodule Gettext.Merger do
         by the references in the POT file
 
   """
-  @spec merge(PO.t(), PO.t(), String.t(), Keyword.t()) :: {PO.t(), map()}
-  def merge(%PO{} = old, %PO{} = new, locale, opts) when is_binary(locale) and is_list(opts) do
+  @spec merge(Messages.t(), Messages.t(), String.t(), Keyword.t()) ::
+          {Messages.t(), map()}
+  def merge(%Messages{} = old, %Messages{} = new, locale, opts)
+      when is_binary(locale) and is_list(opts) do
     opts = put_plural_forms_opt(opts, old.headers, locale)
     stats = %{new: 0, exact_matches: 0, fuzzy_matches: 0, removed: 0}
 
-    {translations, stats} = merge_translations(old.translations, new.translations, opts, stats)
+    {translations, stats} = merge_translations(old.messages, new.messages, opts, stats)
 
-    po = %PO{
-      top_of_the_file_comments: old.top_of_the_file_comments,
+    po = %Messages{
+      top_comments: old.top_comments,
       headers: old.headers,
       file: old.file,
-      translations: translations
+      messages: translations
     }
 
     {po, stats}
@@ -71,11 +73,11 @@ defmodule Gettext.Merger do
     fuzzy_threshold = Keyword.fetch!(opts, :fuzzy_threshold)
     plural_forms = Keyword.fetch!(opts, :plural_forms)
 
-    old = Map.new(old, &{PO.Translations.key(&1), &1})
+    old = Map.new(old, &{Message.key(&1), &1})
 
     {translations, {stats, unused}} =
       Enum.map_reduce(new, {stats, _unused = old}, fn t, {stats_acc, unused} ->
-        key = PO.Translations.key(t)
+        key = Message.key(t)
         t = adjust_number_of_plural_forms(t, plural_forms)
 
         case Map.fetch(old, key) do
@@ -87,7 +89,7 @@ defmodule Gettext.Merger do
             case maybe_merge_fuzzy(t, old, key, fuzzy_threshold) do
               {:matched, match, fuzzy_merged} ->
                 stats_acc = update_in(stats_acc.fuzzy_matches, &(&1 + 1))
-                unused = Map.delete(unused, PO.Translations.key(match))
+                unused = Map.delete(unused, Message.key(match))
                 {fuzzy_merged, {stats_acc, unused}}
 
               :nomatch ->
@@ -104,13 +106,13 @@ defmodule Gettext.Merger do
     {translations, put_in(stats.removed, map_size(unused))}
   end
 
-  defp adjust_number_of_plural_forms(%PluralTranslation{} = t, plural_forms)
+  defp adjust_number_of_plural_forms(%Message.Plural{} = t, plural_forms)
        when plural_forms > 0 do
     new_msgstr = Map.new(0..(plural_forms - 1), &{&1, [""]})
     %{t | msgstr: new_msgstr}
   end
 
-  defp adjust_number_of_plural_forms(%Translation{} = t, _plural_forms) do
+  defp adjust_number_of_plural_forms(%Message.Singular{} = t, _plural_forms) do
     t
   end
 
@@ -144,36 +146,36 @@ defmodule Gettext.Merger do
   # flags: we should take the new flags and preserve the fuzzy flag
   # references: new contains the updated and most recent references
 
-  defp merge_two_translations(%Translation{} = old, %Translation{} = new) do
-    %Translation{
+  defp merge_two_translations(%Message.Singular{} = old, %Message.Singular{} = new) do
+    %Message.Singular{
       msgctxt: new.msgctxt,
       msgid: new.msgid,
       msgstr: old.msgstr,
       comments: old.comments,
       extracted_comments: new.extracted_comments,
-      flags: merge_flags(old.flags, new.flags),
+      flags: merge_flags(old, new),
       references: new.references
     }
   end
 
-  defp merge_two_translations(%PluralTranslation{} = old, %PluralTranslation{} = new) do
-    %PluralTranslation{
+  defp merge_two_translations(%Message.Plural{} = old, %Message.Plural{} = new) do
+    %Message.Plural{
       msgctxt: new.msgctxt,
       msgid: new.msgid,
       msgid_plural: new.msgid_plural,
       msgstr: old.msgstr,
       comments: old.comments,
       extracted_comments: new.extracted_comments,
-      flags: merge_flags(old.flags, new.flags),
+      flags: merge_flags(old, new),
       references: new.references
     }
   end
 
-  defp merge_flags(%MapSet{} = old, %MapSet{} = new) do
-    if MapSet.member?(old, "fuzzy") do
-      MapSet.put(new, "fuzzy")
+  defp merge_flags(old, new) do
+    if Message.has_flag?(old, "fuzzy") do
+      Message.append_flag(new, "fuzzy").flags
     else
-      new
+      new.flags
     end
   end
 
@@ -192,24 +194,37 @@ defmodule Gettext.Merger do
   comments directed to developers.
   """
   def new_po_file(po_file, pot_file, locale, opts) when is_binary(locale) and is_list(opts) do
-    pot = PO.parse_file!(pot_file)
+    pot = Po.parse_file!(pot_file)
     opts = put_plural_forms_opt(opts, pot.headers, locale)
     plural_forms = Keyword.fetch!(opts, :plural_forms)
 
-    po = %PO{
-      top_of_the_file_comments: String.split(@new_po_informative_comment, "\n", trim: true),
+    po = %Messages{
+      top_comments: String.split(@new_po_informative_comment, "\n", trim: true),
       headers: headers_for_new_po_file(locale, plural_forms),
       file: po_file,
-      translations: Enum.map(pot.translations, &prepare_new_translation(&1, plural_forms))
+      messages: Enum.map(pot.messages, &prepare_new_translation(&1, plural_forms))
     }
 
-    stats = %{new: length(po.translations), exact_matches: 0, fuzzy_matches: 0, removed: 0}
+    stats = %{new: length(po.messages), exact_matches: 0, fuzzy_matches: 0, removed: 0}
 
     {po, stats}
   end
 
+  @doc false
+  @spec maybe_remove_references(translations :: Translations.t(), remove? :: boolean() | nil) ::
+          Translations.t()
+  def maybe_remove_references(translations, remove?)
+
+  def maybe_remove_references(%Messages{messages: translations} = all, true) do
+    translations = Enum.map(translations, &%{&1 | references: []})
+    %Messages{all | messages: translations}
+  end
+
+  def maybe_remove_references(translations, _remove?), do: translations
+
   defp headers_for_new_po_file(locale, plural_forms) do
     [
+      "",
       ~s(Language: #{locale}\n),
       ~s(Plural-Forms: nplurals=#{plural_forms}\n)
     ]
@@ -222,7 +237,7 @@ defmodule Gettext.Merger do
   end
 
   defp strip_double_hash_comments(%{comments: comments} = t) do
-    %{t | comments: Enum.reject(comments, &match?("##" <> _, &1))}
+    %{t | comments: Enum.reject(comments, &match?("#" <> _, &1))}
   end
 
   defp put_plural_forms_opt(opts, headers, locale) do

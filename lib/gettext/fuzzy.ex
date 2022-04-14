@@ -1,9 +1,7 @@
 defmodule Gettext.Fuzzy do
   @moduledoc false
 
-  alias Gettext.PO
-  alias Gettext.PO.Translation
-  alias Gettext.PO.PluralTranslation
+  alias Expo.Message
 
   @type translation_key :: {binary | nil, binary | {binary, binary}}
 
@@ -63,24 +61,24 @@ defmodule Gettext.Fuzzy do
   translation; if `new` is a plural translation, then the result will be a
   plural translation.
   """
-  @spec merge(PO.translation(), PO.translation()) :: PO.translation()
+  @spec merge(new :: Message.t(), existing :: Message.t()) :: Message.t()
   def merge(new, existing) do
     # Everything comes from "new", except for the msgstr and the comments.
     new
     |> Map.put(:comments, existing.comments)
     |> merge_msgstr(existing)
-    |> PO.Translations.mark_as_fuzzy()
+    |> Message.append_flag("fuzzy")
   end
 
-  defp merge_msgstr(%Translation{} = new, %Translation{} = existing),
+  defp merge_msgstr(%Message.Singular{} = new, %Message.Singular{} = existing),
     do: %{new | msgstr: existing.msgstr}
 
-  defp merge_msgstr(%Translation{} = new, %PluralTranslation{} = existing),
+  defp merge_msgstr(%Message.Singular{} = new, %Message.Plural{} = existing),
     do: %{new | msgstr: existing.msgstr[0]}
 
-  defp merge_msgstr(%PluralTranslation{} = new, %Translation{} = existing),
+  defp merge_msgstr(%Message.Plural{} = new, %Message.Singular{} = existing),
     do: %{new | msgstr: Map.new(new.msgstr, fn {i, _} -> {i, existing.msgstr} end)}
 
-  defp merge_msgstr(%PluralTranslation{} = new, %PluralTranslation{} = existing),
+  defp merge_msgstr(%Message.Plural{} = new, %Message.Plural{} = existing),
     do: %{new | msgstr: existing.msgstr}
 end

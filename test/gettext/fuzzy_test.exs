@@ -2,8 +2,7 @@ defmodule Gettext.FuzzyTest do
   use ExUnit.Case, async: true
 
   alias Gettext.Fuzzy
-  alias Gettext.PO.Translation
-  alias Gettext.PO.PluralTranslation
+  alias Expo.Message
 
   test "matcher/1" do
     assert Fuzzy.matcher(0.5).({nil, "foo"}, {nil, "foo"}) == {:match, 1.0}
@@ -31,49 +30,64 @@ defmodule Gettext.FuzzyTest do
 
   describe "merge/2" do
     test "two translations" do
-      t1 = %Translation{msgid: "foo"}
-      t2 = %Translation{msgid: "foos", msgstr: "bar"}
+      t1 = %Message.Singular{msgid: ["foo"]}
+      t2 = %Message.Singular{msgid: ["foos"], msgstr: ["bar"]}
 
-      assert %Translation{} = t = Fuzzy.merge(t1, t2)
+      assert %Message.Singular{} = t = Fuzzy.merge(t1, t2)
 
-      assert t.msgid == "foo"
-      assert t.msgstr == "bar"
-      assert MapSet.member?(t.flags, "fuzzy")
+      assert t.msgid == ["foo"]
+      assert t.msgstr == ["bar"]
+      assert Message.has_flag?(t, "fuzzy")
     end
 
     test "a translation and a plural translation" do
-      t1 = %Translation{msgid: "foo"}
-      t2 = %PluralTranslation{msgid: "foos", msgid_plural: "bar", msgstr: %{0 => "a", 1 => "b"}}
+      t1 = %Message.Singular{msgid: ["foo"]}
 
-      assert %Translation{} = t = Fuzzy.merge(t1, t2)
+      t2 = %Message.Plural{
+        msgid: ["foos"],
+        msgid_plural: ["bar"],
+        msgstr: %{0 => ["a"], 1 => ["b"]}
+      }
 
-      assert t.msgid == "foo"
-      assert t.msgstr == "a"
-      assert MapSet.member?(t.flags, "fuzzy")
+      assert %Message.Singular{} = t = Fuzzy.merge(t1, t2)
+
+      assert t.msgid == ["foo"]
+      assert t.msgstr == ["a"]
+      assert Message.has_flag?(t, "fuzzy")
     end
 
     test "a plural translation and a translation" do
-      t1 = %PluralTranslation{msgid: "foos", msgid_plural: "bar", msgstr: %{0 => "", 1 => ""}}
-      t2 = %Translation{msgid: "foo", msgstr: "bar"}
+      t1 = %Message.Plural{
+        msgid: ["foos"],
+        msgid_plural: ["bar"],
+        msgstr: %{0 => [], 1 => []}
+      }
 
-      assert %PluralTranslation{} = t = Fuzzy.merge(t1, t2)
+      t2 = %Message.Singular{msgid: ["foo"], msgstr: ["bar"]}
 
-      assert t.msgid == "foos"
-      assert t.msgid_plural == "bar"
-      assert t.msgstr == %{0 => "bar", 1 => "bar"}
-      assert MapSet.member?(t.flags, "fuzzy")
+      assert %Message.Plural{} = t = Fuzzy.merge(t1, t2)
+
+      assert t.msgid == ["foos"]
+      assert t.msgid_plural == ["bar"]
+      assert t.msgstr == %{0 => ["bar"], 1 => ["bar"]}
+      assert Message.has_flag?(t, "fuzzy")
     end
 
     test "two plural translations" do
-      t1 = %PluralTranslation{msgid: "foos", msgid_plural: "bar"}
-      t2 = %PluralTranslation{msgid: "foo", msgid_plural: "baz", msgstr: %{0 => "a", 1 => "b"}}
+      t1 = %Message.Plural{msgid: ["foos"], msgid_plural: ["bar"]}
 
-      assert %PluralTranslation{} = t = Fuzzy.merge(t1, t2)
+      t2 = %Message.Plural{
+        msgid: ["foo"],
+        msgid_plural: ["baz"],
+        msgstr: %{0 => ["a"], 1 => ["b"]}
+      }
 
-      assert t.msgid == "foos"
-      assert t.msgid_plural == "bar"
-      assert t.msgstr == %{0 => "a", 1 => "b"}
-      assert MapSet.member?(t.flags, "fuzzy")
+      assert %Message.Plural{} = t = Fuzzy.merge(t1, t2)
+
+      assert t.msgid == ["foos"]
+      assert t.msgid_plural == ["bar"]
+      assert t.msgstr == %{0 => ["a"], 1 => ["b"]}
+      assert Message.has_flag?(t, "fuzzy")
     end
   end
 end
