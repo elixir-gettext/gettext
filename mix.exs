@@ -47,7 +47,9 @@ defmodule Gettext.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.19", only: :docs}
+      {:ex_doc, "~> 0.19", only: :docs},
+      # TODO: Switch to stable version once ready & released
+      {:expo, "~> 0.1.0-beta"}
     ]
   end
 end
