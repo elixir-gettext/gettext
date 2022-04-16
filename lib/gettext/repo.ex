@@ -16,11 +16,11 @@ defmodule Gettext.Repo do
   Should return a singular translation string.
   """
   @callback get_translation(locale(), domain(), msgctxt(), msgid()) ::
-              {:ok, msgstr()} | {:error, :translation_not_found}
+              {:ok, msgstr()} | :not_found
 
   @doc """
   Should return a plural translation string.
   """
   @callback get_plural_translation(locale(), domain(), msgctxt(), msgid(), plural_form()) ::
-              {:ok, msgstr()} | {:error, :translation_not_found}
+              {:ok, msgstr()} | :not_found
 end

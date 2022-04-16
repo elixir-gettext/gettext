@@ -926,7 +926,7 @@ defmodule GettextTest do
 
     def get_msgstr do
       case Agent.get(__MODULE__, & &1) do
-        nil -> {:error, :translation_not_found}
+        nil -> :not_found
         msgstr -> {:ok, msgstr}
       end
     end
