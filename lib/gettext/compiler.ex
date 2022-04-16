@@ -36,7 +36,13 @@ defmodule Gettext.Compiler do
     default_domain = opts[:default_domain] || @default_domain
 
     interpolation = opts[:interpolation] || Gettext.Interpolation.Default
-    repo = opts[:repo]
+
+    {repo, repo_opts} =
+      case opts[:repo] do
+        nil -> {nil, nil}
+        mod when is_atom(mod) -> {mod, mod.init([])}
+        {mod, opts} when is_atom(mod) -> {mod, mod.init(opts)}
+      end
 
     plural_mod =
       Keyword.get(opts, :plural_forms) ||
@@ -67,7 +73,7 @@ defmodule Gettext.Compiler do
 
       unquote(macros())
 
-      unquote(public_functions(repo, interpolation, plural_mod))
+      unquote(public_functions(repo, repo_opts, interpolation, plural_mod))
 
       unquote(compile_po_files(env, known_po_files, plural_mod, opts))
 
@@ -314,7 +320,7 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp public_functions(nil, _interpolation, _plural_mod) do
+  defp public_functions(nil, _repo_opts, _interpolation, _plural_mod) do
     quote do
       def lgettext(locale, domain, msgctxt \\ nil, msgid, bindings) do
         lgettext_compiled(locale, domain, msgctxt, msgid, bindings)
@@ -326,10 +332,10 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp public_functions(repo, interpolation, plural_mod) do
+  defp public_functions(repo, repo_opts, interpolation, plural_mod) do
     quote do
       def lgettext(locale, domain, msgctxt, msgid, bindings) do
-        case unquote(repo).get_translation(locale, domain, msgctxt, msgid) do
+        case unquote(repo).get_translation(locale, domain, msgctxt, msgid, unquote(repo_opts)) do
           {:ok, msgstr} ->
             unquote(interpolation).runtime_interpolate(msgstr, bindings)
 
@@ -346,7 +352,8 @@ defmodule Gettext.Compiler do
                domain,
                msgctxt,
                msgid,
-               plural_form
+               plural_form,
+               unquote(repo_opts)
              ) do
           {:ok, msgstr} ->
             bindings = Map.put(bindings, :count, n)

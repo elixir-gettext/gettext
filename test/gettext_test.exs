@@ -905,47 +905,61 @@ defmodule GettextTest do
     assert "quack foo %{} quack" = gettext("foo")
   end
 
-  defmodule GettextTest.TranslatorWithRuntimeRepo do
-    use Gettext,
-      otp_app: :test_application,
-      repo: GettextTest.PersistentTermRepo
-  end
-
   defmodule GettextTest.PersistentTermRepo do
     @behaviour Gettext.Repo
 
     use Agent
 
-    def start_link(_opts) do
-      Agent.start_link(fn -> nil end, name: __MODULE__)
+    def start_link(opts) do
+      name = Keyword.get(opts, :name, __MODULE__)
+      Agent.start_link(fn -> nil end, name: name)
     end
 
-    def set_msgstr(msgstr) do
-      Agent.update(__MODULE__, fn _ -> msgstr end)
+    def set_msgstr(msgstr, name \\ __MODULE__) do
+      Agent.update(name, fn _ -> msgstr end)
     end
 
-    def get_msgstr do
-      case Agent.get(__MODULE__, & &1) do
+    def get_msgstr(name \\ __MODULE__) do
+      case Agent.get(name, & &1) do
         nil -> :not_found
         msgstr -> {:ok, msgstr}
       end
     end
 
     @impl Gettext.Repo
-    def get_translation(_locale, _domain, _msgctxt, _msgid) do
-      get_msgstr()
+    def init(name) when is_atom(name) do
+      name
+    end
+
+    def init(_), do: __MODULE__
+
+    @impl Gettext.Repo
+    def get_translation(_locale, _domain, _msgctxt, _msgid, name) do
+      get_msgstr(name)
     end
 
     @impl Gettext.Repo
-    def get_plural_translation(_locale, _domain, _msgctxt, _msgid, _plural_form) do
-      get_msgstr()
+    def get_plural_translation(_locale, _domain, _msgctxt, _msgid, _plural_form, name) do
+      get_msgstr(name)
     end
+  end
+
+  defmodule GettextTest.TranslatorWithRuntimeRepo do
+    use Gettext,
+      otp_app: :test_application,
+      repo: GettextTest.PersistentTermRepo
+  end
+
+  defmodule GettextTest.TranslatorWithConfigurableRuntimeRepo do
+    use Gettext,
+      otp_app: :test_application,
+      repo: {GettextTest.PersistentTermRepo, :gettext_test_repo_name}
   end
 
   test "uses runtime repo" do
     import GettextTest.TranslatorWithRuntimeRepo, only: [lgettext: 5, lngettext: 7]
 
-    {:ok, repo} = GettextTest.PersistentTermRepo.start_link([])
+    {:ok, _repo} = GettextTest.PersistentTermRepo.start_link([])
 
     get_singular = fn -> lgettext("it", "default", nil, "Hello world", %{}) end
 
@@ -968,5 +982,17 @@ defmodule GettextTest do
 
     assert get_singular.() == {:ok, "Runtime"}
     assert get_plural.() == {:ok, "Runtime"}
+  end
+
+  test "runtime repo can be initialized with config value" do
+    import GettextTest.TranslatorWithConfigurableRuntimeRepo, only: [lgettext: 5]
+
+    {:ok, _repo1} = GettextTest.PersistentTermRepo.start_link([])
+    {:ok, _repo2} = GettextTest.PersistentTermRepo.start_link(name: :gettext_test_repo_name)
+
+    GettextTest.PersistentTermRepo.set_msgstr("Not this one")
+    GettextTest.PersistentTermRepo.set_msgstr("This one", :gettext_test_repo_name)
+
+    assert lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "This one"}
   end
 end
