@@ -510,6 +510,7 @@ defmodule Gettext.Compiler do
           unquote(env.module).handle_missing_translation(
             unquote(locale),
             unquote(domain),
+            msgctxt,
             msgid,
             bindings
           )
@@ -519,6 +520,7 @@ defmodule Gettext.Compiler do
           unquote(env.module).handle_missing_plural_translation(
             unquote(locale),
             unquote(domain),
+            msgctxt,
             msgid,
             msgid_plural,
             n,

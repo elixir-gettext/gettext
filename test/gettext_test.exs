@@ -25,20 +25,6 @@ end
 defmodule GettextTest.HandleMissingTranslation do
   use Gettext, otp_app: :test_application
 
-  def handle_missing_translation(locale, domain, msgid, bindings) do
-    send(self(), {locale, domain, msgid, bindings})
-    super(locale, domain, msgid, bindings)
-  end
-
-  def handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings) do
-    send(self(), {locale, domain, msgid, msgid_plural, n, bindings})
-    super(locale, domain, msgid, msgid_plural, n, bindings)
-  end
-end
-
-defmodule GettextTest.HandleMissingTranslationWithContext do
-  use Gettext, otp_app: :test_application
-
   def handle_missing_translation(locale, domain, msgctxt, msgid, bindings) do
     send(self(), {locale, domain, msgctxt, msgid, bindings})
     super(locale, domain, msgctxt, msgid, bindings)
@@ -86,7 +72,6 @@ defmodule GettextTest do
   alias GettextTest.TranslatorWithCustomPluralForms
   alias GettextTest.TranslatorWithDefaultDomain
   alias GettextTest.HandleMissingTranslation
-  alias GettextTest.HandleMissingTranslationWithContext
 
   require Translator
   require TranslatorWithCustomPriv
@@ -381,22 +366,12 @@ defmodule GettextTest do
              {:missing_bindings, "Hello %{name}", [:name]}
   end
 
-  test "lgettext/5: fallbacks to handle_missing_translation if no translation is found" do
-    msgid = "Hello %{name}"
-    bindings = %{name: "Jane"}
-
-    assert HandleMissingTranslation.lgettext("pl", "foo", nil, msgid, bindings) ==
-             {:default, "Hello Jane"}
-
-    assert_receive {"pl", "foo", ^msgid, ^bindings}
-  end
-
-  test "lgettext/5: fallbacks to handle_missing_translation with msgctxt" do
+  test "lgettext/5: fallbacks to handle_missing_translation" do
     msgctxt = "some context"
     msgid = "Hello %{name}"
     bindings = %{name: "Jane"}
 
-    assert HandleMissingTranslationWithContext.lgettext("pl", "foo", msgctxt, msgid, bindings) ==
+    assert HandleMissingTranslation.lgettext("pl", "foo", msgctxt, msgid, bindings) ==
              {:default, "Hello Jane"}
 
     assert_receive {"pl", "foo", ^msgctxt, ^msgid, ^bindings}
@@ -425,23 +400,12 @@ defmodule GettextTest do
   end
 
   test "lngettext/6: fallbacks to handle_missing_plural_translation if no translation is found" do
-    msgid = "Hello %{name}"
-    msgid_plural = "Hello %{name}"
-    bindings = %{name: "Jane"}
-
-    assert HandleMissingTranslation.lngettext("pl", "foo", nil, msgid, msgid_plural, 4, bindings) ==
-             {:default, "Hello Jane"}
-
-    assert_receive {"pl", "foo", ^msgid, ^msgid_plural, 4, ^bindings}
-  end
-
-  test "lngettext/6: fallbacks to handle_missing_plural_translation with context" do
     msgctxt = "some context"
     msgid = "Hello %{name}"
     msgid_plural = "Hello %{name}"
     bindings = %{name: "Jane"}
 
-    assert HandleMissingTranslationWithContext.lngettext(
+    assert HandleMissingTranslation.lngettext(
              "pl",
              "foo",
              msgctxt,

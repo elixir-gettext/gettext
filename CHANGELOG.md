@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.20.0-dev
+
+### Backwards incompatible changes
+
+  * `handle_missing_translation(locale, domain, msgid, bindings)` callback signature was changed to `handle_missing_translation(locale, domain, msgctxt, msgid, bindings)` (it receives a new argument called `msgctxt`)
+
+  * `handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings)` callback signature was changed to `handle_missing_plural_translation(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)` (it receives a new argument called `msgctxt`)
+
 ## v0.19.1
 
   * Fix warnings on Elixir v1.14+

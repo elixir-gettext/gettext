@@ -612,16 +612,22 @@ defmodule Gettext do
         incomplete
       end
 
-      defoverridable handle_missing_bindings: 2
-
-      def handle_missing_translation(_locale, domain, msgid, bindings) do
+      def handle_missing_translation(_locale, domain, _msgctxt, msgid, bindings) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
 
         with {:ok, interpolated} <- @interpolation.runtime_interpolate(msgid, bindings),
              do: {:default, interpolated}
       end
 
-      def handle_missing_plural_translation(_locale, domain, msgid, msgid_plural, n, bindings) do
+      def handle_missing_plural_translation(
+            _locale,
+            domain,
+            _msgctxt,
+            msgid,
+            msgid_plural,
+            n,
+            bindings
+          ) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
         string = if n == 1, do: msgid, else: msgid_plural
         bindings = Map.put(bindings, :count, n)
@@ -629,22 +635,6 @@ defmodule Gettext do
         with {:ok, interpolated} <- @interpolation.runtime_interpolate(string, bindings),
              do: {:default, interpolated}
       end
-
-      defoverridable handle_missing_translation: 4, handle_missing_plural_translation: 6
-
-      def handle_missing_translation(locale, domain, msgctxt, msgid, bindings),
-        do: handle_missing_translation(locale, domain, msgid, bindings)
-
-      def handle_missing_plural_translation(
-            locale,
-            domain,
-            msgctxt,
-            msgid,
-            msgid_plural,
-            n,
-            bindings
-          ),
-          do: handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings)
 
       defoverridable handle_missing_translation: 5, handle_missing_plural_translation: 7
     end
