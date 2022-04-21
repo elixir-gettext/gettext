@@ -66,10 +66,15 @@ defmodule Gettext.Backend do
   customize the default to, for example, pick the translation from the
   default locale. The important is to return `:default` instead of `:ok`
   whenever the result does not quite match the requested locale.
+
+  Earlier versions of this library provided a callback without msgctxt.
+  Users implementing that callback will still get the same results,
+  but they are encouraged to switch to the new 5-argument version.
   """
   @callback handle_missing_translation(
               Gettext.locale(),
               domain :: String.t(),
+              msgctxt :: String.t(),
               msgid :: String.t(),
               bindings :: map()
             ) ::
@@ -78,12 +83,17 @@ defmodule Gettext.Backend do
   @doc """
   Default handling for plural translations with a missing translation.
 
-  Same as `c:handle_missing_translation/4`, but for plural translations.
+  Same as `c:handle_missing_translation/5`, but for plural translations.
   In this case, `n` is the number used for pluralizing the translated string.
+
+  Earlier versions of this library provided a callback without msgctxt.
+  Users implementing that callback will still get the same results,
+  but they are encouraged to switch to the new 7-argument version.
   """
   @callback handle_missing_plural_translation(
               Gettext.locale(),
               domain :: String.t(),
+              msgctxt :: String.t(),
               msgid :: String.t(),
               msgid_plural :: String.t(),
               n :: non_neg_integer(),

@@ -631,6 +631,22 @@ defmodule Gettext do
       end
 
       defoverridable handle_missing_translation: 4, handle_missing_plural_translation: 6
+
+      def handle_missing_translation(locale, domain, msgctxt, msgid, bindings),
+        do: handle_missing_translation(locale, domain, msgid, bindings)
+
+      def handle_missing_plural_translation(
+            locale,
+            domain,
+            msgctxt,
+            msgid,
+            msgid_plural,
+            n,
+            bindings
+          ),
+          do: handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings)
+
+      defoverridable handle_missing_translation: 5, handle_missing_plural_translation: 7
     end
   end
 
