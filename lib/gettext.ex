@@ -612,6 +612,8 @@ defmodule Gettext do
         incomplete
       end
 
+      defoverridable handle_missing_bindings: 2
+
       def handle_missing_translation(_locale, domain, _msgctxt, msgid, bindings) do
         Gettext.Compiler.warn_if_domain_contains_slashes(domain)
 
