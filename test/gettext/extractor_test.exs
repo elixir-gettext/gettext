@@ -272,9 +272,12 @@ defmodule Gettext.ExtractorTest do
       def bar do
         gettext_comment("some comment")
         gettext_comment("some other comment")
+        gettext_comment("repeated comment")
         gettext("foo")
         dngettext("errors", "one error", "%{count} errors", 2)
         gettext_comment("one more comment")
+        gettext_comment("repeated comment")
+        gettext_comment("repeated comment")
         gettext("foo")
         Gettext.ExtractorTest.MyOtherGettext.dgettext("greetings", "hi")
         pgettext("test", "context based translation")
@@ -292,15 +295,16 @@ defmodule Gettext.ExtractorTest do
 
        #. some comment
        #. some other comment
+       #. repeated comment
        #. one more comment
        #, elixir-autogen, elixir-format
-       #: foo.ex:16
-       #: foo.ex:19
+       #: foo.ex:17
+       #: foo.ex:22
        msgid "foo"
        msgstr ""
 
        #, elixir-autogen, elixir-format
-       #: foo.ex:21
+       #: foo.ex:24
        msgctxt "test"
        msgid "context based translation"
        msgstr ""
@@ -311,7 +315,7 @@ defmodule Gettext.ExtractorTest do
        msgstr ""
 
        #, elixir-autogen, elixir-format
-       #: foo.ex:17
+       #: foo.ex:18
        msgid "one error"
        msgid_plural "%{count} errors"
        msgstr[0] ""
@@ -323,7 +327,7 @@ defmodule Gettext.ExtractorTest do
        msgstr ""
 
        #, elixir-autogen, elixir-format
-       #: foo.ex:20
+       #: foo.ex:23
        msgid "hi"
        msgstr ""
        """}
