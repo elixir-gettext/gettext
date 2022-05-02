@@ -75,6 +75,6 @@ defmodule Gettext.ExtractorAgent do
   defp merge_translations(t1, t2) do
     t1
     |> Map.put(:references, t1.references ++ t2.references)
-    |> Map.put(:extracted_comments, t1.extracted_comments ++ t2.extracted_comments)
+    |> Map.put(:extracted_comments, Enum.uniq(t1.extracted_comments ++ t2.extracted_comments))
   end
 end
