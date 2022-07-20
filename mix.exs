@@ -10,7 +10,7 @@ defmodule Gettext.Mixfile do
     [
       app: :gettext,
       version: @version,
-      elixir: "~> 1.6",
+      elixir: "~> 1.11",
       build_embedded: Mix.env() == :prod,
       deps: deps(),
 
