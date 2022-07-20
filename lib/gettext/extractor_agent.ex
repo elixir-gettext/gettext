@@ -44,7 +44,7 @@ defmodule Gettext.ExtractorAgent do
       # Initialize the given backend to an empty map if it wasn't there.
       state = update_in(state.messages, &Map.put_new(&1, backend, %{}))
 
-      update_in(state, [:messages, backend, domain], fn messages ->
+      update_in(state.messages[backend][domain], fn messages ->
         Map.update(messages || %{}, key, message, &merge_messages(&1, message))
       end)
     end)
