@@ -14,13 +14,22 @@ defmodule Gettext.Compiler do
   @po_wildcard "*/LC_MESSAGES/*.po"
 
   @doc false
+  def __hash__(priv) do
+    hash(po_files_in_priv(priv))
+  end
+
+  defp hash(all_po_files) do
+    all_po_files |> Enum.sort() |> :erlang.md5()
+  end
+
+  @doc false
   defmacro __before_compile__(env) do
     opts = Module.get_attribute(env.module, :gettext_opts)
     otp_app = Keyword.fetch!(opts, :otp_app)
     priv = Keyword.get(opts, :priv, @default_priv)
-    translations_dir = Application.app_dir(otp_app, priv)
-    external_file = String.replace(Path.join(".compile", priv), "/", "_")
-    known_po_files = known_po_files(translations_dir, opts)
+    all_po_files = po_files_in_priv(priv)
+    hash_po_files = hash(all_po_files)
+    known_po_files = known_po_files(all_po_files, opts)
     known_locales = Enum.map(known_po_files, & &1[:locale]) |> Enum.uniq()
 
     default_locale =
@@ -33,6 +42,13 @@ defmodule Gettext.Compiler do
     quote do
       @behaviour Gettext.Backend
 
+      unquote(external_resources(known_po_files))
+
+      @doc false
+      def __mix_recompile__? do
+        unquote(hash_po_files) != Gettext.Compiler.__hash__(unquote(priv))
+      end
+
       # Info about the Gettext backend.
       @doc false
       def __gettext__(:priv), do: unquote(priv)
@@ -41,10 +57,6 @@ defmodule Gettext.Compiler do
       def __gettext__(:default_locale), do: unquote(default_locale)
       def __gettext__(:default_domain), do: unquote(default_domain)
       def __gettext__(:interpolation), do: unquote(interpolation)
-
-      # The manifest lives in the root of the priv
-      # directory that contains .po/.pot files.
-      @external_resource unquote(Application.app_dir(otp_app, external_file))
 
       if Gettext.Extractor.extracting?() do
         Gettext.ExtractorAgent.add_backend(__MODULE__)
@@ -74,6 +86,14 @@ defmodule Gettext.Compiler do
             bindings
           )
     end
+  end
+
+  defp external_resources(known_po_files) do
+    Enum.map(known_po_files, fn po_file ->
+      quote do
+        @external_resource unquote(po_file.path)
+      end
+    end)
   end
 
   defp macros() do
@@ -659,10 +679,8 @@ defmodule Gettext.Compiler do
     {:__block__, [], contents}
   end
 
-  # Returns all the PO files in `translations_dir` (under "canonical" paths,
-  # that is, `locale/LC_MESSAGES/domain.po`).
-  defp po_files_in_dir(dir) do
-    dir
+  defp po_files_in_priv(priv) do
+    priv
     |> Path.join(@po_wildcard)
     |> Path.wildcard()
   end
@@ -670,23 +688,13 @@ defmodule Gettext.Compiler do
   # Returns the known the PO files in `translations_dir` with their locale and domain
   # If allowed_locales is configured, it removes all the PO files that do not belong
   # to those locales
-  defp known_po_files(translations_dir, opts) do
-    case File.ls(translations_dir) do
-      {:ok, _} ->
-        translations_dir
-        |> po_files_in_dir()
-        |> Enum.map(fn path ->
-          {locale, domain} = locale_and_domain_from_path(path)
-          %{locale: locale, path: path, domain: domain}
-        end)
-        |> maybe_restrict_locales(opts[:allowed_locales])
-
-      {:error, :enoent} ->
-        []
-
-      {:error, reason} ->
-        raise File.Error, reason: reason, action: "list directory", path: translations_dir
-    end
+  defp known_po_files(all_po_files, opts) do
+    all_po_files
+    |> Enum.map(fn path ->
+      {locale, domain} = locale_and_domain_from_path(path)
+      %{locale: locale, path: path, domain: domain}
+    end)
+    |> maybe_restrict_locales(opts[:allowed_locales])
   end
 
   defp maybe_restrict_locales(po_files, nil) do

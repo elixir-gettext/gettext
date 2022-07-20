@@ -427,14 +427,6 @@ defmodule Gettext do
   version of the POT files in `priv/gettext`. Read more about the merging
   process in the documentation for `Mix.Tasks.Gettext.Merge`.
 
-  Finally, Gettext is able to recompile modules that call `use Gettext` whenever
-  PO files change. To enable this feature, the `:gettext` compiler needs to be
-  added to the list of Mix compilers. In `mix.exs`:
-
-      def project do
-        [compilers: [:gettext] ++ Mix.compilers]
-      end
-
   ## Configuration
 
   ### `:gettext` configuration
@@ -521,12 +513,6 @@ defmodule Gettext do
       references. Gettext will preserve all translations in all POT files that
       have a matching reference. You can use this pattern to prevent Gettext from
       removing translations that you have extracted using another tool.
-
-    * `:compiler_po_wildcard` - a binary that specifies the wildcard that the
-      `:gettext` compiler will use to find changed PO files in order to recompile
-      their respective Gettext backends. This wildcard has to be relative to the
-      `"priv"` directory of your application. Defaults to
-      `"gettext/*/LC_MESSAGES/*.po"`.
 
     * `:write_reference_comments` - a boolean that specifies whether reference
       comments should be written when outputting PO(T) files. If this is `false`,

@@ -1,29 +1,37 @@
 defmodule GettextTest.Translator do
-  use Gettext, otp_app: :test_application
-end
-
-defmodule GettextTest.TranslatorWithCustomPriv do
-  use Gettext, otp_app: :test_application, priv: "translations"
+  use Gettext, otp_app: :test_application, priv: "test/fixtures/single_translations"
 end
 
 defmodule GettextTest.TranslatorWithAllowedLocalesString do
-  use Gettext, otp_app: :test_application, priv: "translations", allowed_locales: ["es"]
+  use Gettext,
+    otp_app: :test_application,
+    priv: "test/fixtures/multi_translations",
+    allowed_locales: ["es"]
 end
 
 defmodule GettextTest.TranslatorWithAllowedLocalesAtom do
-  use Gettext, otp_app: :test_application, priv: "translations", allowed_locales: [:es]
+  use Gettext,
+    otp_app: :test_application,
+    priv: "test/fixtures/multi_translations",
+    allowed_locales: [:es]
 end
 
 defmodule GettextTest.TranslatorWithCustomPluralForms do
-  use Gettext, otp_app: :test_application, plural_forms: GettextTest.CustomPlural
+  use Gettext,
+    otp_app: :test_application,
+    priv: "test/fixtures/single_translations",
+    plural_forms: GettextTest.CustomPlural
 end
 
 defmodule GettextTest.TranslatorWithDefaultDomain do
-  use Gettext, otp_app: :test_application, default_domain: "errors"
+  use Gettext,
+    otp_app: :test_application,
+    priv: "test/fixtures/single_translations",
+    default_domain: "errors"
 end
 
 defmodule GettextTest.HandleMissingTranslation do
-  use Gettext, otp_app: :test_application
+  use Gettext, otp_app: :test_application, priv: "test/fixtures/single_translations"
 
   def handle_missing_translation(locale, domain, msgctxt, msgid, bindings) do
     send(self(), {locale, domain, msgctxt, msgid, bindings})
@@ -57,7 +65,8 @@ end
 defmodule GettextTest.TranslatorWithDuckInterpolator do
   use Gettext,
     otp_app: :test_application,
-    interpolation: GettextTest.TranslatorWithDuckInterpolator.Interpolator
+    interpolation: GettextTest.TranslatorWithDuckInterpolator.Interpolator,
+    priv: "test/fixtures/single_translations"
 end
 
 defmodule GettextTest do
@@ -66,7 +75,6 @@ defmodule GettextTest do
   import ExUnit.CaptureLog
 
   alias GettextTest.Translator
-  alias GettextTest.TranslatorWithCustomPriv
   alias GettextTest.TranslatorWithAllowedLocalesString
   alias GettextTest.TranslatorWithAllowedLocalesAtom
   alias GettextTest.TranslatorWithCustomPluralForms
@@ -74,7 +82,6 @@ defmodule GettextTest do
   alias GettextTest.HandleMissingTranslation
 
   require Translator
-  require TranslatorWithCustomPriv
   require TranslatorWithDefaultDomain
 
   test "the default locale is \"en\"" do
@@ -88,7 +95,6 @@ defmodule GettextTest do
 
     # Now, let's check that only that backend was affected.
     assert Gettext.get_locale(Translator) == "pt_BR"
-    assert Gettext.get_locale(TranslatorWithCustomPriv) == "en"
     assert Gettext.get_locale() == "en"
 
     # Now, let's change the global locale:
@@ -98,7 +104,6 @@ defmodule GettextTest do
     # returns the global locale, but only for backends that have no
     # backend-specific locale set.
     assert Gettext.get_locale() == "it"
-    assert Gettext.get_locale(TranslatorWithCustomPriv) == "it"
     assert Gettext.get_locale(Translator) == "pt_BR"
   end
 
@@ -123,13 +128,11 @@ defmodule GettextTest do
   end
 
   test "__gettext__(:priv): returns the directory where the translations are stored" do
-    assert Translator.__gettext__(:priv) == "priv/gettext"
-    assert TranslatorWithCustomPriv.__gettext__(:priv) == "translations"
+    assert Translator.__gettext__(:priv) == "test/fixtures/single_translations"
   end
 
   test "__gettext__(:otp_app): returns the otp app for the given backend" do
     assert Translator.__gettext__(:otp_app) == :test_application
-    assert TranslatorWithCustomPriv.__gettext__(:otp_app) == :test_application
   end
 
   test "__gettext__(:default_domain): returns the default domain for the given backend" do
@@ -161,14 +164,6 @@ defmodule GettextTest do
   test "translations with empty msgstrs fallback to {:default, _}" do
     assert Translator.lgettext("it", "default", nil, "Empty msgstr!", %{}) ==
              {:default, "Empty msgstr!"}
-  end
-
-  test "a custom 'priv' directory can be used to store translations" do
-    assert TranslatorWithCustomPriv.lgettext("it", "default", nil, "Hello world", %{}) ==
-             {:ok, "Ciao mondo"}
-
-    assert TranslatorWithCustomPriv.lgettext("it", "errors", nil, "Invalid email address", %{}) ==
-             {:ok, "Indirizzo email non valido"}
   end
 
   test "a custom default_domain can be set for a backend" do
@@ -212,7 +207,7 @@ defmodule GettextTest do
     Application.put_env(:gettext, :plural_forms, GettextTest.CustomPlural)
 
     defmodule TranslatorWithAppPluralForms do
-      use Gettext, otp_app: :test_application
+      use Gettext, otp_app: :test_application, priv: "test/fixtures/single_translations"
     end
 
     alias TranslatorWithAppPluralForms, as: T
@@ -261,7 +256,9 @@ defmodule GettextTest do
         Code.eval_quoted(
           quote do
             defmodule BadTranslations do
-              use Gettext, otp_app: :test_application, priv: "bad_translations"
+              use Gettext,
+                otp_app: :test_application,
+                priv: "test/fixtures/bad_translations"
             end
           end
         )
@@ -801,7 +798,6 @@ defmodule GettextTest do
 
   test "known_locales/1: returns all the locales for which a backend has PO files" do
     assert Gettext.known_locales(Translator) == ["it"]
-    assert Gettext.known_locales(TranslatorWithCustomPriv) == ["es", "it"]
     assert Gettext.known_locales(TranslatorWithAllowedLocalesAtom) == ["es"]
     assert Gettext.known_locales(TranslatorWithAllowedLocalesString) == ["es"]
   end
@@ -819,7 +815,8 @@ defmodule GettextTest do
     use Gettext,
       otp_app: :test_application,
       split_module_by: [:locale],
-      split_module_compilation: :parallel
+      split_module_compilation: :parallel,
+      priv: "test/fixtures/single_translations"
   end
 
   test "may define one module per locale" do
@@ -860,7 +857,8 @@ defmodule GettextTest do
     use Gettext,
       otp_app: :test_application,
       split_module_by: [:locale, :domain],
-      split_module_compilation: :serial
+      split_module_compilation: :serial,
+      priv: "test/fixtures/single_translations"
   end
 
   test "may define one module per locale and domain" do

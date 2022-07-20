@@ -2,6 +2,9 @@
 
 ## v0.20.0-dev
 
+  * Allow `gettext_comment` to be invoked multiple times
+  * Dump flags after references in PO files
+
 ### Backwards incompatible changes
 
   * `handle_missing_translation(locale, domain, msgid, bindings)` callback signature was changed to `handle_missing_translation(locale, domain, msgctxt, msgid, bindings)` (it receives a new argument called `msgctxt`)

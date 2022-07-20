@@ -6,22 +6,12 @@ Gettext is an **internationalization** (i18n) and **localization** (l10n) system
 
 ## Installation
 
-  1. Add `:gettext` to your list of dependencies in `mix.exs` (use `$ mix hex.info gettext` to find the latest version):
+Add `:gettext` to your list of dependencies in `mix.exs` (use `$ mix hex.info gettext` to find the latest version):
 
      ```elixir
      def deps do
        [
          {:gettext, ">= 0.0.0"}
-       ]
-     end
-     ```
-
-  2. Optionally add the `:gettext` compiler to your Mix compilers so your backends are recompiled when `.po` files change:
-
-     ```elixir
-     def project do
-       [
-         compilers: [:gettext] ++ Mix.compilers()
        ]
      end
      ```
