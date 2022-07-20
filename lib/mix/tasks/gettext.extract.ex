@@ -2,28 +2,28 @@ defmodule Mix.Tasks.Gettext.Extract do
   use Mix.Task
   @recursive true
 
-  @shortdoc "Extracts translations from source code"
+  @shortdoc "Extracts messages from source code"
 
   @moduledoc """
-  Extracts translations by recompiling the Elixir source code.
+  Extracts messages by recompiling the Elixir source code.
 
       mix gettext.extract [OPTIONS]
 
-  Translations are extracted into POT (Portable Object Template) files (with a
+  messages are extracted into POT (Portable Object Template) files (with a
   `.pot` extension). The location of these files is determined by the `:otp_app`
   and `:priv` options given by Gettext modules when they call `use Gettext`. One
-  POT file is generated for each translation domain.
+  POT file is generated for each message domain.
 
-  All automatically extracted translations are assigned the `elixir-autogen` flag.
-  If a translation from the POT is no longer present and has the `elixir-autogen`
-  flag, the translation will be removed.
+  All automatically extracted messages are assigned the `elixir-autogen` flag.
+  If a message from the POT is no longer present and has the `elixir-autogen`
+  flag, the message will be removed.
 
   Before `v0.19.0`, the `elixir-format` flag was used to detect automatically
-  extracted translations. This has been deprecated in `v0.19.0`. When extracting
+  extracted messages. This has been deprecated in `v0.19.0`. When extracting
   with the newest version, the new `elixir-autogen` flag will be added to all
-  automatically extracted translations.
+  automatically extracted messages.
 
-  All translations will be assigned a format flag. When using the default
+  All messages will be assigned a format flag. When using the default
   interpolation module, that flag is `elixir-format`. With other interpolation
   modules, the flag name is defined by that implementation.
 
@@ -60,11 +60,11 @@ defmodule Mix.Tasks.Gettext.Extract do
     if opts[:check_up_to_date] do
       run_up_to_date_check(pot_files)
     else
-      run_translation_extraction(pot_files, opts, args)
+      run_message_extraction(pot_files, opts, args)
     end
   end
 
-  defp run_translation_extraction(pot_files, opts, args) do
+  defp run_message_extraction(pot_files, opts, args) do
     for {path, contents} <- pot_files do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)

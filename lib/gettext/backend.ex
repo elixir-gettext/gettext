@@ -6,8 +6,8 @@ defmodule Gettext.Backend do
   @doc """
   Default handling for missing bindings.
 
-  This function is called when there are missing bindings in a translation. It
-  takes a `Gettext.MissingBindingsError` struct and the translation with the
+  This function is called when there are missing bindings in a message. It
+  takes a `Gettext.MissingBindingsError` struct and the message with the
   wrong bindings left as is with the `%{}` syntax.
 
   For example, if something like this is called:
@@ -34,7 +34,7 @@ defmodule Gettext.Backend do
       }
 
   The return value of the `c:handle_missing_bindings/2` callback is used as the
-  translated string that the translation macros and functions return.
+  translated string that the message macros and functions return.
 
   The default implementation for this function uses `Logger.error/1` to warn
   about the missing binding and returns the translated message with the
@@ -52,18 +52,18 @@ defmodule Gettext.Backend do
               binary | no_return
 
   @doc """
-  Default handling for translations with a missing translation.
+  Default handling for messages with a missing message.
 
   When a Gettext function/macro is called with a string to translate
-  into a locale but that locale doesn't provide a translation for that
+  into a locale but that locale doesn't provide a message for that
   string, this callback is invoked. `msgid` is the string that Gettext
   tried to translate.
 
-  This function should return `{:ok, translated}` if a translation can be
+  This function should return `{:ok, translated}` if a message can be
   fetched or constructed for the given string. If you cannot find a
-  translation, it should return `{:default, translated}`, where the
+  message, it should return `{:default, translated}`, where the
   translated string defaults to the interpolated msgid. You can, however,
-  customize the default to, for example, pick the translation from the
+  customize the default to, for example, pick the message from the
   default locale. The important is to return `:default` instead of `:ok`
   whenever the result does not quite match the requested locale.
 
@@ -81,9 +81,9 @@ defmodule Gettext.Backend do
               {:ok, String.t()} | {:default, String.t()} | {:missing_bindings, String.t(), [atom]}
 
   @doc """
-  Default handling for plural translations with a missing translation.
+  Default handling for plural messages with a missing message.
 
-  Same as `c:handle_missing_translation/5`, but for plural translations.
+  Same as `c:handle_missing_translation/5`, but for plural messages.
   In this case, `n` is the number used for pluralizing the translated string.
 
   Earlier versions of this library provided a callback without msgctxt.
@@ -173,11 +173,11 @@ defmodule Gettext.Backend do
   @macrocallback gettext(msgid :: String.t()) :: Macro.t()
 
   @doc """
-  Translates the given plural translation (`msgid` + `msgid_plural`) with the given context (`msgctxt`)
+  Translates the given plural message (`msgid` + `msgid_plural`) with the given context (`msgctxt`)
   in the given `domain`.
 
   `n` is an integer used to determine how to pluralize the
-  translation. `bindings` is a map of bindings to support interpolation.
+  message. `bindings` is a map of bindings to support interpolation.
 
   See also `Gettext.dpngettext/7`.
   """
@@ -204,11 +204,11 @@ defmodule Gettext.Backend do
                  ) :: Macro.t()
 
   @doc """
-  Translates the given plural translation (`msgid` + `msgid_plural`) in the
+  Translates the given plural message (`msgid` + `msgid_plural`) in the
   given `domain`.
 
   `n` is an integer used to determine how to pluralize the
-  translation. `bindings` is a map of bindings to support interpolation.
+  message. `bindings` is a map of bindings to support interpolation.
 
   See also `Gettext.dngettext/6`.
   """
@@ -233,10 +233,10 @@ defmodule Gettext.Backend do
                  ) :: Macro.t()
 
   @doc """
-  Translates the given plural translation (`msgid` + `msgid_plural`) with the given context (`msgctxt`).
+  Translates the given plural message (`msgid` + `msgid_plural`) with the given context (`msgctxt`).
 
   `n` is an integer used to determine how to pluralize the
-  translation. `bindings` is a map of bindings to support interpolation.
+  message. `bindings` is a map of bindings to support interpolation.
 
   See also `Gettext.pngettext/6`.
   """
@@ -282,9 +282,9 @@ defmodule Gettext.Backend do
                    Macro.t()
 
   @doc """
-  Marks the given translation for extraction and returns it unchanged.
+  Marks the given message for extraction and returns it unchanged.
 
-  This macro can be used to mark a translation for extraction when `mix
+  This macro can be used to mark a message for extraction when `mix
   gettext.extract` is run. The return value is the given string, so that this
   macro can be used seamlessly in place of the string to extract.
 
@@ -302,10 +302,10 @@ defmodule Gettext.Backend do
   @macrocallback gettext_noop(msgid :: String.t()) :: Macro.t()
 
   @doc """
-  Marks the given translation for extraction and returns
+  Marks the given message for extraction and returns
   `{msgid, msgid_plural}`.
 
-  This macro can be used to mark a translation for extraction when `mix
+  This macro can be used to mark a message for extraction when `mix
   gettext.extract` is run. The return value of this macro is `{msgid,
   msgid_plural}`.
 
@@ -331,25 +331,25 @@ defmodule Gettext.Backend do
   @macrocallback ngettext_noop(msgid :: String.t(), msgid_plural :: String.t()) :: Macro.t()
 
   @doc """
-  Stores an "extracted comment" for the next translation.
+  Stores an "extracted comment" for the next message.
 
   This macro can be used to add comments (Gettext refers to such
-  comments as *extracted comments*) to the next translation that will
+  comments as *extracted comments*) to the next message that will
   be extracted. Extracted comments will be prefixed with `#.` in POT
   files.
 
   Calling this function multiple times will accumulate the comments;
   when another Gettext macro (such as `c:gettext/2`) is called,
-  the comments will be extracted and attached to that translation, and
+  the comments will be extracted and attached to that message, and
   they will be flushed so as to start again.
 
   This macro always returns `:ok`.
 
   ## Examples
 
-      MyApp.Gettext.gettext_comment("The next translation is awesome")
-      MyApp.Gettext.gettext_comment("Another comment for the next translation")
-      MyApp.Gettext.gettext("The awesome translation")
+      MyApp.Gettext.gettext_comment("The next message is awesome")
+      MyApp.Gettext.gettext_comment("Another comment for the next message")
+      MyApp.Gettext.gettext("The awesome message")
 
   """
   @macrocallback gettext_comment(comment :: String.t()) :: :ok

@@ -151,7 +151,7 @@ defmodule Gettext.Interpolation.Default do
   `interpolatable` but not in `bindings`.
   """
   @impl Gettext.Interpolation
-  defmacro compile_interpolate(translation_type, message, bindings) do
+  defmacro compile_interpolate(message_type, message, bindings) do
     unless is_binary(message) do
       raise """
       #{__MODULE__}.compile_interpolate/2 can only be used at compile time with static messages.
@@ -164,12 +164,12 @@ defmodule Gettext.Interpolation.Default do
     match_clause = match_clause(keys)
     compile_string = compile_string(interpolatable)
 
-    case {keys, translation_type} do
+    case {keys, message_type} do
       # If no keys are in the message, the message can be returned without interpolation
-      {[], _translation_type} ->
+      {[], _message_type} ->
         quote do: {:ok, unquote(message)}
 
-      # If the message only contains the key `count` and it is a plural translation,
+      # If the message only contains the key `count` and it is a plural message,
       # gettext ensures that `count` is always set. Therefore the dynamic interpolation
       # will never be needed.
       {[:count], :plural_translation} ->
@@ -178,7 +178,7 @@ defmodule Gettext.Interpolation.Default do
           {:ok, unquote(compile_string)}
         end
 
-      {_keys, _translation_type} ->
+      {_keys, _message_type} ->
         quote do
           case unquote(bindings) do
             unquote(match_clause) ->

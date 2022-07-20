@@ -1,37 +1,37 @@
 defmodule GettextTest.Translator do
-  use Gettext, otp_app: :test_application, priv: "test/fixtures/single_translations"
+  use Gettext, otp_app: :test_application, priv: "test/fixtures/single_messages"
 end
 
 defmodule GettextTest.TranslatorWithAllowedLocalesString do
   use Gettext,
     otp_app: :test_application,
-    priv: "test/fixtures/multi_translations",
+    priv: "test/fixtures/multi_messages",
     allowed_locales: ["es"]
 end
 
 defmodule GettextTest.TranslatorWithAllowedLocalesAtom do
   use Gettext,
     otp_app: :test_application,
-    priv: "test/fixtures/multi_translations",
+    priv: "test/fixtures/multi_messages",
     allowed_locales: [:es]
 end
 
 defmodule GettextTest.TranslatorWithCustomPluralForms do
   use Gettext,
     otp_app: :test_application,
-    priv: "test/fixtures/single_translations",
+    priv: "test/fixtures/single_messages",
     plural_forms: GettextTest.CustomPlural
 end
 
 defmodule GettextTest.TranslatorWithDefaultDomain do
   use Gettext,
     otp_app: :test_application,
-    priv: "test/fixtures/single_translations",
+    priv: "test/fixtures/single_messages",
     default_domain: "errors"
 end
 
-defmodule GettextTest.HandleMissingTranslation do
-  use Gettext, otp_app: :test_application, priv: "test/fixtures/single_translations"
+defmodule GettextTest.HandleMissingMessage do
+  use Gettext, otp_app: :test_application, priv: "test/fixtures/single_messages"
 
   def handle_missing_translation(locale, domain, msgctxt, msgid, bindings) do
     send(self(), {locale, domain, msgctxt, msgid, bindings})
@@ -52,7 +52,7 @@ defmodule GettextTest.TranslatorWithDuckInterpolator.Interpolator do
     do: {:ok, "quack #{message} #{inspect(bindings)} quack"}
 
   @impl Gettext.Interpolation
-  defmacro compile_interpolate(_translation_type, message, bindings) do
+  defmacro compile_interpolate(_message_type, message, bindings) do
     quote do
       {:ok, "quack #{unquote(message)} #{inspect(unquote(bindings))} quack"}
     end
@@ -66,7 +66,7 @@ defmodule GettextTest.TranslatorWithDuckInterpolator do
   use Gettext,
     otp_app: :test_application,
     interpolation: GettextTest.TranslatorWithDuckInterpolator.Interpolator,
-    priv: "test/fixtures/single_translations"
+    priv: "test/fixtures/single_messages"
 end
 
 defmodule GettextTest do
@@ -79,7 +79,7 @@ defmodule GettextTest do
   alias GettextTest.TranslatorWithAllowedLocalesAtom
   alias GettextTest.TranslatorWithCustomPluralForms
   alias GettextTest.TranslatorWithDefaultDomain
-  alias GettextTest.HandleMissingTranslation
+  alias GettextTest.HandleMissingMessage
 
   require Translator
   require TranslatorWithDefaultDomain
@@ -127,8 +127,8 @@ defmodule GettextTest do
     end
   end
 
-  test "__gettext__(:priv): returns the directory where the translations are stored" do
-    assert Translator.__gettext__(:priv) == "test/fixtures/single_translations"
+  test "__gettext__(:priv): returns the directory where the messages are stored" do
+    assert Translator.__gettext__(:priv) == "test/fixtures/single_messages"
   end
 
   test "__gettext__(:otp_app): returns the otp app for the given backend" do
@@ -140,14 +140,14 @@ defmodule GettextTest do
     assert TranslatorWithDefaultDomain.__gettext__(:default_domain) == "errors"
   end
 
-  test "found translations return {:ok, translation}" do
+  test "found messages return {:ok, message}" do
     assert Translator.lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "Ciao mondo"}
 
     assert Translator.lgettext("it", "errors", nil, "Invalid email address", %{}) ==
              {:ok, "Indirizzo email non valido"}
   end
 
-  test "non-found translations return the argument message" do
+  test "non-found messages return the argument message" do
     # Unknown msgid.
     assert Translator.lgettext("it", "default", nil, "nonexistent", %{}) ==
              {:default, "nonexistent"}
@@ -161,7 +161,7 @@ defmodule GettextTest do
              {:default, "Hello world"}
   end
 
-  test "translations with empty msgstrs fallback to {:default, _}" do
+  test "messages with empty msgstrs fallback to {:default, _}" do
     assert Translator.lgettext("it", "default", nil, "Empty msgstr!", %{}) ==
              {:default, "Empty msgstr!"}
   end
@@ -207,7 +207,7 @@ defmodule GettextTest do
     Application.put_env(:gettext, :plural_forms, GettextTest.CustomPlural)
 
     defmodule TranslatorWithAppPluralForms do
-      use Gettext, otp_app: :test_application, priv: "test/fixtures/single_translations"
+      use Gettext, otp_app: :test_application, priv: "test/fixtures/single_messages"
     end
 
     alias TranslatorWithAppPluralForms, as: T
@@ -221,17 +221,21 @@ defmodule GettextTest do
     Application.put_env(:gettext, :plural_forms, Gettext.Plural)
   end
 
-  test "translations can be pluralized" do
+  test "messages can be pluralized" do
     import Translator, only: [lngettext: 7]
 
-    t = lngettext("it", "errors", nil, "There was an error", "There were %{count} errors", 1, %{})
-    assert t == {:ok, "C'è stato un errore"}
+    message =
+      lngettext("it", "errors", nil, "There was an error", "There were %{count} errors", 1, %{})
 
-    t = lngettext("it", "errors", nil, "There was an error", "There were %{count} errors", 3, %{})
-    assert t == {:ok, "Ci sono stati 3 errori"}
+    assert message == {:ok, "C'è stato un errore"}
+
+    message =
+      lngettext("it", "errors", nil, "There was an error", "There were %{count} errors", 3, %{})
+
+    assert message == {:ok, "Ci sono stati 3 errori"}
   end
 
-  test "by default, non-found pluralized translation behave like regular translation" do
+  test "by default, non-found pluralized message behave like regular message" do
     assert Translator.lngettext("it", "not a domain", nil, "foo", "foos", 1, %{}) ==
              {:default, "foo"}
 
@@ -239,7 +243,7 @@ defmodule GettextTest do
              {:default, "foos"}
   end
 
-  test "plural translations with empty msgstrs fallback to {:default, _}" do
+  test "plural messages with empty msgstrs fallback to {:default, _}" do
     msgid = "Not even one msgstr"
     msgid_plural = "Not even %{count} msgstrs"
 
@@ -250,7 +254,7 @@ defmodule GettextTest do
              {:default, "Not even 2 msgstrs"}
   end
 
-  test "an error is raised if a plural translation has no plural form for the given locale" do
+  test "an error is raised if a plural message has no plural form for the given locale" do
     log =
       capture_log(fn ->
         Code.eval_quoted(
@@ -258,13 +262,13 @@ defmodule GettextTest do
             defmodule BadTranslations do
               use Gettext,
                 otp_app: :test_application,
-                priv: "test/fixtures/bad_translations"
+                priv: "test/fixtures/bad_messages"
             end
           end
         )
       end)
 
-    assert log =~ "translation is missing plural form 2 which is required by the locale \"ru\""
+    assert log =~ "message is missing plural form 2 which is required by the locale \"ru\""
 
     msgid = "should be at least %{count} character(s)"
     msgid_plural = "should be at least %{count} character(s)"
@@ -341,18 +345,18 @@ defmodule GettextTest do
 
   test "MissingBindingsError log messages" do
     assert capture_log(fn ->
-             Translator.pgettext("test", "Hello %{name}, missing translation!", %{})
+             Translator.pgettext("test", "Hello %{name}, missing message!", %{})
            end) =~
              "missing Gettext bindings: [:name] (backend GettextTest.Translator," <>
                " locale \"en\", domain \"default\", msgctxt \"test\", msgid \"Hello " <>
-               "%{name}, missing translation!\")"
+               "%{name}, missing message!\")"
   end
 
-  test "lgettext/5: interpolation works when a translation is missing" do
-    msgid = "Hello %{name}, missing translation!"
+  test "lgettext/5: interpolation works when a message is missing" do
+    msgid = "Hello %{name}, missing message!"
 
     assert Translator.lgettext("pl", "foo", nil, msgid, %{name: "Samantha"}) ==
-             {:default, "Hello Samantha, missing translation!"}
+             {:default, "Hello Samantha, missing message!"}
 
     msgid = "Hello world!"
     assert Translator.lgettext("pl", "foo", nil, msgid, %{}) == {:default, "Hello world!"}
@@ -368,7 +372,7 @@ defmodule GettextTest do
     msgid = "Hello %{name}"
     bindings = %{name: "Jane"}
 
-    assert HandleMissingTranslation.lgettext("pl", "foo", msgctxt, msgid, bindings) ==
+    assert HandleMissingMessage.lgettext("pl", "foo", msgctxt, msgid, bindings) ==
              {:default, "Hello Jane"}
 
     assert_receive {"pl", "foo", ^msgctxt, ^msgid, ^bindings}
@@ -385,7 +389,7 @@ defmodule GettextTest do
              {:missing_bindings, "Hai 6 messaggi, %{name}", [:name]}
   end
 
-  test "lngettext/6: interpolation works when a translation is missing" do
+  test "lngettext/6: interpolation works when a message is missing" do
     msgid = "One error"
     msgid_plural = "%{count} errors"
 
@@ -396,13 +400,13 @@ defmodule GettextTest do
              {:default, "9 errors"}
   end
 
-  test "lngettext/6: fallbacks to handle_missing_plural_translation if no translation is found" do
+  test "lngettext/6: fallbacks to handle_missing_plural_translation if no message is found" do
     msgctxt = "some context"
     msgid = "Hello %{name}"
     msgid_plural = "Hello %{name}"
     bindings = %{name: "Jane"}
 
-    assert HandleMissingTranslation.lngettext(
+    assert HandleMissingMessage.lngettext(
              "pl",
              "foo",
              msgctxt,
@@ -442,13 +446,13 @@ defmodule GettextTest do
     assert Translator.gettext(~s(Hello world)) == "Ciao mondo"
   end
 
-  test "pgettext/3: test with context based translations" do
+  test "pgettext/3: test with context based messages" do
     Gettext.put_locale(Translator, "it")
     assert Translator.pgettext("test", @gettext_msgid) == "Ciao mondo"
     assert Translator.pgettext("test", ~s(Hello world)) == "Ciao mondo"
     assert Translator.pgettext("test", "Hello world", %{}) == "Ciao mondo"
     assert Translator.pgettext("test", "Hello %{name}", %{name: "Marco"}) == "Ciao Marco"
-    # Missing translation
+    # Missing message
     assert Translator.pgettext("test", "Hello missing", %{}) == "Hello missing"
   end
 
@@ -462,7 +466,7 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:context"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
 
@@ -475,7 +479,7 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:context"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
   end
@@ -490,7 +494,7 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:context"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
 
@@ -503,7 +507,7 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:domain"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
 
@@ -516,7 +520,7 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:context"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
 
@@ -529,12 +533,12 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:domain"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
   end
 
-  test "dpgettext/4: context and domain based translations" do
+  test "dpgettext/4: context and domain based messages" do
     Gettext.put_locale(Translator, "it")
     assert Translator.dpgettext("default", "test", "Hello world", %{}) == "Ciao mondo"
   end
@@ -549,7 +553,7 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:msgid"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
 
@@ -562,7 +566,7 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:msgid_plural"
     assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
 
@@ -575,7 +579,7 @@ defmodule GettextTest do
 
     error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
     message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect translation keys"
+    assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:domain"
   end
 
@@ -760,7 +764,7 @@ defmodule GettextTest do
 
   test "with_locale/3 runs a function with a given locale and returns the returned value" do
     Gettext.put_locale(Translator, "fr")
-    # no 'fr' translation
+    # no 'fr' message
     assert Gettext.gettext(Translator, "Hello world") == "Hello world"
 
     res =
@@ -816,7 +820,7 @@ defmodule GettextTest do
       otp_app: :test_application,
       split_module_by: [:locale],
       split_module_compilation: :parallel,
-      priv: "test/fixtures/single_translations"
+      priv: "test/fixtures/single_messages"
   end
 
   test "may define one module per locale" do
@@ -858,7 +862,7 @@ defmodule GettextTest do
       otp_app: :test_application,
       split_module_by: [:locale, :domain],
       split_module_compilation: :serial,
-      priv: "test/fixtures/single_translations"
+      priv: "test/fixtures/single_messages"
   end
 
   test "may define one module per locale and domain" do

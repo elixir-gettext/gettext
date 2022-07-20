@@ -6,9 +6,9 @@ defmodule Gettext.ExtractorAgent do
 
   @name __MODULE__
 
-  # :translations is a map where keys are Gettext backends and values
+  # :messages is a map where keys are Gettext backends and values
   # are maps. In these maps, keys are domains and values are maps of
-  # translation_id => translation.
+  # message_id => message.
   # :backends is just a list of backends that call `use Gettext`.
   @initial_state %{
     messages: %{},
@@ -36,16 +36,16 @@ defmodule Gettext.ExtractorAgent do
     Agent.get(@name, & &1.extracting?)
   end
 
-  @spec add_translation(backend :: module(), domain :: String.t(), Message.t()) :: :ok
-  def add_translation(backend, domain, translation) do
-    key = Message.key(translation)
+  @spec add_message(backend :: module(), domain :: String.t(), Message.t()) :: :ok
+  def add_message(backend, domain, message) do
+    key = Message.key(message)
 
     Agent.cast(@name, fn state ->
       # Initialize the given backend to an empty map if it wasn't there.
       state = update_in(state.messages, &Map.put_new(&1, backend, %{}))
 
-      update_in(state, [:messages, backend, domain], fn translations ->
-        Map.update(translations || %{}, key, translation, &merge_translations(&1, translation))
+      update_in(state, [:messages, backend, domain], fn messages ->
+        Map.update(messages || %{}, key, message, &merge_messages(&1, message))
       end)
     end)
   end
@@ -60,7 +60,7 @@ defmodule Gettext.ExtractorAgent do
     Agent.stop(@name)
   end
 
-  def pop_translations(backends) do
+  def pop_message(backends) do
     Agent.get_and_update(@name, fn state ->
       get_and_update_in(state.messages, &Map.split(&1, backends))
     end)
@@ -74,9 +74,12 @@ defmodule Gettext.ExtractorAgent do
     end)
   end
 
-  defp merge_translations(t1, t2) do
-    t1
-    |> Map.put(:references, t1.references ++ t2.references)
-    |> Map.put(:extracted_comments, Enum.uniq(t1.extracted_comments ++ t2.extracted_comments))
+  defp merge_messages(message_1, message_2) do
+    message_1
+    |> Map.put(:references, message_1.references ++ message_2.references)
+    |> Map.put(
+      :extracted_comments,
+      Enum.uniq(message_1.extracted_comments ++ message_2.extracted_comments)
+    )
   end
 end

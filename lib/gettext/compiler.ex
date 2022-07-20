@@ -320,14 +320,14 @@ defmodule Gettext.Compiler do
       when what in ~w(domain msgctxt msgid msgid_plural comment) do
     raiser = fn term ->
       raise ArgumentError, """
-      Gettext macros expect translation keys (msgid and msgid_plural),
+      Gettext macros expect message keys (msgid and msgid_plural),
       domains, and comments to expand to strings at compile-time, but the given #{what}
       doesn't. This is what the macro received:
 
       #{inspect(term)}
 
-      Dynamic translations should be avoided as they limit Gettext's
-      ability to extract translations from your source code. If you are
+      Dynamic messages should be avoided as they limit Gettext's
+      ability to extract messages from your source code. If you are
       sure you need dynamic lookup, you can use the functions in the Gettext
       module:
 
@@ -375,7 +375,7 @@ defmodule Gettext.Compiler do
   This function is called by `lgettext` and `lngettext`. It could make sense to
   make this function raise an error since slashes in domains are not supported,
   but we decided not to do so and to only emit a warning since the expected
-  behaviour for Gettext functions/macros when the domain or translation is not
+  behaviour for Gettext functions/macros when the domain or message is not
   known is to return the original string (msgid) and raising here would break
   that contract.
   """
@@ -491,14 +491,14 @@ defmodule Gettext.Compiler do
     {[current_module_quoted | acc1], [split_module_quoted | acc2]}
   end
 
-  defp create_split_module(env, module, translations) do
-    exprs = [quote(do: @moduledoc(false)) | translations]
+  defp create_split_module(env, module, messages) do
+    exprs = [quote(do: @moduledoc(false)) | messages]
     Module.create(module, block(exprs), env)
     :ok
   end
 
-  # Compiles a .po file into a list of lgettext/5 (for translations) and
-  # lngettext/7 (for plural translations) clauses.
+  # Compiles a .po file into a list of lgettext/5 (for messages) and
+  # lngettext/7 (for plural messages) clauses.
   defp compile_po_file(kind, po_file, env, plural_mod, interpolation_module) do
     %{locale: locale, domain: domain, path: path} = po_file
     %Messages{messages: messages, file: file} = Po.parse_file!(path)
@@ -506,12 +506,12 @@ defmodule Gettext.Compiler do
     singular_fun = :"#{locale}_#{domain}_lgettext"
     plural_fun = :"#{locale}_#{domain}_lngettext"
 
-    # Remove obsolete translations (not needed at runtime)
+    # Remove obsolete messages (not needed at runtime)
     # TODO: Resolve when implementing https://github.com/elixir-gettext/gettext/issues/210
     messages = Enum.filter(messages, &match?(%{obsolete: false}, &1))
 
     mapper =
-      &compile_translation(
+      &compile_message(
         kind,
         locale,
         &1,
@@ -560,23 +560,23 @@ defmodule Gettext.Compiler do
     {locale, domain}
   end
 
-  defp compile_translation(
+  defp compile_message(
          kind,
          _locale,
-         %Message.Singular{} = t,
+         %Message.Singular{} = message,
          singular_fun,
          _plural_fun,
          _file,
          _plural_mod,
          interpolation_module
        ) do
-    msgid = IO.iodata_to_binary(t.msgid)
-    msgstr = IO.iodata_to_binary(t.msgstr)
-    msgctxt = t.msgctxt && IO.iodata_to_binary(t.msgctxt)
+    msgid = IO.iodata_to_binary(message.msgid)
+    msgstr = IO.iodata_to_binary(message.msgstr)
+    msgctxt = message.msgctxt && IO.iodata_to_binary(message.msgctxt)
 
     case msgstr do
       # Only actually generate this function clause if the msgstr is not empty.
-      # If it is empty, it will trigger the missing translation case.
+      # If it is empty, it will trigger the missing message case.
       "" ->
         nil
 
@@ -597,22 +597,22 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp compile_translation(
+  defp compile_message(
          kind,
          locale,
-         %Message.Plural{} = t,
+         %Message.Plural{} = message,
          _singular_fun,
          plural_fun,
          file,
          plural_mod,
          interpolation_module
        ) do
-    warn_if_missing_plural_forms(locale, plural_mod, t, file)
+    warn_if_missing_plural_forms(locale, plural_mod, message, file)
 
-    msgid = IO.iodata_to_binary(t.msgid)
-    msgid_plural = IO.iodata_to_binary(t.msgid_plural)
-    msgstr = Enum.map(t.msgstr, fn {form, str} -> {form, IO.iodata_to_binary(str)} end)
-    msgctxt = t.msgctxt && IO.iodata_to_binary(t.msgctxt)
+    msgid = IO.iodata_to_binary(message.msgid)
+    msgid_plural = IO.iodata_to_binary(message.msgid_plural)
+    msgstr = Enum.map(message.msgstr, fn {form, str} -> {form, IO.iodata_to_binary(str)} end)
+    msgctxt = message.msgctxt && IO.iodata_to_binary(message.msgctxt)
 
     # If any of the msgstrs is empty, then we skip the generation of this
     # function clause. The reason we do this is the same as for the
@@ -641,7 +641,7 @@ defmodule Gettext.Compiler do
               form: form,
               locale: unquote(locale),
               file: unquote(file),
-              line: unquote(Message.source_line_number(t, :msgid))
+              line: unquote(Message.source_line_number(message, :msgid))
         end
 
       quote generated: true do
@@ -663,12 +663,12 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp warn_if_missing_plural_forms(locale, plural_mod, translation, file) do
+  defp warn_if_missing_plural_forms(locale, plural_mod, message, file) do
     Enum.each(0..(plural_mod.nplurals(locale) - 1), fn form ->
-      unless Map.has_key?(translation.msgstr, form) do
+      unless Map.has_key?(message.msgstr, form) do
         _ =
           Logger.error([
-            "#{file}:#{Message.source_line_number(translation, :msgid)}: translation is missing plural form ",
+            "#{file}:#{Message.source_line_number(message, :msgid)}: message is missing plural form ",
             Integer.to_string(form),
             " which is required by the locale ",
             inspect(locale)
@@ -687,7 +687,7 @@ defmodule Gettext.Compiler do
     |> Path.wildcard()
   end
 
-  # Returns the known the PO files in `translations_dir` with their locale and domain
+  # Returns the known the PO files in `messages_dir` with their locale and domain
   # If allowed_locales is configured, it removes all the PO files that do not belong
   # to those locales
   defp known_po_files(all_po_files, opts) do

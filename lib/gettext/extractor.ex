@@ -1,15 +1,15 @@
 defmodule Gettext.Extractor do
   @moduledoc false
 
-  # This module is responsible for extracting translations (it's called from the
-  # *gettext macros) and dumping those translations to POT files, merging with
+  # This module is responsible for extracting messages (it's called from the
+  # *gettext macros) and dumping those messages to POT files, merging with
   # existing POT files if necessary.
   #
   # ## Ordering
   #
   # Ordering is mostly taken care of in merge_template/2, where we go over the
-  # translations in an existing POT file and merge them if necessary (thus
-  # keeping the order from the original file), then adding the translations from
+  # messages in an existing POT file and merge them if necessary (thus
+  # keeping the order from the original file), then adding the messages from
   # the new in-memory POT (sorted by name).
 
   alias Gettext.Error
@@ -20,10 +20,10 @@ defmodule Gettext.Extractor do
   alias Expo.Message
   alias Expo.Messages
 
-  @extracted_translations_flag "elixir-autogen"
+  @extracted_messages_flag "elixir-autogen"
 
   @doc """
-  Enables translation extraction.
+  Enables message extraction.
   """
   @spec enable() :: :ok
   def enable() do
@@ -39,7 +39,7 @@ defmodule Gettext.Extractor do
   end
 
   @doc """
-  Tells whether translations are being extracted.
+  Tells whether messages are being extracted.
   """
   @spec extracting?() :: boolean
   def extracting?() do
@@ -50,7 +50,7 @@ defmodule Gettext.Extractor do
   end
 
   @doc """
-  Extracts a translation by temporarily storing it in an agent.
+  Extracts a message by temporarily storing it in an agent.
 
   Note that this function doesn't perform any operation on the filesystem.
   """
@@ -58,8 +58,8 @@ defmodule Gettext.Extractor do
   def extract(%Macro.Env{} = caller, backend, domain, msgctxt, id, extracted_comments) do
     format_flag = backend.__gettext__(:interpolation).message_format()
 
-    translation =
-      create_translation_struct(
+    message =
+      create_message_struct(
         id,
         msgctxt,
         caller.file,
@@ -68,16 +68,16 @@ defmodule Gettext.Extractor do
         format_flag
       )
 
-    ExtractorAgent.add_translation(backend, domain, translation)
+    ExtractorAgent.add_message(backend, domain, message)
   end
 
   @doc """
   Returns a list of POT files based on the results of the extraction.
 
   Returns a list of paths and their contents to be written to disk. Existing POT
-  files are either purged from obsolete translations (in case no extracted
-  translation ends up in that file) or merged with the extracted translations;
-  new POT files are returned for extracted translations that belong to a POT
+  files are either purged from obsolete messages (in case no extracted
+  message ends up in that file) or merged with the extracted messages;
+  new POT files are returned for extracted messages that belong to a POT
   file that doesn't exist yet.
 
   This is a stateful operation. Once pot_files are generated, their information
@@ -90,8 +90,8 @@ defmodule Gettext.Extractor do
     existing_pot_files = pot_files_for_backends(backends)
 
     backends
-    |> ExtractorAgent.pop_translations()
-    |> create_po_structs_from_extracted_translations()
+    |> ExtractorAgent.pop_message()
+    |> create_po_structs_from_extracted_messages()
     |> merge_pot_files(existing_pot_files, gettext_config)
   end
 
@@ -124,15 +124,15 @@ defmodule Gettext.Extractor do
   end
 
   # This returns a list of {absolute_path, %Gettext.PO{}} tuples.
-  # `all_translations` looks like this:
+  # `all_messages` looks like this:
   #
-  #     %{MyBackend => %{"a_domain" => %{"a translation id" => a_translation}}}
+  #     %{MyBackend => %{"a_domain" => %{"a message id" => a_message}}}
   #
-  defp create_po_structs_from_extracted_translations(all_translations) do
-    for {backend, domains} <- all_translations,
-        {domain, translations} <- domains do
-      translations = Map.values(translations)
-      {pot_path(backend, domain), po_struct_from_translations(translations)}
+  defp create_po_structs_from_extracted_messages(all_messages) do
+    for {backend, domains} <- all_messages,
+        {domain, messages} <- domains do
+      messages = Map.values(messages)
+      {pot_path(backend, domain), po_struct_from_messages(messages)}
     end
   end
 
@@ -140,22 +140,22 @@ defmodule Gettext.Extractor do
     Path.join(backend.__gettext__(:priv), "#{domain}.pot")
   end
 
-  defp po_struct_from_translations(translations) do
-    # Sort all the translations and the references of each translation in order
+  defp po_struct_from_messages(messages) do
+    # Sort all the messages and the references of each message in order
     # to make as few changes as possible to the PO(T) files.
     messages =
-      translations
+      messages
       |> Enum.sort_by(&Message.key/1)
       |> Enum.map(&sort_references/1)
 
     %Messages{messages: messages}
   end
 
-  defp sort_references(translation) do
-    update_in(translation.references, &Enum.sort/1)
+  defp sort_references(message) do
+    update_in(message.references, &Enum.sort/1)
   end
 
-  defp create_translation_struct(
+  defp create_message_struct(
          {msgid, msgid_plural},
          msgctxt,
          file,
@@ -168,18 +168,18 @@ defmodule Gettext.Extractor do
       msgctxt: if(msgctxt != nil, do: [msgctxt], else: nil),
       msgid_plural: [msgid_plural],
       msgstr: %{0 => [""], 1 => [""]},
-      flags: [[@extracted_translations_flag, format_flag]],
+      flags: [[@extracted_messages_flag, format_flag]],
       references: [[{Path.relative_to_cwd(file), line}]],
       extracted_comments: extracted_comments
     }
   end
 
-  defp create_translation_struct(msgid, msgctxt, file, line, extracted_comments, format_flag) do
+  defp create_message_struct(msgid, msgctxt, file, line, extracted_comments, format_flag) do
     %Message.Singular{
       msgid: [msgid],
       msgctxt: if(msgctxt != nil, do: [msgctxt], else: nil),
       msgstr: [""],
-      flags: [[@extracted_translations_flag, format_flag]],
+      flags: [[@extracted_messages_flag, format_flag]],
       references: [[{Path.relative_to_cwd(file), line}]],
       extracted_comments: extracted_comments
     }
@@ -240,8 +240,8 @@ defmodule Gettext.Extractor do
   #   * {path, {:unmerged, _}} - one existed, no new one
   #   * {path, {:new, _}} - none existed, there's a new one
   # Note that existing files with no new corresponding file are "pruned", for example,
-  # merged with an empty %Messages{} struct to remove obsolete translations (see
-  # prune_unmerged/1), because the user could still have PO translation that
+  # merged with an empty %Messages{} struct to remove obsolete message (see
+  # prune_unmerged/1), because the user could still have PO message that
   # they manually inserted in that file.
   defp tag_files({_path, {:merged, _}} = entry, _gettext_config), do: entry
 
@@ -280,8 +280,8 @@ defmodule Gettext.Extractor do
     ## This file is a PO Template file.
     ##
     ## "msgid"s here are often extracted from source code.
-    ## Add new translations manually only if they're dynamic
-    ## translations that can't be statically extracted.
+    ## Add new message manually only if they're dynamic
+    ## message that can't be statically extracted.
     ##
     ## Run "mix gettext.extract" to bring this file up to
     ## date. Leave "msgstr"s empty as changing them here has no
@@ -300,50 +300,50 @@ defmodule Gettext.Extractor do
   def merge_template(existing, new, gettext_config) do
     protected_pattern = gettext_config[:excluded_refs_from_purging]
 
-    # We go over the existing translations in order so as to keep the existing
+    # We go over the existing message in order so as to keep the existing
     # order as much as possible.
     old_and_merged =
-      Enum.flat_map(existing.messages, fn t ->
+      Enum.flat_map(existing.messages, fn message ->
         cond do
-          same = Messages.find(new, t) -> [merge_translations(t, same)]
-          PO.Translations.protected?(t, protected_pattern) -> [t]
-          PO.Translations.autogenerated?(t) -> []
-          true -> [t]
+          same = Messages.find(new, message) -> [merge_message(message, same)]
+          PO.Translations.protected?(message, protected_pattern) -> [message]
+          PO.Translations.autogenerated?(message) -> []
+          true -> [message]
         end
       end)
 
-    # We reject all translations that appear in `existing` so that we're left
-    # with the translations that only appear in `new`.
+    # We reject all messages that appear in `existing` so that we're left
+    # with the messages that only appear in `new`.
     unique_new = Enum.reject(new.messages, &Messages.find(existing, &1))
 
-    translations = old_and_merged ++ unique_new
+    messages = old_and_merged ++ unique_new
 
-    translations =
+    messages =
       if gettext_config[:sort_by_msgid] do
-        Enum.sort_by(translations, & &1.msgid)
+        Enum.sort_by(messages, & &1.msgid)
       else
-        translations
+        messages
       end
 
     %Messages{
-      messages: translations,
+      messages: messages,
       headers: existing.headers,
       top_comments: existing.top_comments
     }
   end
 
-  defp merge_translations(
+  defp merge_message(
          %Message.Singular{} = old,
          %Message.Singular{comments: []} = new
        ) do
     ensure_empty_msgstr!(old)
     ensure_empty_msgstr!(new)
 
-    # Take all flags from `old` and only the `@extracted_translations_flag` flag from `new`
+    # Take all flags from `old` and only the `@extracted_messages_flag` flag from `new`
     # to avoid re-adding manually removed flags.
     flags =
-      if Message.has_flag?(new, @extracted_translations_flag) do
-        Message.append_flag(old, @extracted_translations_flag).flags
+      if Message.has_flag?(new, @extracted_messages_flag) do
+        Message.append_flag(old, @extracted_messages_flag).flags
       else
         old.flags
       end
@@ -353,17 +353,17 @@ defmodule Gettext.Extractor do
       msgstr: old.msgstr,
       msgctxt: new.msgctxt,
       flags: flags,
-      # The new in-memory translation has no comments since it was extracted
+      # The new in-memory message has no comments since it was extracted
       # from the source code.
       comments: old.comments,
-      # We don't care about the references of the old translation since the new
-      # in-memory translation has all the actual and current references.
+      # We don't care about the references of the old message since the new
+      # in-memory message has all the actual and current references.
       references: new.references,
       extracted_comments: new.extracted_comments
     }
   end
 
-  defp merge_translations(%Message.Plural{} = old, %Message.Plural{comments: []} = new) do
+  defp merge_message(%Message.Plural{} = old, %Message.Plural{comments: []} = new) do
     ensure_empty_msgstr!(old)
     ensure_empty_msgstr!(new)
 
@@ -380,23 +380,23 @@ defmodule Gettext.Extractor do
     }
   end
 
-  defp ensure_empty_msgstr!(%Message.Singular{msgstr: msgstr} = t) do
+  defp ensure_empty_msgstr!(%Message.Singular{msgstr: msgstr} = message) do
     unless blank?(msgstr) do
       raise Error,
-            "translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+            "message with msgid '#{IO.iodata_to_binary(message.msgid)}' has a non-empty msgstr"
     end
   end
 
-  defp ensure_empty_msgstr!(%Message.Plural{msgstr: %{0 => str0, 1 => str1}} = t) do
+  defp ensure_empty_msgstr!(%Message.Plural{msgstr: %{0 => str0, 1 => str1}} = message) do
     if not blank?(str0) or not blank?(str1) do
       raise Error,
-            "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+            "plural message with msgid '#{IO.iodata_to_binary(message.msgid)}' has a non-empty msgstr"
     end
   end
 
-  defp ensure_empty_msgstr!(%Message.Plural{} = t) do
+  defp ensure_empty_msgstr!(%Message.Plural{} = message) do
     raise Error,
-          "plural translation with msgid '#{IO.iodata_to_binary(t.msgid)}' has a non-empty msgstr"
+          "plural message with msgid '#{IO.iodata_to_binary(message.msgid)}' has a non-empty msgstr"
   end
 
   defp blank?(str) when not is_nil(str), do: IO.iodata_length(str) == 0

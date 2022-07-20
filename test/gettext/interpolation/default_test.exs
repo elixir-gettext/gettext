@@ -98,7 +98,7 @@ defmodule Gettext.Interpolation.DefaultTest do
       end
     end
 
-    test "optimizes plural translation without count" do
+    test "optimizes plural message without count" do
       translate = fn bindings ->
         Interpolation.compile_interpolate(
           :plural_translation,
