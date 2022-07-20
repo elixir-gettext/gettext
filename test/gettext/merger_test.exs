@@ -1,4 +1,4 @@
-defmodule GettextMergerTest do
+defmodule Gettext.MergerTest do
   use ExUnit.Case, async: true
 
   alias Expo.Message
