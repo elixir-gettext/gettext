@@ -90,6 +90,16 @@ defmodule Gettext.Merger do
               {:matched, match, fuzzy_merged} ->
                 stats_acc = update_in(stats_acc.fuzzy_matches, &(&1 + 1))
                 unused = Map.delete(unused, Message.key(match))
+
+                fuzzy_merged =
+                  if Keyword.get(opts, :store_previous_message_on_fuzzy_match, false) do
+                    Map.update!(fuzzy_merged, :previous_messages, fn previous ->
+                      Enum.uniq_by(previous ++ [match], &Message.key/1)
+                    end)
+                  else
+                    fuzzy_merged
+                  end
+
                 {fuzzy_merged, {stats_acc, unused}}
 
               :nomatch ->

@@ -606,6 +606,10 @@ defmodule Gettext do
       If `:mark_as_obsolete`, messages are kept and marked as obsolete.
       If `:delete`, obsolete messages are deleted. Defaults to `:delete`.
 
+    * `:store_previous_message_on_fuzzy_match` - a boolean that controls
+      wether to store the previous message text in case of a fuzzy match.
+      Defaults to `false`.
+
   """
 
   defmodule Error do
