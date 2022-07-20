@@ -1,22 +1,20 @@
 defmodule Gettext.Fuzzy do
   @moduledoc false
 
-  alias Gettext.PO
-  alias Gettext.PO.Translation
-  alias Gettext.PO.PluralTranslation
+  alias Expo.Message
 
-  @type translation_key :: {binary | nil, binary | {binary, binary}}
+  @type message_key :: {binary | nil, binary | {binary, binary}}
 
   @doc """
-  Returns a matcher function that takes two translation keys and checks if they
+  Returns a matcher function that takes two message keys and checks if they
   match.
 
   `String.jaro_distance/2` (which calculates the Jaro distance) is used to
-  measure the distance between the two translations. `threshold` is the minimum
+  measure the distance between the two messages. `threshold` is the minimum
   distance that means a match. `{:match, distance}` is returned in case of a
   match, `:nomatch` otherwise.
   """
-  @spec matcher(float) :: (translation_key, translation_key -> {:match, float} | :nomatch)
+  @spec matcher(float) :: (message_key, message_key -> {:match, float} | :nomatch)
   def matcher(threshold) do
     fn old_key, new_key ->
       distance = jaro_distance(old_key, new_key)
@@ -25,22 +23,22 @@ defmodule Gettext.Fuzzy do
   end
 
   @doc """
-  Finds the Jaro distance between the msgids of two translations.
+  Finds the Jaro distance between the msgids of two messages.
 
   To mimic the behaviour of the `msgmerge` tool, this function only calculates
-  the Jaro distance of the msgids of the two translations, even if one (or both)
-  of them is a plural translation.
+  the Jaro distance of the msgids of the two messages, even if one (or both)
+  of them is a plural message.
 
-  As per `msgmerge`, the msgctxt of a translation is completely ignored when
+  As per `msgmerge`, the msgctxt of a message is completely ignored when
   calculating the distance.
   """
-  @spec jaro_distance(translation_key, translation_key) :: float
+  @spec jaro_distance(message_key, message_key) :: float
   def jaro_distance({_context1, key1}, {_context2, key2}) do
     jaro_distance_on_key(key1, key2)
   end
 
   # Apparently, msgmerge only looks at the msgid when performing fuzzy
-  # matching. This means that if we have two plural translations with similar
+  # matching. This means that if we have two plural messages with similar
   # msgids but very different msgid_plurals, they'll still fuzzy match.
   def jaro_distance_on_key(key1, key2) when is_binary(key1) and is_binary(key2),
     do: String.jaro_distance(key1, key2)
@@ -54,33 +52,33 @@ defmodule Gettext.Fuzzy do
   def jaro_distance_on_key({key1, _}, {key2, _}), do: String.jaro_distance(key1, key2)
 
   @doc """
-  Merges a translation with the corresponding fuzzy match.
+  Merges a message with the corresponding fuzzy match.
 
-  `new` is the newest translation and `existing` is the existing translation
-  that we use to populate the msgstr of the newest translation.
+  `new` is the newest message and `existing` is the existing message
+  that we use to populate the msgstr of the newest message.
 
-  Note that if `new` is a regular translation, then the result will be a regular
-  translation; if `new` is a plural translation, then the result will be a
-  plural translation.
+  Note that if `new` is a regular message, then the result will be a regular
+  message; if `new` is a plural message, then the result will be a
+  plural message.
   """
-  @spec merge(PO.translation(), PO.translation()) :: PO.translation()
+  @spec merge(new :: Message.t(), existing :: Message.t()) :: Message.t()
   def merge(new, existing) do
     # Everything comes from "new", except for the msgstr and the comments.
     new
     |> Map.put(:comments, existing.comments)
     |> merge_msgstr(existing)
-    |> PO.Translations.mark_as_fuzzy()
+    |> Message.append_flag("fuzzy")
   end
 
-  defp merge_msgstr(%Translation{} = new, %Translation{} = existing),
+  defp merge_msgstr(%Message.Singular{} = new, %Message.Singular{} = existing),
     do: %{new | msgstr: existing.msgstr}
 
-  defp merge_msgstr(%Translation{} = new, %PluralTranslation{} = existing),
+  defp merge_msgstr(%Message.Singular{} = new, %Message.Plural{} = existing),
     do: %{new | msgstr: existing.msgstr[0]}
 
-  defp merge_msgstr(%PluralTranslation{} = new, %Translation{} = existing),
+  defp merge_msgstr(%Message.Plural{} = new, %Message.Singular{} = existing),
     do: %{new | msgstr: Map.new(new.msgstr, fn {i, _} -> {i, existing.msgstr} end)}
 
-  defp merge_msgstr(%PluralTranslation{} = new, %PluralTranslation{} = existing),
+  defp merge_msgstr(%Message.Plural{} = new, %Message.Plural{} = existing),
     do: %{new | msgstr: existing.msgstr}
 end

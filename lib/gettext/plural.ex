@@ -99,7 +99,7 @@ defmodule Gettext.Plural do
   used as a separator (for example [BCP47](https://en.wikipedia.org/wiki/IETF_language_tag)
   locales use this as in `en-US`): this is not forwarded to `en` in the default
   `Gettext.Plural` (and it will raise an `Gettext.Plural.UnknownLocaleError` exception
-  if there are no translations for `en-US`).
+  if there are no messages for `en-US`).
 
   ## Examples
 

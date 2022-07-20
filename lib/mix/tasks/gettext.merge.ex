@@ -2,25 +2,25 @@ defmodule Mix.Tasks.Gettext.Merge do
   use Mix.Task
   @recursive true
 
-  @shortdoc "Merge template files into translation files"
+  @shortdoc "Merge template files into message files"
 
   @moduledoc """
   Merges PO/POT files with PO files.
 
-  This task is used when translations in the source code change: when they do,
-  `mix gettext.extract` is usually used to extract the new translations to POT
+  This task is used when messages in the source code change: when they do,
+  `mix gettext.extract` is usually used to extract the new messages to POT
   files. At this point, developers or translators can use this task to "sync"
   the newly updated POT files with the existing locale-specific PO files. All
-  the metadata for each translation (like position in the source code, comments
+  the metadata for each message (like position in the source code, comments
   and so on) is taken from the newly updated POT file; the only things taken
   from the PO file are the actual translated strings.
 
   #### Fuzzy matching
 
-  Translations in the updated PO/POT file that have an exact match (a
-  translation with the same msgid) in the old PO file are merged as described
-  above. When a translation in the updated PO/POT files has no match in the old
-  PO file, a fuzzy match for that translation is attempted. For example, assume
+  messages in the updated PO/POT file that have an exact match (a
+  message with the same msgid) in the old PO file are merged as described
+  above. When a message in the updated PO/POT files has no match in the old
+  PO file, a fuzzy match for that message is attempted. For example, assume
   we have this POT file:
 
       msgid "hello, world!"
@@ -32,8 +32,8 @@ defmodule Mix.Tasks.Gettext.Merge do
       msgid "hello, world"
       msgstr "ciao, mondo"
 
-  Since the two translations are very similar, the msgstr from the existing
-  translation will be taken over to the new translation, which will however be
+  Since the two messages are very similar, the msgstr from the existing
+  message will be taken over to the new message, which will however be
   marked as *fuzzy*:
 
       #, fuzzy
@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   Generally, a `fuzzy` flag calls for review from a translator.
 
-  Fuzzy matching can be configured (for example, the threshold for translation
+  Fuzzy matching can be configured (for example, the threshold for message
   similarity can be tweaked) or disabled entirely; look at the "Options" section
   below.
 
@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       mix gettext.merge priv/gettext/en/LC_MESSAGES/default.po priv/gettext/default.pot
 
   If only one argument is given, then that argument must be a directory
-  containing Gettext translations (with `.pot` files at the root level alongside
+  containing Gettext messages (with `.pot` files at the root level alongside
   locale directories - this is usually a "backend" directory used by a Gettext
   backend, see `Gettext.Backend`).
 
@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   ## Plural forms
 
-  By default, Gettext will determine the number of plural forms for newly generated translations
+  By default, Gettext will determine the number of plural forms for newly generated messages
   by checking the value of `nplurals` in the `Plural-Forms` header in the existing `.po` file. If
   a `.po` file doesn't already exist and Gettext is creating a new one or if the `Plural-Forms`
   header is not in the `.po` file, Gettext will use the number of plural forms that
@@ -90,15 +90,18 @@ defmodule Mix.Tasks.Gettext.Merge do
       files.
 
     * `--fuzzy-threshold` - a float between `0` and `1` which represents the
-      minimum Jaro distance needed for two translations to be considered a fuzzy
+      minimum Jaro distance needed for two messages to be considered a fuzzy
       match. Overrides the global `:fuzzy_threshold` option (see the docs for
       `Gettext` for more information on this option).
 
     * `--plural-forms` - an integer strictly greater than `0`. If this is passed,
-      new translations in the target PO files will have this number of empty
+      new messages in the target PO files will have this number of empty
       plural forms. See the "Plural forms" section above.
 
   """
+
+  alias Expo.Po
+  alias Gettext.Merger
 
   @default_fuzzy_threshold 0.8
 
@@ -109,8 +112,6 @@ defmodule Mix.Tasks.Gettext.Merge do
     plural_forms: :integer
   ]
 
-  alias Gettext.{Merger, PO}
-
   def run(args) do
     _ = Mix.Project.get!()
     gettext_config = Mix.Project.config()[:gettext] || []
@@ -119,8 +120,8 @@ defmodule Mix.Tasks.Gettext.Merge do
       {opts, [po_file, reference_file]} ->
         merge_two_files(po_file, reference_file, opts, gettext_config)
 
-      {opts, [translations_dir]} ->
-        merge_translations_dir(translations_dir, opts, gettext_config)
+      {opts, [messages_dir]} ->
+        merge_messages_dir(messages_dir, opts, gettext_config)
 
       {_opts, _args} ->
         Mix.raise(
@@ -149,7 +150,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     end
   end
 
-  defp merge_translations_dir(dir, opts, gettext_config) do
+  defp merge_messages_dir(dir, opts, gettext_config) do
     ensure_dir_exists!(dir)
     merging_opts = validate_merging_opts!(opts, gettext_config)
 
@@ -202,15 +203,20 @@ defmodule Mix.Tasks.Gettext.Merge do
       merge_files(po_file, pot_file, locale, opts, gettext_config)
     else
       {new_po, stats} = Merger.new_po_file(po_file, pot_file, locale, opts)
-      {PO.dump(new_po, gettext_config), stats}
+
+      {new_po
+       |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
+       |> Po.compose(), stats}
     end
   end
 
   defp merge_files(po_file, pot_file, locale, opts, gettext_config) do
     {merged, stats} =
-      Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
+      Merger.merge(Po.parse_file!(po_file), Po.parse_file!(pot_file), locale, opts)
 
-    {PO.dump(merged, gettext_config), stats}
+    {merged
+     |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
+     |> Po.compose(), stats}
   end
 
   defp write_file(path, contents, stats) do
@@ -276,7 +282,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp format_stats(stats) do
-    pluralized = if stats.new == 1, do: "translation", else: "translations"
+    pluralized = if stats.new == 1, do: "message", else: "messages"
 
     "#{stats.new} new #{pluralized}, #{stats.removed} removed, " <>
       "#{stats.exact_matches} unchanged, #{stats.fuzzy_matches} reworded (fuzzy)"
