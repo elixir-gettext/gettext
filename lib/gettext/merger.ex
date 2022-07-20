@@ -54,7 +54,7 @@ defmodule Gettext.Merger do
   def merge(%Messages{} = old, %Messages{} = new, locale, opts)
       when is_binary(locale) and is_list(opts) do
     opts = put_plural_forms_opt(opts, old.headers, locale)
-    stats = %{new: 0, exact_matches: 0, fuzzy_matches: 0, removed: 0}
+    stats = %{new: 0, exact_matches: 0, fuzzy_matches: 0, removed: 0, marked_as_obsolete: 0}
 
     {messages, stats} = merge_messages(old.messages, new.messages, opts, stats)
 
@@ -103,7 +103,19 @@ defmodule Gettext.Merger do
         end
       end)
 
-    {messages, put_in(stats.removed, map_size(unused))}
+    messages = Enum.map(messages, &%{&1 | obsolete: false})
+
+    {messages, stats} =
+      case Keyword.get(opts, :on_obsolete, :delete) do
+        :mark_as_obsolete ->
+          {messages ++ (unused |> Map.values() |> Enum.map(&%{&1 | obsolete: true})),
+           put_in(stats.marked_as_obsolete, map_size(unused))}
+
+        :delete ->
+          {messages, put_in(stats.removed, map_size(unused))}
+      end
+
+    {messages, stats}
   end
 
   defp adjust_number_of_plural_forms(%Message.Plural{} = message, plural_forms)
@@ -208,7 +220,13 @@ defmodule Gettext.Merger do
       messages: Enum.map(pot.messages, &prepare_new_message(&1, plural_forms))
     }
 
-    stats = %{new: length(po.messages), exact_matches: 0, fuzzy_matches: 0, removed: 0}
+    stats = %{
+      new: length(po.messages),
+      exact_matches: 0,
+      fuzzy_matches: 0,
+      removed: 0,
+      marked_as_obsolete: 0
+    }
 
     {po, stats}
   end

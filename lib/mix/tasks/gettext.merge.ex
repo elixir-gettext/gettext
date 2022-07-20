@@ -98,6 +98,10 @@ defmodule Mix.Tasks.Gettext.Merge do
       new messages in the target PO files will have this number of empty
       plural forms. See the "Plural forms" section above.
 
+    * `--on-obsolete` - controls what happens when obsolete messages are found.
+      If `mark_as_obsolete`, messages are kept and marked as obsolete.
+      If `delete`, obsolete messages are deleted. Defaults to `delete`.
+
   """
 
   alias Expo.PO
@@ -109,7 +113,8 @@ defmodule Mix.Tasks.Gettext.Merge do
     locale: :string,
     fuzzy: :boolean,
     fuzzy_threshold: :float,
-    plural_forms: :integer
+    plural_forms: :integer,
+    on_obsolete: :string
   ]
 
   def run(args) do
@@ -260,11 +265,12 @@ defmodule Mix.Tasks.Gettext.Merge do
   defp validate_merging_opts!(opts, gettext_config) do
     opts =
       opts
-      |> Keyword.take([:fuzzy, :fuzzy_threshold, :plural_forms])
+      |> Keyword.take([:fuzzy, :fuzzy_threshold, :plural_forms, :on_obsolete])
       |> Keyword.put_new(:fuzzy, true)
       |> Keyword.put_new_lazy(:fuzzy_threshold, fn ->
         gettext_config[:fuzzy_threshold] || @default_fuzzy_threshold
       end)
+      |> Keyword.update(:on_obsolete, :delete, &cast_on_obsolete/1)
 
     threshold = opts[:fuzzy_threshold]
 
@@ -285,6 +291,18 @@ defmodule Mix.Tasks.Gettext.Merge do
     pluralized = if stats.new == 1, do: "message", else: "messages"
 
     "#{stats.new} new #{pluralized}, #{stats.removed} removed, " <>
-      "#{stats.exact_matches} unchanged, #{stats.fuzzy_matches} reworded (fuzzy)"
+      "#{stats.exact_matches} unchanged, #{stats.fuzzy_matches} reworded (fuzzy), " <>
+      "#{stats.marked_as_obsolete} marked as obsolete"
+  end
+
+  defp cast_on_obsolete("delete" = _on_obsolete), do: :delete
+  defp cast_on_obsolete("mark_as_obsolete" = _on_obsolete), do: :mark_as_obsolete
+
+  defp cast_on_obsolete(on_obsolete) do
+    Mix.raise("""
+    An invalid value was provided for the option `on_obsolete`.
+    Value: #{inspect(on_obsolete)}
+    Valid Choices: "delete" / "mark_as_obsolete"
+    """)
   end
 end

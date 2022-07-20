@@ -506,8 +506,6 @@ defmodule Gettext.Compiler do
     singular_fun = :"#{locale}_#{domain}_lgettext"
     plural_fun = :"#{locale}_#{domain}_lngettext"
 
-    # Remove obsolete messages (not needed at runtime)
-    # TODO: Resolve when implementing https://github.com/elixir-gettext/gettext/issues/210
     messages = Enum.filter(messages, &match?(%{obsolete: false}, &1))
 
     mapper =
