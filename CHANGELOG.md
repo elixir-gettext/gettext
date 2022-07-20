@@ -1,9 +1,10 @@
 # Changelog
 
-## v0.20.0-dev
+## v0.20.0
 
   * Allow `gettext_comment` to be invoked multiple times
   * Dump flags after references in PO files
+  * Deprecate `compile.gettext` in favor of `__mix_recompile__?`
 
 ### Backwards incompatible changes
 
