@@ -8,13 +8,13 @@ Gettext is an **internationalization** (i18n) and **localization** (l10n) system
 
 Add `:gettext` to your list of dependencies in `mix.exs` (use `$ mix hex.info gettext` to find the latest version):
 
-     ```elixir
-     def deps do
-       [
-         {:gettext, ">= 0.0.0"}
-       ]
-     end
-     ```
+```elixir
+def deps do
+  [
+    {:gettext, ">= 0.0.0"}
+  ]
+end
+```
 
 Documentation for `Gettext` is [available on Hex][docs-gettext].
 
