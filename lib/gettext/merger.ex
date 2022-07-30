@@ -1,7 +1,7 @@
 defmodule Gettext.Merger do
   @moduledoc false
 
-  alias Expo.Po
+  alias Expo.PO
   alias Expo.Message
   alias Expo.Messages
   alias Gettext.Fuzzy
@@ -197,7 +197,7 @@ defmodule Gettext.Merger do
   comments directed to developers.
   """
   def new_po_file(po_file, pot_file, locale, opts) when is_binary(locale) and is_list(opts) do
-    pot = Po.parse_file!(pot_file)
+    pot = PO.parse_file!(pot_file)
     opts = put_plural_forms_opt(opts, pot.headers, locale)
     plural_forms = Keyword.fetch!(opts, :plural_forms)
 

@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   """
 
-  alias Expo.Po
+  alias Expo.PO
   alias Gettext.Merger
 
   @default_fuzzy_threshold 0.8
@@ -206,17 +206,17 @@ defmodule Mix.Tasks.Gettext.Merge do
 
       {new_po
        |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
-       |> Po.compose(), stats}
+       |> PO.compose(), stats}
     end
   end
 
   defp merge_files(po_file, pot_file, locale, opts, gettext_config) do
     {merged, stats} =
-      Merger.merge(Po.parse_file!(po_file), Po.parse_file!(pot_file), locale, opts)
+      Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
 
     {merged
      |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
-     |> Po.compose(), stats}
+     |> PO.compose(), stats}
   end
 
   defp write_file(path, contents, stats) do

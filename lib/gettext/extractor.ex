@@ -15,7 +15,7 @@ defmodule Gettext.Extractor do
   alias Gettext.Error
   alias Gettext.ExtractorAgent
   alias Gettext.Merger
-  alias Expo.Po
+  alias Expo.PO
   alias Expo.Message
   alias Expo.Messages
 
@@ -218,7 +218,7 @@ defmodule Gettext.Extractor do
     {existing_contents, existing_po} = read_contents_and_parse(existing_path)
     merged_po = merge_template(existing_po, new_po, gettext_config)
 
-    if IO.iodata_to_binary(Po.compose(merged_po)) == existing_contents do
+    if IO.iodata_to_binary(PO.compose(merged_po)) == existing_contents do
       :unchanged
     else
       merged_po
@@ -227,7 +227,7 @@ defmodule Gettext.Extractor do
 
   defp read_contents_and_parse(path) do
     contents = File.read!(path)
-    {contents, Po.parse_file!(path, file: path)}
+    {contents, PO.parse_file!(path, file: path)}
   end
 
   # This function "tags" a {path, _} tuple in order to distinguish POT files
@@ -260,7 +260,7 @@ defmodule Gettext.Extractor do
          new_po
          |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
          |> add_headers_to_new_po()
-         |> Po.compose()
+         |> PO.compose()
        ]}
 
   defp dump_tagged_file({path, {tag, po}}, gettext_config) when tag in [:unmerged, :merged],
@@ -268,7 +268,7 @@ defmodule Gettext.Extractor do
       {path,
        po
        |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
-       |> Po.compose()}
+       |> PO.compose()}
 
   defp prune_unmerged(path, gettext_config) do
     merge_or_unchanged(path, %Messages{messages: []}, gettext_config)
