@@ -5,7 +5,7 @@ defmodule Gettext.Compiler do
 
   alias Expo.Message
   alias Expo.Messages
-  alias Expo.Po
+  alias Expo.PO
 
   @default_priv "priv/gettext"
   @default_domain "default"
@@ -501,7 +501,7 @@ defmodule Gettext.Compiler do
   # lngettext/7 (for plural messages) clauses.
   defp compile_po_file(kind, po_file, env, plural_mod, interpolation_module) do
     %{locale: locale, domain: domain, path: path} = po_file
-    %Messages{messages: messages, file: file} = Po.parse_file!(path)
+    %Messages{messages: messages, file: file} = PO.parse_file!(path)
 
     singular_fun = :"#{locale}_#{domain}_lgettext"
     plural_fun = :"#{locale}_#{domain}_lngettext"
