@@ -524,6 +524,10 @@ defmodule Gettext do
       messages are appended to the file. If `:sort_by_msgid` is set to `true`,
       existing and new messages will be mixed and sorted alphabetically by msgid.
 
+    * `:on_obsolete` - controls what happens when obsolete messages are found.
+      If `:mark_as_obsolete`, messages are kept and marked as obsolete.
+      If `:delete`, obsolete messages are deleted. Defaults to `:delete`.
+
   """
 
   defmodule Error do

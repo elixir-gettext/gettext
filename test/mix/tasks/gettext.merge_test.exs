@@ -58,7 +58,9 @@ defmodule Mix.Tasks.Gettext.MergeTest do
       end)
 
     assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
-    assert output =~ "(1 new message, 0 removed, 0 unchanged, 0 reworded (fuzzy))"
+
+    assert output =~
+             "(1 new message, 0 removed, 0 unchanged, 0 reworded (fuzzy), 0 marked as obsolete)"
 
     # The POT file is left unchanged
     assert read_file("foo.pot") == pot_contents
@@ -67,6 +69,64 @@ defmodule Mix.Tasks.Gettext.MergeTest do
            msgid "hello"
            msgstr ""
            """
+  end
+
+  test "marks messages as obsolete" do
+    write_file("foo.pot", "")
+
+    write_file("it/LC_MESSAGES/foo.po", """
+    msgid "foo"
+    msgstr ""
+    """)
+
+    output =
+      capture_io(fn ->
+        run([
+          tmp_path("it/LC_MESSAGES/foo.po"),
+          tmp_path("foo.pot"),
+          "--on-obsolete",
+          "mark_as_obsolete"
+        ])
+      end)
+
+    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
+
+    assert output =~
+             "(0 new messages, 0 removed, 0 unchanged, 0 reworded (fuzzy), 1 marked as obsolete)"
+  end
+
+  test "removes obsolete messages" do
+    write_file("foo.pot", "")
+
+    write_file("it/LC_MESSAGES/foo.po", """
+    msgid "foo"
+    msgstr ""
+    """)
+
+    output =
+      capture_io(fn ->
+        run([tmp_path("it/LC_MESSAGES/foo.po"), tmp_path("foo.pot"), "--on-obsolete", "delete"])
+      end)
+
+    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
+
+    assert output =~
+             "(0 new messages, 1 removed, 0 unchanged, 0 reworded (fuzzy), 0 marked as obsolete)"
+  end
+
+  test "validates on-obsolete" do
+    write_file("foo.pot", "")
+    write_file("it/LC_MESSAGES/foo.po", "")
+
+    expected_message = """
+    An invalid value was provided for the option `on_obsolete`.
+    Value: "invalid"
+    Valid Choices: "delete" / "mark_as_obsolete"
+    """
+
+    assert_raise Mix.Error, expected_message, fn ->
+      run([tmp_path("it/LC_MESSAGES/foo.po"), tmp_path("foo.pot"), "--on-obsolete", "invalid"])
+    end
   end
 
   test "passing a dir and a --locale opt will update/create PO files in the locale dir" do
