@@ -905,7 +905,7 @@ defmodule GettextTest do
     assert "quack foo %{} quack" = gettext("foo")
   end
 
-  defmodule GettextTest.PersistentTermRepo do
+  defmodule GettextTest.TestRepo do
     @behaviour Gettext.Repo
 
     use Agent
@@ -947,19 +947,19 @@ defmodule GettextTest do
   defmodule GettextTest.TranslatorWithRuntimeRepo do
     use Gettext,
       otp_app: :test_application,
-      repo: GettextTest.PersistentTermRepo
+      repo: GettextTest.TestRepo
   end
 
   defmodule GettextTest.TranslatorWithConfigurableRuntimeRepo do
     use Gettext,
       otp_app: :test_application,
-      repo: {GettextTest.PersistentTermRepo, :gettext_test_repo_name}
+      repo: {GettextTest.TestRepo, :gettext_test_repo_name}
   end
 
   test "uses runtime repo" do
     import GettextTest.TranslatorWithRuntimeRepo, only: [lgettext: 5, lngettext: 7]
 
-    {:ok, _repo} = GettextTest.PersistentTermRepo.start_link([])
+    {:ok, _repo} = GettextTest.TestRepo.start_link([])
 
     get_singular = fn -> lgettext("it", "default", nil, "Hello world", %{}) end
 
@@ -978,7 +978,7 @@ defmodule GettextTest do
     assert get_singular.() == {:ok, "Ciao mondo"}
     assert get_plural.() == {:ok, "C'è stato un errore"}
 
-    GettextTest.PersistentTermRepo.set_msgstr("Runtime")
+    GettextTest.TestRepo.set_msgstr("Runtime")
 
     assert get_singular.() == {:ok, "Runtime"}
     assert get_plural.() == {:ok, "Runtime"}
@@ -987,11 +987,11 @@ defmodule GettextTest do
   test "runtime repo can be initialized with config value" do
     import GettextTest.TranslatorWithConfigurableRuntimeRepo, only: [lgettext: 5]
 
-    {:ok, _repo1} = GettextTest.PersistentTermRepo.start_link([])
-    {:ok, _repo2} = GettextTest.PersistentTermRepo.start_link(name: :gettext_test_repo_name)
+    {:ok, _repo1} = GettextTest.TestRepo.start_link([])
+    {:ok, _repo2} = GettextTest.TestRepo.start_link(name: :gettext_test_repo_name)
 
-    GettextTest.PersistentTermRepo.set_msgstr("Not this one")
-    GettextTest.PersistentTermRepo.set_msgstr("This one", :gettext_test_repo_name)
+    GettextTest.TestRepo.set_msgstr("Not this one")
+    GettextTest.TestRepo.set_msgstr("This one", :gettext_test_repo_name)
 
     assert lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "This one"}
   end
