@@ -939,7 +939,7 @@ defmodule GettextTest do
     end
 
     @impl Gettext.Repo
-    def get_plural_translation(_locale, _domain, _msgctxt, _msgid, _plural_form, name) do
+    def get_plural_translation(_locale, _domain, _msgctxt, _msgid, _msgid_plural, _plural_form, name) do
       get_msgstr(name)
     end
   end
