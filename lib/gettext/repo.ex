@@ -1,8 +1,6 @@
 defmodule Gettext.Repo do
   @moduledoc """
   A module that implements this behaviour loads translation strings.
-
-  See `Gettext.ETSRepo` for an example.
   """
 
   @type locale() :: binary()
