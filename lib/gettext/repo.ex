@@ -1,13 +1,13 @@
 defmodule Gettext.Repo do
   @moduledoc """
-  A module that implements this behaviour loads translation strings.
+  A behaviour for modules that can fetch Gettext translations.
   """
 
-  @type locale() :: binary()
-  @type domain() :: binary()
-  @type msgctxt() :: binary() | nil
-  @type msgid() :: binary()
-  @type msgid_plural() :: binary()
+  @type locale() :: String.t()
+  @type domain() :: String.t()
+  @type msgctxt() :: String.t() | nil
+  @type msgid() :: String.t()
+  @type msgid_plural() :: String.t()
   @type plural_form() :: integer()
   @type msgstr() :: binary()
   @type opts() :: term()
