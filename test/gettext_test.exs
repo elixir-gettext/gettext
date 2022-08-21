@@ -947,12 +947,14 @@ defmodule GettextTest do
   defmodule GettextTest.TranslatorWithRuntimeRepo do
     use Gettext,
       otp_app: :test_application,
+      priv: "test/fixtures/single_messages",
       repo: GettextTest.TestRepo
   end
 
   defmodule GettextTest.TranslatorWithConfigurableRuntimeRepo do
     use Gettext,
       otp_app: :test_application,
+      priv: "test/fixtures/single_messages",
       repo: {GettextTest.TestRepo, :gettext_test_repo_name}
   end
 
