@@ -258,7 +258,7 @@ defmodule Gettext.Extractor do
        [
          new_pot_comment(),
          new_po
-         |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
+         |> Merger.prune_references(gettext_config)
          |> add_headers_to_new_po()
          |> PO.compose()
        ]}
@@ -267,7 +267,7 @@ defmodule Gettext.Extractor do
     do:
       {path,
        po
-       |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
+       |> Merger.prune_references(gettext_config)
        |> PO.compose()}
 
   defp prune_unmerged(path, gettext_config) do

@@ -519,6 +519,9 @@ defmodule Gettext do
       reference comments will not be written when extracting messages or merging
       messages, and the ones already found in files will be discarded.
 
+    * `:write_reference_line_numbers` - a boolean that specifies whether file 
+      reference comments include line numbers when outputting PO(T) files.
+
     * `:sort_by_msgid` - a boolean that modifies the sorting behavior.
       By default, the order of existing messages in a POT file is kept and new
       messages are appended to the file. If `:sort_by_msgid` is set to `true`,
