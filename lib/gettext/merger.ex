@@ -254,14 +254,17 @@ defmodule Gettext.Merger do
   defp remove_references(%{references: _} = message), do: %{message | references: []}
 
   defp remove_reference_line_numbers(%{references: references} = message) do
-    references_without_line_numbers = Enum.map(references, &remove_reference_line_number/1)
+    references_without_line_numbers =
+      Enum.map(references, fn reference_list ->
+        Enum.map(reference_list, &remove_reference_line_number/1)
+      end)
 
     %{message | references: references_without_line_numbers}
   end
 
-  defp remove_reference_line_number([{file, line_number}])
+  defp remove_reference_line_number({file, line_number})
        when is_binary(file) and is_integer(line_number),
-       do: [file]
+       do: file
 
   defp remove_reference_line_number(file), do: file
 
