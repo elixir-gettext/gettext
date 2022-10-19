@@ -521,6 +521,7 @@ defmodule Gettext do
 
     * `:write_reference_line_numbers` - a boolean that specifies whether file 
       reference comments include line numbers when outputting PO(T) files.
+      Defaults to `true`.
 
     * `:sort_by_msgid` - a boolean that modifies the sorting behavior.
       By default, the order of existing messages in a POT file is kept and new
