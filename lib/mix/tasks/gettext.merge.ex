@@ -210,7 +210,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       {new_po, stats} = Merger.new_po_file(po_file, pot_file, locale, opts)
 
       {new_po
-       |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
+       |> Merger.prune_references(gettext_config)
        |> PO.compose(), stats}
     end
   end
@@ -220,7 +220,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
 
     {merged
-     |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
+     |> Merger.prune_references(gettext_config)
      |> PO.compose(), stats}
   end
 

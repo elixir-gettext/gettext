@@ -232,16 +232,41 @@ defmodule Gettext.Merger do
   end
 
   @doc false
-  @spec maybe_remove_references(messages :: Messages.t(), remove? :: boolean() | nil) ::
-          Messages.t()
-  def maybe_remove_references(messages, remove?)
+  @spec prune_references(messages :: Messages.t(), gettext_config :: Keyword.t()) :: Messages.t()
+  def prune_references(%Messages{messages: messages} = all, gettext_config) do
+    write_references? = Keyword.get(gettext_config, :write_reference_comments, true)
+    write_line_numbers? = Keyword.get(gettext_config, :write_reference_line_numbers, true)
 
-  def maybe_remove_references(%Messages{messages: messages} = all, true) do
-    messages = Enum.map(messages, &%{&1 | references: []})
-    %Messages{all | messages: messages}
+    cond do
+      not write_references? ->
+        messages = Enum.map(messages, &remove_references/1)
+        %Messages{all | messages: messages}
+
+      not write_line_numbers? ->
+        messages = Enum.map(messages, &remove_reference_line_numbers/1)
+        %Messages{all | messages: messages}
+
+      true ->
+        all
+    end
   end
 
-  def maybe_remove_references(messages, _remove?), do: messages
+  defp remove_references(%{references: _} = message), do: %{message | references: []}
+
+  defp remove_reference_line_numbers(%{references: references} = message) do
+    references_without_line_numbers =
+      Enum.map(references, fn reference_list ->
+        Enum.map(reference_list, &remove_reference_line_number/1)
+      end)
+
+    %{message | references: references_without_line_numbers}
+  end
+
+  defp remove_reference_line_number({file, line_number})
+       when is_binary(file) and is_integer(line_number),
+       do: file
+
+  defp remove_reference_line_number(file), do: file
 
   defp headers_for_new_po_file(locale, plural_forms) do
     [

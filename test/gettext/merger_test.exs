@@ -461,6 +461,57 @@ defmodule Gettext.MergerTest do
     end
   end
 
+  describe "prune_references/2" do
+    test "prunes all references when `write_reference_comments` is `false`" do
+      po = %Messages{
+        messages: [
+          %Message.Singular{msgid: "a", references: [[{"path/to/file.ex", 12}]]},
+          %Message.Plural{msgid: "a", msgid_plural: "ab", references: [[{"path/to/file.ex", 12}]]}
+        ]
+      }
+
+      config = [write_reference_comments: false]
+
+      assert %Messages{
+               messages: [
+                 %Message.Singular{references: []},
+                 %Message.Plural{references: []}
+               ]
+             } = Merger.prune_references(po, config)
+    end
+
+    test "prunes reference line numbers when `write_reference_line_numbers` is `false`" do
+      po = %Messages{
+        messages: [
+          %Message.Singular{msgid: "a", references: [[{"path/to/file.ex", 12}]]},
+          %Message.Plural{msgid: "a", msgid_plural: "ab", references: [[{"path/to/file.ex", 12}]]}
+        ]
+      }
+
+      config = [write_reference_line_numbers: false]
+
+      assert %Messages{
+               messages: [
+                 %Message.Singular{references: [["path/to/file.ex"]]},
+                 %Message.Plural{references: [["path/to/file.ex"]]}
+               ]
+             } = Merger.prune_references(po, config)
+    end
+
+    test "does nothing per default" do
+      po = %Messages{
+        messages: [
+          %Message.Singular{msgid: "a", references: [[{"path/to/file.ex", 12}]]},
+          %Message.Plural{msgid: "a", msgid_plural: "ab", references: [{"path/to/file.ex", 12}]}
+        ]
+      }
+
+      config = []
+
+      assert po == Merger.prune_references(po, config)
+    end
+  end
+
   test "new_po_file/2" do
     pot_path = Path.join(@pot_path, "new_po_file.pot")
     new_po_path = Path.join(@pot_path, "it/LC_MESSAGES/new_po_file.po")
