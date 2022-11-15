@@ -597,10 +597,14 @@ defmodule Gettext do
       reference comments include line numbers when outputting PO(T) files.
       Defaults to `true`.
 
-    * `:sort_by_msgid` - a boolean that modifies the sorting behavior.
-      By default, the order of existing messages in a POT file is kept and new
-      messages are appended to the file. If `:sort_by_msgid` is set to `true`,
+    * `:sort_by_msgid` - modifies the sorting behavior. Can be either `nil` (the default),
+      `:case_sensitive`, or `:case_insensitive`.
+      By default or if `nil`, the order of existing messages in a POT file is kept and new
+      messages are appended to the file. If `:sort_by_msgid` is set to `:case_sensitive`,
       existing and new messages will be mixed and sorted alphabetically by msgid.
+      If set to `:case_insensitive`, the same applies but the sorting is case insensitive.
+      *Note*: this option also supports `true` and `false` for backwards compatibility,
+      but these values are deprecated as of v0.21.0.
 
     * `:on_obsolete` - controls what happens when obsolete messages are found.
       If `:mark_as_obsolete`, messages are kept and marked as obsolete.
