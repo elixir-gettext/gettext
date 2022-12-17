@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   test:
     name: Test (Elixir ${{matrix.elixir}} | Erlang/OTP ${{matrix.erlang}})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
