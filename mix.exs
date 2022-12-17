@@ -13,7 +13,7 @@ defmodule Gettext.Mixfile do
       elixir: "~> 1.11",
       build_embedded: Mix.env() == :prod,
       deps: deps(),
-      preferred_cli_env: [docs: :docs, "coveralls.html": :test],
+      preferred_cli_env: [docs: :docs, "coveralls.html": :test, "coveralls.github": :test],
       test_coverage: [tool: ExCoveralls],
 
       # Hex
