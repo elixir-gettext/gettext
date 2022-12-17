@@ -1,6 +1,8 @@
 # Gettext
 
-![](https://github.com/elixir-gettext/gettext/workflows/CI/badge.svg)
+[![hex.pm badge](https://img.shields.io/badge/Package%20on%20hex.pm-informational)](https://hex.pm/packages/gettext)
+[![Documentation badge](https://img.shields.io/badge/Documentation-ff69b4)][docs-gettext]
+![CI badge](https://github.com/elixir-gettext/gettext/workflows/CI/badge.svg)
 
 Gettext is an **internationalization** (i18n) and **localization** (l10n) system commonly used for writing multilingual programs. Gettext is a standard for i18n in different communities, meaning there is a great set of tooling for developers and translators. This project is an implementation of the Gettext system in Elixir.
 
@@ -9,7 +11,7 @@ Gettext is an **internationalization** (i18n) and **localization** (l10n) system
 Add `:gettext` to your list of dependencies in `mix.exs` (use `$ mix hex.info gettext` to find the latest version):
 
 ```elixir
-def deps do
+defp deps do
   [
     {:gettext, ">= 0.0.0"}
   ]
@@ -68,7 +70,7 @@ Read the [documentation for the `Gettext` module][docs-gettext-module] for more 
 
 Gettext is able to automatically extract messages from your source code, alleviating developers and translators from the repetitive and error-prone work of maintaining message files.
 
-When extracted from source, messages are placed into `.pot` files, which are template files. Those templates files can then be merged into message files for each specific locale your application is being currently translated to.
+When extracted from source, Gettext places messages into `.pot` files, which are template files. You can then merge those templates files into message files for each specific locale your application is being currently translated to.
 
 In other words, the typical workflow looks like this:
 
@@ -86,7 +88,7 @@ In other words, the typical workflow looks like this:
      mix gettext.extract
      ```
 
-  3. `.pot` files can then be merged into locale-specific `.po` files:
+  3. You can then merge `.pot` files into locale-specific `.po` files:
 
      ```bash
      # Merge .pot into all locales
@@ -105,9 +107,9 @@ Copyright 2020 Dashbit
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
+  You may obtain a copy of the License at:
 
-      http://www.apache.org/licenses/LICENSE-2.0
+  > <http://www.apache.org/licenses/LICENSE-2.0>
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
