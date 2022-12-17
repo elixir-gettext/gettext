@@ -10,57 +10,59 @@ defmodule Gettext do
 
       "Hello world"
 
-  ...with calls like this:
+  with calls like this:
 
       gettext("Hello world")
 
-  The string "Hello world" here serves two purposes:
+  Here, the string `"Hello world"` serves two purposes:
 
-  1. It's displayed by default (if no translation is specified in the current
-  language). This means that, at the very least, switching from a hardcoded
-  string to a Gettext call is harmless.
-  2. It serves as the message id to which translations will be mapped.
+    1. It's displayed by default (if no translation is specified in the current
+       language). This means that, at the very least, switching from a hardcoded
+       string to a Gettext call is harmless.
+
+    2. It serves as the message ID to which translations will be mapped.
 
   An example translation workflow is as follows.
 
-  First, call `mix gettext.extract` to extract such calls to `.pot` (Portable
-  Object Template) files, which serve as the base for all translations.
-  They have entries like this:
+  First, call `mix gettext.extract` to extract `gettext()` calls to `.pot`
+  ([Portable Object Template](https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html))
+  files, which are the base for all translations. These files are *templates*, which
+  means they only contain translation IDs, and not actual translated strings. POT files have
+  entries like this:
 
       #: lib/myapp_web/live/hello_live.html.heex:2
       #, elixir-autogen, elixir-format
       msgid "Hello world"
       msgstr ""
 
-  Then, call `mix gettext.merge priv/gettext` to ensure that all
-  locale-specific `.po` (Portable Object) files include this message id.
-  They have entries like this:
+  Then, call `mix gettext.merge priv/gettext` to update all
+  locale-specific `.po` (Portable Object) files so that they include this message ID.
+  Entries in PO files contain translations for their specific locale. For example,
+  in a PO file for Italian, the entry above would look like this:
 
       #: lib/myapp_web/live/hello_live.html.heex:2
       #, elixir-autogen, elixir-format
       msgid "Hello world"
-      msgstr "Hola mundo"
+      msgstr "Ciao mondo"
 
-  Note that the English string is the `msgid` which is used to look up the
-  correct Spanish string.
+  The English string is the `msgid` which is used to look up the
+  correct Italian string.
   That's handy, because unlike a generic key like `site.greeting` (as some
-  translations systems use), the message id tells exactly what needs to be
-  translated.
+  translations systems use), the message ID tells exactly what needs to be
+  translated. This is easier to work with for translators, for example.
 
-  But it raises a question: what if you change the original English string in
-  the code?
-  Does that break all translations, requiring manual edits everywhere?
-
-  Not necessarily.
+  But it raises a question: what if you change the original English string in the code?
+  Does that break all translations, requiring manual edits everywhere? Not necessarily.
   After you run `mix gettext.extract` again, the next `mix gettext.merge` can
-  do "fuzzy matching".
-  So if you change "Hello world" to "Hello world!", Gettext will see that this
-  is very similar to an existing `msgid` and do two things:
+  do **fuzzy matching**.
+  So, if you change `"Hello world"` to `"Hello world!"`, Gettext will see that the new
+  message ID is similar to an existing `msgid`, and will do two things:
 
-  1. It will update the `msgid` in all `.po` files to match the new text.
-  2. It will mark those entries as "fuzzy"; this hints that a (probably human)
-  translator should check whether the Spanish translation of this string needs
-  an update.
+    1. It will update the `msgid` in all `.po` files to match the new text.
+
+    2. It will mark those entries as "fuzzy"; this hints that a (probably human)
+       translator should check whether the Italian translation of this string needs
+       an update.
 
   The resulting change in the `.po` file is this:
 
@@ -70,12 +72,11 @@ defmodule Gettext do
       msgstr "Hola mundo"
 
   This "fuzzy matching" behavior can be configured or disabled, but its
-  existence makes updating translations to match changes in the base text much
-  easier.
+  existence makes updating translations to match changes in the base text easier.
 
-  Now let's look in more detail at how to use the library.
+  The rest of the documentation will cover the Gettext API in detail.
 
-  ## Using Gettext
+  ## Gettext API
 
   To use `Gettext`, a module that calls `use Gettext` (referred to below as a
   "backend") has to be defined:
@@ -592,7 +593,7 @@ defmodule Gettext do
       reference comments will not be written when extracting messages or merging
       messages, and the ones already found in files will be discarded.
 
-    * `:write_reference_line_numbers` - a boolean that specifies whether file 
+    * `:write_reference_line_numbers` - a boolean that specifies whether file
       reference comments include line numbers when outputting PO(T) files.
       Defaults to `true`.
 
@@ -1050,7 +1051,7 @@ defmodule Gettext do
       #=> "Bonjour monde"
 
   """
-  @spec with_locale(locale, (() -> result)) :: result when result: var
+  @spec with_locale(locale, (-> result)) :: result when result: var
   def with_locale(locale, fun) do
     previous_locale = Process.get(Gettext)
     Gettext.put_locale(locale)
@@ -1093,7 +1094,7 @@ defmodule Gettext do
       #=> "Bonjour monde"
 
   """
-  @spec with_locale(backend, locale, (() -> result)) :: result when result: var
+  @spec with_locale(backend, locale, (-> result)) :: result when result: var
   def with_locale(backend, locale, fun) do
     previous_locale = Process.get(backend)
     Gettext.put_locale(backend, locale)
