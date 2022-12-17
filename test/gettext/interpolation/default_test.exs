@@ -45,7 +45,7 @@ defmodule Gettext.Interpolation.DefaultTest do
     assert Interpolation.to_interpolatable("") == []
   end
 
-  if :erlang.system_info(:otp_release) >= '20' do
+  if System.otp_release() >= "20" do
     test "to_interpolatable/1 with Unicode" do
       assert Interpolation.to_interpolatable("%{Héllø} there") ==
                [String.to_atom("Héllø"), " there"]
