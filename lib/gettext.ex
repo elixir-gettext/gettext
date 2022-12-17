@@ -4,15 +4,87 @@ defmodule Gettext do
   [gettext](https://www.gnu.org/software/gettext/)-based API for working with
   internationalized applications.
 
+  ## Basic Overview
+
+  When you use Gettext, you replace hardcoded user-facing text like this:
+
+      "Hello world"
+
+  ...with calls like this:
+
+      gettext("Hello world")
+
+  The string "Hello world" here serves two purposes:
+
+  1. It's displayed by default (if no translation is specified in the current
+  language). This means that, at the very least, switching from a hardcoded
+  string to a Gettext call is harmless.
+  2. It serves as the message id to which translations will be mapped.
+
+  An example translation workflow is as follows.
+
+  First, call `mix gettext.extract` to extract such calls to `.pot` (Portable
+  Object Template) files, which serve as the base for all translations.
+  They have entries like this:
+
+      #: lib/myapp_web/live/hello_live.html.heex:2
+      #, elixir-autogen, elixir-format
+      msgid "Hello world"
+      msgstr ""
+
+  Then, call `mix gettext.merge priv/gettext` to ensure that all
+  locale-specific `.po` (Portable Object) files include this message id.
+  They have entries like this:
+
+      #: lib/myapp_web/live/hello_live.html.heex:2
+      #, elixir-autogen, elixir-format
+      msgid "Hello world"
+      msgstr "Hola mundo"
+
+  Note that the English string is the `msgid` which is used to look up the
+  correct Spanish string.
+  That's handy, because unlike a generic key like `site.greeting` (as some
+  translations systems use), the message id tells exactly what needs to be
+  translated.
+
+  But it raises a question: what if you change the original English string in
+  the code?
+  Does that break all translations, requiring manual edits everywhere?
+
+  Not necessarily.
+  After you run `mix gettext.extract` again, the next `mix gettext.merge` can
+  do "fuzzy matching".
+  So if you change "Hello world" to "Hello world!", Gettext will see that this
+  is very similar to an existing `msgid` and do two things:
+
+  1. It will update the `msgid` in all `.po` files to match the new text.
+  2. It will mark those entries as "fuzzy"; this hints that a (probably human)
+  translator should check whether the Spanish translation of this string needs
+  an update.
+
+  The resulting change in the `.po` file is this:
+
+      #: lib/myapp_web/live/hello_live.html.heex:2
+      #, elixir-autogen, elixir-format, fuzzy
+      msgid "Hello world!"
+      msgstr "Hola mundo"
+
+  This "fuzzy matching" behavior can be configured or disabled, but its
+  existence makes updating translations to match changes in the base text much
+  easier.
+
+  Now let's look in more detail at how to use the library.
+
   ## Using Gettext
 
-  To use `Gettext`, a module that calls `use Gettext` has to be defined:
+  To use `Gettext`, a module that calls `use Gettext` (referred to below as a
+  "backend") has to be defined:
 
       defmodule MyApp.Gettext do
         use Gettext, otp_app: :my_app
       end
 
-  This automatically defines some macros in the `MyApp.Gettext` module.
+  This automatically defines some macros in the `MyApp.Gettext` backend module.
   Here are some examples:
 
       import MyApp.Gettext
@@ -101,8 +173,8 @@ defmodule Gettext do
   ## Locale
 
   At runtime, all gettext-related functions and macros that do not explicitly
-  take a locale as an argument read the locale from the backend locale and
-  fallbacks to Gettext's locale.
+  take a locale as an argument read the locale from the backend and fall back
+  to Gettext's default locale.
 
   `Gettext.put_locale/1` can be used to change the locale of all backends for
   the current Elixir process. That's the preferred mechanism for setting the
@@ -403,12 +475,13 @@ defmodule Gettext do
 
   As mentioned above, using the Gettext macros (as opposed to functions) allows
   Gettext to operate on those messages *at compile-time*. This can be used
-  to extract messages from the source code into POT files automatically
-  (instead of having to manually add messages to POT files when they're added
-  to the source code). The `gettext.extract` does exactly this: whenever there
-  are new messages in the source code, running `gettext.extract` syncs the
-  existing POT files with the changed code base. Read the documentation for
-  `Mix.Tasks.Gettext.Extract` for more information on the extraction process.
+  to extract messages from the source code into POT (Portable Object Template)
+  files automatically (instead of having to manually add messages to POT files
+  when they're added to the source code). The `gettext.extract` does exactly
+  this: whenever there are new messages in the source code, running
+  `gettext.extract` syncs the existing POT files with the changed code base.
+  Read the documentation for `Mix.Tasks.Gettext.Extract` for more information
+  on the extraction process.
 
   POT files are just *template* files and the messages in them do not
   actually contain translated strings. A POT file looks like this:
