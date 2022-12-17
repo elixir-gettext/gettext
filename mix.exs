@@ -13,6 +13,8 @@ defmodule Gettext.Mixfile do
       elixir: "~> 1.11",
       build_embedded: Mix.env() == :prod,
       deps: deps(),
+      preferred_cli_env: [docs: :docs, "coveralls.html": :test, "coveralls.github": :test],
+      test_coverage: [tool: ExCoveralls],
 
       # Hex
       package: hex_package(),
@@ -48,6 +50,7 @@ defmodule Gettext.Mixfile do
   defp deps do
     [
       {:ex_doc, "~> 0.19", only: :docs},
+      {:excoveralls, "~> 0.15.1", only: :test},
       # TODO: Switch to stable version once ready & released
       {:expo, "~> 0.1.0-beta"}
     ]

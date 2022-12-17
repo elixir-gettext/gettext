@@ -1,0 +1,9 @@
+{
+  "coverage_options": {
+    "treat_no_relevant_lines_as_covered": true
+  },
+  "skip_files": [
+    "src/gettext_po_parser.erl",
+    "lib/mix/tasks/compile.gettext.ex"
+  ]
+}
