@@ -204,17 +204,15 @@ defmodule Gettext.MergerTest do
     end
 
     test "new messages are fuzzy-matched against obsolete messages" do
-      old_po = %Messages{
-        messages: [
-          %Message.Singular{
-            msgid: "hello world!",
-            msgstr: ["foo"],
-            comments: ["# existing comment"],
-            extracted_comments: ["#. existing comment"],
-            references: [{"foo.ex", 1}]
-          }
-        ]
+      old_message = %Message.Singular{
+        msgid: ["hello world!"],
+        msgstr: ["foo"],
+        comments: ["# existing comment"],
+        extracted_comments: ["#. existing comment"],
+        references: [{"foo.ex", 1}]
       }
+
+      old_po = %Messages{messages: [old_message]}
 
       new_pot = %Messages{
         messages: [
@@ -237,6 +235,17 @@ defmodule Gettext.MergerTest do
       assert message.extracted_comments == ["#. new comment"]
       assert message.references == [{"foo.ex", 2}]
       assert message.flags == [["my-flag", "fuzzy"]]
+      assert message.previous_messages == []
+
+      assert {%Messages{messages: [message]}, _stats} =
+               Merger.merge(
+                 old_po,
+                 new_pot,
+                 "en",
+                 @opts ++ [store_previous_message_on_fuzzy_match: true]
+               )
+
+      assert message.previous_messages == [old_message]
     end
 
     test "exact matches have precedence over fuzzy matches" do

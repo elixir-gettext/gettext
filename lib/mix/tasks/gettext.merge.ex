@@ -102,6 +102,9 @@ defmodule Mix.Tasks.Gettext.Merge do
       If `mark_as_obsolete`, messages are kept and marked as obsolete.
       If `delete`, obsolete messages are deleted. Defaults to `delete`.
 
+    * `--store-previous-message-on-fuzzy-match` - controls if the previous
+      messages are recorded on fuzzy matches. Is off by default.
+
   """
 
   alias Expo.PO
@@ -114,7 +117,8 @@ defmodule Mix.Tasks.Gettext.Merge do
     fuzzy: :boolean,
     fuzzy_threshold: :float,
     plural_forms: :integer,
-    on_obsolete: :string
+    on_obsolete: :string,
+    store_previous_message_on_fuzzy_match: :boolean
   ]
 
   def run(args) do
@@ -265,7 +269,14 @@ defmodule Mix.Tasks.Gettext.Merge do
   defp validate_merging_opts!(opts, gettext_config) do
     opts =
       opts
-      |> Keyword.take([:fuzzy, :fuzzy_threshold, :plural_forms, :on_obsolete])
+      |> Keyword.take([
+        :fuzzy,
+        :fuzzy_threshold,
+        :plural_forms,
+        :on_obsolete,
+        :store_previous_message_on_fuzzy_match
+      ])
+      |> Keyword.put_new(:store_previous_message_on_fuzzy_match, false)
       |> Keyword.put_new(:fuzzy, true)
       |> Keyword.put_new_lazy(:fuzzy_threshold, fn ->
         gettext_config[:fuzzy_threshold] || @default_fuzzy_threshold

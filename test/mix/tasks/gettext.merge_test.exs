@@ -170,6 +170,32 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     assert String.starts_with?(new_po, "## \"msgid\"s in this file come from POT")
   end
 
+  test "enabling --store-previous-message-on-fuzzy-match stores previous message" do
+    write_file("default.pot", """
+    msgid "Hello Worlds"
+    msgstr ""
+    """)
+
+    write_file("it/LC_MESSAGES/default.po", """
+    msgid "Hello World"
+    msgstr ""
+    """)
+
+    output =
+      capture_io(fn ->
+        run([@priv_path, "--locale", "it", "--store-previous-message-on-fuzzy-match"])
+      end)
+
+    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/default.po"
+
+    assert read_file("it/LC_MESSAGES/default.po") == """
+           #, fuzzy
+           #| msgid "Hello World"
+           msgid "Hello Worlds"
+           msgstr ""
+           """
+  end
+
   test "passing a dir and a --locale opt will update/create PO files in the locale dir with custom plural forms" do
     write_file("new.pot", """
     msgid "new"
