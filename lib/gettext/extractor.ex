@@ -319,7 +319,7 @@ defmodule Gettext.Extractor do
 
     messages =
       if gettext_config[:sort_by_msgid] do
-        Enum.sort_by(messages, & &1.msgid)
+        Enum.sort_by(messages, &IO.chardata_to_string(&1.msgid))
       else
         messages
       end

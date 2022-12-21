@@ -228,17 +228,17 @@ defmodule Gettext.ExtractorTest do
 
     test "messages can be ordered alphabetically through the :sort_by_msgid option" do
       # Old and new messages are mixed together and ordered alphabetically.
-      foo_message = %Message.Singular{msgid: ["foo"], references: [{"foo.ex", 1}]}
+      foo_message = %Message.Singular{msgid: ["", "foo"], references: [{"foo.ex", 1}]}
 
-      bar_message = %Message.Singular{msgid: ["bar"], references: [{"bar.ex", 1}]}
+      bar_message = %Message.Singular{msgid: ["ba", "r"], references: [{"bar.ex", 1}]}
 
       baz_message = %Message.Plural{
-        msgid: ["baz"],
+        msgid: ["b", "az"],
         msgid_plural: ["bazs"],
         references: [{"baz.ex", 1}]
       }
 
-      qux_message = %Message.Singular{msgid: ["qux"], references: [{"bar.ex", 1}]}
+      qux_message = %Message.Singular{msgid: ["qux", ""], references: [{"bar.ex", 1}]}
 
       po1 = %Messages{
         messages: [
@@ -258,7 +258,7 @@ defmodule Gettext.ExtractorTest do
 
       %Messages{messages: messages} = Extractor.merge_template(po1, po2, sort_by_msgid: true)
 
-      assert Enum.map(messages, &Enum.at(&1.msgid, 0)) == ~w(bar baz foo qux)
+      assert Enum.map(messages, &IO.chardata_to_string(&1.msgid)) == ~w(bar baz foo qux)
     end
   end
 
