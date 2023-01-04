@@ -7,7 +7,7 @@ defmodule Gettext.Interpolation do
 
   @callback runtime_interpolate(message :: String.t(), bindings :: map) ::
               {:ok, String.t()}
-              | {:mssing_bindings, message :: String.t(), missing_bindings :: [atom]}
+              | {:missing_bindings, message :: String.t(), missing_bindings :: [atom]}
 
   @macrocallback compile_interpolate(
                    translation_type :: translation_type,
