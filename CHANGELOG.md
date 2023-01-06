@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.21.0
+
+### New features and improvements
+
+  * Bump Elixir requirement to 1.11+.
+
+  * Extract parsing and dumping of PO/POT files to the
+    [expo](https://github.com/elixir-gettext/expo) library, and start depending
+    on that.
+
+  * Support marking messages as obsolete with the new `:on_obsolete` Gettext
+    configuration option.
+
+  * Add the `:write_reference_line_numbers` Gettext configuration option.
+
+  * Save the previous messages when there's a fuzzy match, with the new
+    `:store_previous_message_on_fuzzy_match` Gettext configuration option.
+
+  * Change `:sort_by_msgid` to accept `false`, `:case_sensitive`, or
+    `:case_insensitive` and deprecate the `true` value.
+
+### Bug fixes
+
+  * Sort messages independent of line splits when dumping PO files.
+
 ## v0.20.0
 
   * Allow `gettext_comment` to be invoked multiple times
@@ -8,14 +33,20 @@
 
 ### Backwards incompatible changes
 
-  * `handle_missing_translation(locale, domain, msgid, bindings)` callback signature was changed to `handle_missing_translation(locale, domain, msgctxt, msgid, bindings)` (it receives a new argument called `msgctxt`)
+  * `handle_missing_translation(locale, domain, msgid, bindings)` callback
+    signature was changed to `handle_missing_translation(locale, domain,
+    msgctxt, msgid, bindings)` (it receives a new argument called `msgctxt`)
 
-  * `handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n, bindings)` callback signature was changed to `handle_missing_plural_translation(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)` (it receives a new argument called `msgctxt`)
+  * `handle_missing_plural_translation(locale, domain, msgid, msgid_plural, n,
+    bindings)` callback signature was changed to
+    `handle_missing_plural_translation(locale, domain, msgctxt, msgid,
+    msgid_plural, n, bindings)` (it receives a new argument called `msgctxt`)
 
 ## v0.19.1
 
   * Fix warnings on Elixir v1.14+
-  * Rename `ex-autogen` to `elixir-autogen` and make sure `elixir-autogen` is added to existing messages
+  * Rename `ex-autogen` to `elixir-autogen` and make sure `elixir-autogen` is
+    added to existing messages
 
 ## v0.19.0
 

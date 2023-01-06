@@ -1,7 +1,7 @@
 defmodule Gettext.Mixfile do
   use Mix.Project
 
-  @version "0.21.0-dev"
+  @version "0.21.0"
 
   @description "Internationalization and localization through gettext"
   @repo_url "https://github.com/elixir-gettext/gettext"
@@ -13,7 +13,7 @@ defmodule Gettext.Mixfile do
       elixir: "~> 1.11",
       build_embedded: Mix.env() == :prod,
       deps: deps(),
-      preferred_cli_env: [docs: :docs, "coveralls.html": :test, "coveralls.github": :test],
+      preferred_cli_env: ["coveralls.html": :test, "coveralls.github": :test],
       test_coverage: [tool: ExCoveralls],
 
       # Hex
@@ -43,16 +43,17 @@ defmodule Gettext.Mixfile do
       maintainers: ["Andrea Leopardi", "José Valim"],
       licenses: ["Apache-2.0"],
       links: %{"GitHub" => @repo_url},
-      files: ~w(lib src/gettext_po_parser.yrl mix.exs *.md)
+      files: ~w(lib mix.exs *.md)
     ]
   end
 
   defp deps do
     [
-      {:ex_doc, "~> 0.19", only: :docs},
-      {:excoveralls, "~> 0.15.1", only: :test},
-      # TODO: Switch to stable version once ready & released
-      {:expo, "~> 0.1.0-beta"}
+      {:expo, "~> 0.1.0"},
+
+      # Dev and test dependencies
+      {:ex_doc, "~> 0.19", only: :dev},
+      {:excoveralls, "~> 0.15.1", only: :test}
     ]
   end
 end

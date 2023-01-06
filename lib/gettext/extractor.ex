@@ -318,17 +318,17 @@ defmodule Gettext.Extractor do
     messages = old_and_merged ++ unique_new
 
     sort_by_msgid =
-      case gettext_config[:sort_by_msgid] do
-        val when val in [:case_sensitive, :case_insensitive, nil] ->
+      case gettext_config[:sort_by_msgid] || false do
+        val when val in [:case_sensitive, :case_insensitive, false] ->
           val
 
-        bool when is_boolean(bool) ->
+        true ->
           IO.warn("""
-          Passing a boolean to the :sort_by_msgid option is deprecated. \
-          Use :case_sensitive or :case_insensitive instead.\
+          Passing "true" to the :sort_by_msgid option is deprecated. \
+          Use :case_sensitive instead, or specify :case_insensitive.\
           """)
 
-          if bool, do: :case_sensitive, else: nil
+          :case_sensitive
       end
 
     messages =
@@ -339,7 +339,7 @@ defmodule Gettext.Extractor do
         :case_insensitive ->
           Enum.sort_by(messages, &String.downcase(IO.chardata_to_string(&1.msgid)))
 
-        nil ->
+        false ->
           messages
       end
 
