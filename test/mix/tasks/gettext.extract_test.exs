@@ -105,6 +105,31 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     end)
   end
 
+  test "--check-up-to-date should pass if nothing changed" do
+    create_test_mix_file(write_reference_comments: false)
+
+    write_file("lib/my_app.ex", """
+    defmodule MyApp.Gettext do
+      use Gettext, otp_app: :my_app
+    end
+
+    defmodule MyApp do
+      require MyApp.Gettext
+      def foo(), do: MyApp.Gettext.gettext("hello")
+    end
+    """)
+
+    capture_io(fn ->
+      Mix.Project.in_project(:my_app, tmp_path("/"), fn _module ->
+        run([])
+      end)
+
+      Mix.Project.in_project(:my_app, tmp_path("/"), fn _module ->
+        run(["--check-up-to-date"])
+      end)
+    end)
+  end
+
   test "--check-up-to-date should fail if POT files are outdated" do
     create_test_mix_file()
 
@@ -157,13 +182,13 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     end)
   end
 
-  defp create_test_mix_file do
+  defp create_test_mix_file(gettext_config \\ []) do
     write_file("mix.exs", """
     defmodule MyApp.MixProject do
       use Mix.Project
 
       def project() do
-        [app: :my_app, version: "0.1.0"]
+        [app: :my_app, version: "0.1.0", gettext: #{inspect(gettext_config)}]
       end
 
       def application() do
