@@ -12,8 +12,11 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
   end
 
   setup do
-    File.rm_rf!(@priv_path)
-    :ok
+    File.rm_rf!(tmp_path("/"))
+
+    on_exit(fn ->
+      File.rm_rf!(tmp_path("/"))
+    end)
   end
 
   test "extracting and extracting with --merge" do
