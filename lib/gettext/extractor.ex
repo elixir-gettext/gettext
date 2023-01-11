@@ -21,6 +21,21 @@ defmodule Gettext.Extractor do
 
   @extracted_messages_flag "elixir-autogen"
 
+  @new_pot_comment String.split(
+                     """
+                     # This file is a PO Template file.
+                     #
+                     # "msgid"s here are often extracted from source code.
+                     # Add new messages manually only if they're dynamic
+                     # messages that can't be statically extracted.
+                     #
+                     # Run "mix gettext.extract" to bring this file up to
+                     # date. Leave "msgstr"s empty as changing them here has no
+                     # effect: edit them in PO (.po) files instead.
+                     """,
+                     "\n"
+                   )
+
   @doc """
   Enables message extraction.
   """
@@ -147,7 +162,7 @@ defmodule Gettext.Extractor do
       |> Enum.sort_by(&Message.key/1)
       |> Enum.map(&sort_references/1)
 
-    %Messages{messages: messages}
+    %Messages{messages: messages, top_comments: @new_pot_comment, headers: [""]}
   end
 
   defp sort_references(message) do
@@ -252,44 +267,11 @@ defmodule Gettext.Extractor do
   # This function "dumps" merged files and unmerged files without any changes,
   # and dumps new POT files adding an informative comment to them. This doesn't
   # write anything to disk, it just returns `{path, contents}` tuples.
-  defp dump_tagged_file({path, {:new, new_po}}, gettext_config),
-    do:
-      {path,
-       [
-         new_pot_comment(),
-         new_po
-         |> Merger.prune_references(gettext_config)
-         |> add_headers_to_new_po()
-         |> PO.compose()
-       ]}
-
-  defp dump_tagged_file({path, {tag, po}}, gettext_config) when tag in [:unmerged, :merged],
-    do:
-      {path,
-       po
-       |> Merger.prune_references(gettext_config)
-       |> PO.compose()}
+  defp dump_tagged_file({path, {_tag, new_po}}, gettext_config),
+    do: {path, new_po |> Merger.prune_references(gettext_config) |> PO.compose()}
 
   defp prune_unmerged(path, gettext_config) do
     merge_or_unchanged(path, %Messages{messages: []}, gettext_config)
-  end
-
-  defp new_pot_comment() do
-    """
-    ## This file is a PO Template file.
-    ##
-    ## "msgid"s here are often extracted from source code.
-    ## Add new translations manually only if they're dynamic
-    ## translations that can't be statically extracted.
-    ##
-    ## Run "mix gettext.extract" to bring this file up to
-    ## date. Leave "msgstr"s empty as changing them here has no
-    ## effect: edit them in PO (.po) files instead.
-    """
-  end
-
-  defp add_headers_to_new_po(%Messages{headers: []} = po) do
-    %{po | headers: [""]}
   end
 
   # Merges a %Messages{} struct representing an existing POT file with an

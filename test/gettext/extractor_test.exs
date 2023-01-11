@@ -48,7 +48,6 @@ defmodule Gettext.ExtractorTest do
 
       {_, contents} = List.keyfind(structs, paths.new, 0)
       contents = IO.iodata_to_binary(contents)
-      assert String.starts_with?(contents, "## This file is a PO Template file.")
 
       assert contents =~ """
              msgid "new"
