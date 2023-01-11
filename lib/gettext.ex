@@ -64,12 +64,12 @@ defmodule Gettext do
        translator should check whether the Italian translation of this string needs
        an update.
 
-  The resulting change in the `.po` file is this:
+  The resulting change in the `.po` file is this (note the "fuzzy" annotation):
 
       #: lib/myapp_web/live/hello_live.html.heex:2
       #, elixir-autogen, elixir-format, fuzzy
       msgid "Hello world!"
-      msgstr "Hola mundo"
+      msgstr "Ciao mondo"
 
   This "fuzzy matching" behavior can be configured or disabled, but its
   existence makes updating translations to match changes in the base text easier.
