@@ -204,7 +204,7 @@ defmodule Mix.Tasks.Gettext.MergeTest do
 
     output =
       capture_io(fn ->
-        run([@priv_path, "--locale", "it", "--plural-forms", "3"])
+        run([@priv_path, "--locale", "it", "--plural-forms-header", "nplurals=3"])
       end)
 
     assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/new.po"
