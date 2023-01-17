@@ -252,7 +252,7 @@ defmodule Gettext.Merger do
         put_in(all, [Access.key!(:messages), Access.all(), Access.key(:references)], [])
 
       not write_line_numbers? ->
-        accessor = [
+        lines_accessor = [
           Access.key!(:messages),
           Access.all(),
           Access.key!(:references),
@@ -260,10 +260,19 @@ defmodule Gettext.Merger do
           Access.all()
         ]
 
-        update_in(all, accessor, fn
+        files_accessor = [
+          Access.key!(:messages),
+          Access.all(),
+          Access.key!(:references),
+          Access.all()
+        ]
+
+        all
+        |> update_in(lines_accessor, fn
           {file, _line_number} -> file
           file -> file
         end)
+        |> update_in(files_accessor, &Enum.uniq/1)
 
       true ->
         all
