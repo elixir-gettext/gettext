@@ -496,6 +496,7 @@ defmodule Gettext.MergerTest do
             msgid: "a",
             references: [
               [{"path/to/file.ex", 12}, {"path/to/file.ex", 24}],
+              [{"path/to/file.ex", 42}],
               [{"path/to/other_file.ex", 24}]
             ]
           },

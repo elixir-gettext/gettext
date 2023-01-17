@@ -267,12 +267,19 @@ defmodule Gettext.Merger do
           Access.all()
         ]
 
+        references_accessor = [
+          Access.key!(:messages),
+          Access.all(),
+          Access.key!(:references)
+        ]
+
         all
         |> update_in(lines_accessor, fn
           {file, _line_number} -> file
           file -> file
         end)
         |> update_in(files_accessor, &Enum.uniq/1)
+        |> update_in(references_accessor, &Enum.uniq/1)
 
       true ->
         all
