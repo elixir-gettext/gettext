@@ -495,7 +495,8 @@ defmodule Gettext.MergerTest do
           %Message.Singular{
             msgid: "a",
             references: [
-              [{"path/to/file.ex", 12}, {"path/to/file.ex", 24}],
+              [{"path/to/file.ex", 12}, {"path/to/file.ex", 24}, {"a", 1}],
+              [{"path/to/file.ex", 42}, {"b", 1}],
               [{"path/to/file.ex", 42}],
               [{"path/to/other_file.ex", 24}]
             ]
@@ -508,7 +509,13 @@ defmodule Gettext.MergerTest do
 
       assert %Messages{
                messages: [
-                 %Message.Singular{references: [["path/to/file.ex"], ["path/to/other_file.ex"]]},
+                 %Message.Singular{
+                   references: [
+                     ["path/to/file.ex", "a"],
+                     ["b"],
+                     ["path/to/other_file.ex"]
+                   ]
+                 },
                  %Message.Plural{references: [["path/to/file.ex"]]}
                ]
              } = Merger.prune_references(po, config)
