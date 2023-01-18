@@ -252,7 +252,6 @@ defmodule Gettext.Merger do
         put_in(all, [Access.key!(:messages), Access.all(), Access.key(:references)], [])
 
       not write_line_numbers? ->
-
         references_accessor = [
           Access.key!(:messages),
           Access.all(),
