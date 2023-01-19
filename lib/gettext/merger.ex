@@ -244,49 +244,36 @@ defmodule Gettext.Merger do
   @doc false
   @spec prune_references(messages :: Messages.t(), gettext_config :: Keyword.t()) :: Messages.t()
   def prune_references(%Messages{} = all, gettext_config) when is_list(gettext_config) do
-    write_references? = Keyword.get(gettext_config, :write_reference_comments, true)
-    write_line_numbers? = Keyword.get(gettext_config, :write_reference_line_numbers, true)
-
     cond do
-      not write_references? ->
+      # Empty out all references.
+      not Keyword.get(gettext_config, :write_reference_comments, true) ->
         put_in(all, [Access.key!(:messages), Access.all(), Access.key(:references)], [])
 
-      not write_line_numbers? ->
-        references_accessor = [
-          Access.key!(:messages),
-          Access.all(),
-          Access.key!(:references)
-        ]
-
-        lines_accessor = [
-          Access.key!(:messages),
-          Access.all(),
-          Access.key!(:references),
-          Access.all(),
-          Access.all()
-        ]
-
-        all
-        |> update_in(lines_accessor, fn
-          {file, _line_number} -> file
-          file -> file
-        end)
-        |> update_in(references_accessor, &unique_references/1)
+      # Remove lines from references and unique them.
+      not Keyword.get(gettext_config, :write_reference_line_numbers, true) ->
+        update_in(
+          all,
+          [Access.key!(:messages), Access.all(), Access.key(:references)],
+          &remove_line_and_unique_references/1
+        )
 
       true ->
         all
     end
   end
 
-  defp unique_references(reference_lines) do
-    {reference_lines, _} =
-      Enum.map_reduce(reference_lines, MapSet.new(), fn line, existing_references ->
-        unique_line = Enum.uniq(line) -- MapSet.to_list(existing_references)
-
-        {unique_line, MapSet.union(existing_references, MapSet.new(unique_line))}
-      end)
-
-    Enum.reject(reference_lines, &match?([], &1))
+  defp remove_line_and_unique_references(references) do
+    references
+    |> update_in([Access.all(), Access.all()], fn
+      {file, _line} -> file
+      file -> file
+    end)
+    |> Enum.map_reduce(MapSet.new(), fn line, existing_references ->
+      unique_line = Enum.uniq(line) -- MapSet.to_list(existing_references)
+      {unique_line, MapSet.union(existing_references, MapSet.new(unique_line))}
+    end)
+    |> then(fn {unique_refs, _} -> unique_refs end)
+    |> Enum.reject(&match?([], &1))
   end
 
   defp headers_for_new_po_file(locale, plural_forms) do
