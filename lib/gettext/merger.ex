@@ -263,17 +263,18 @@ defmodule Gettext.Merger do
   end
 
   defp remove_line_and_unique_references(references) do
-    references
-    |> update_in([Access.all(), Access.all()], fn
-      {file, _line} -> file
-      file -> file
-    end)
-    |> Enum.map_reduce(MapSet.new(), fn line, existing_references ->
-      unique_line = Enum.uniq(line) -- MapSet.to_list(existing_references)
-      {unique_line, MapSet.union(existing_references, MapSet.new(unique_line))}
-    end)
-    |> then(fn {unique_refs, _} -> unique_refs end)
-    |> Enum.reject(&match?([], &1))
+    {unique_refs, _} =
+      references
+      |> update_in([Access.all(), Access.all()], fn
+        {file, _line} -> file
+        file -> file
+      end)
+      |> Enum.map_reduce(MapSet.new(), fn line, existing_references ->
+        unique_line = Enum.uniq(line) -- MapSet.to_list(existing_references)
+        {unique_line, MapSet.union(existing_references, MapSet.new(unique_line))}
+      end)
+
+    Enum.reject(unique_refs, &match?([], &1))
   end
 
   defp headers_for_new_po_file(locale, plural_forms) do
