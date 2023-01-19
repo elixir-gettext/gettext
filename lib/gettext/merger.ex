@@ -252,7 +252,13 @@ defmodule Gettext.Merger do
         put_in(all, [Access.key!(:messages), Access.all(), Access.key(:references)], [])
 
       not write_line_numbers? ->
-        accessor = [
+        references_accessor = [
+          Access.key!(:messages),
+          Access.all(),
+          Access.key!(:references)
+        ]
+
+        lines_accessor = [
           Access.key!(:messages),
           Access.all(),
           Access.key!(:references),
@@ -260,14 +266,27 @@ defmodule Gettext.Merger do
           Access.all()
         ]
 
-        update_in(all, accessor, fn
+        all
+        |> update_in(lines_accessor, fn
           {file, _line_number} -> file
           file -> file
         end)
+        |> update_in(references_accessor, &unique_references/1)
 
       true ->
         all
     end
+  end
+
+  defp unique_references(reference_lines) do
+    {reference_lines, _} =
+      Enum.map_reduce(reference_lines, MapSet.new(), fn line, existing_references ->
+        unique_line = Enum.uniq(line) -- MapSet.to_list(existing_references)
+
+        {unique_line, MapSet.union(existing_references, MapSet.new(unique_line))}
+      end)
+
+    Enum.reject(reference_lines, &match?([], &1))
   end
 
   defp headers_for_new_po_file(locale, plural_forms) do
