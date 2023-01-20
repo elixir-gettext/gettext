@@ -6,6 +6,7 @@ defmodule Gettext.Compiler do
   alias Expo.Message
   alias Expo.Messages
   alias Expo.PO
+  alias Gettext.Plural
 
   @default_priv "priv/gettext"
   @default_domain "default"
@@ -501,7 +502,12 @@ defmodule Gettext.Compiler do
   # lngettext/7 (for plural messages) clauses.
   defp compile_po_file(kind, po_file, env, plural_mod, interpolation_module) do
     %{locale: locale, domain: domain, path: path} = po_file
-    %Messages{messages: messages, file: file} = PO.parse_file!(path)
+    %Messages{messages: messages, file: file} = messages_struct = PO.parse_file!(path)
+
+    plural_forms_fun = :"{locale}_#{domain}_plural"
+
+    plural_forms = compile_plural_forms(locale, messages_struct, plural_mod, plural_forms_fun)
+    nplurals = nplurals(locale, messages_struct, plural_mod)
 
     singular_fun = :"#{locale}_#{domain}_lgettext"
     plural_fun = :"#{locale}_#{domain}_lngettext"
@@ -516,7 +522,7 @@ defmodule Gettext.Compiler do
         singular_fun,
         plural_fun,
         file,
-        plural_mod,
+        {plural_forms_fun, nplurals},
         interpolation_module
       )
 
@@ -524,6 +530,8 @@ defmodule Gettext.Compiler do
 
     quoted =
       quote do
+        unquote(plural_forms)
+
         unquote(messages)
 
         Kernel.unquote(kind)(unquote(singular_fun)(msgctxt, msgid, bindings)) do
@@ -552,6 +560,21 @@ defmodule Gettext.Compiler do
     {locale, domain, singular_fun, plural_fun, quoted}
   end
 
+  defp nplurals(locale, messages_struct, plural_mod) do
+    plural_mod.nplurals(Plural.plural_info(locale, messages_struct, plural_mod))
+  end
+
+  defp compile_plural_forms(locale, messages_struct, plural_mod, plural_fun) do
+    quote do
+      defp unquote(plural_fun)(n) do
+        unquote(plural_mod).plural(
+          unquote(Macro.escape(Plural.plural_info(locale, messages_struct, plural_mod))),
+          n
+        )
+      end
+    end
+  end
+
   defp locale_and_domain_from_path(path) do
     [file, "LC_MESSAGES", locale | _rest] = path |> Path.split() |> Enum.reverse()
     domain = Path.rootname(file, ".po")
@@ -565,7 +588,7 @@ defmodule Gettext.Compiler do
          singular_fun,
          _plural_fun,
          _file,
-         _plural_mod,
+         _pluralization,
          interpolation_module
        ) do
     msgid = IO.iodata_to_binary(message.msgid)
@@ -602,10 +625,10 @@ defmodule Gettext.Compiler do
          _singular_fun,
          plural_fun,
          file,
-         plural_mod,
+         {plural_forms_fun, nplurals},
          interpolation_module
        ) do
-    warn_if_missing_plural_forms(locale, plural_mod, message, file)
+    warn_if_missing_plural_forms(locale, nplurals, message, file)
 
     msgid = IO.iodata_to_binary(message.msgid)
     msgid_plural = IO.iodata_to_binary(message.msgid_plural)
@@ -652,7 +675,8 @@ defmodule Gettext.Compiler do
             bindings
           )
         ) do
-          plural_form = unquote(plural_mod).plural(unquote(locale), n)
+          plural_form = unquote(plural_forms_fun)(n)
+
           var!(bindings) = Map.put(bindings, :count, n)
 
           case plural_form, do: unquote(clauses ++ error_clause)
@@ -661,8 +685,8 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp warn_if_missing_plural_forms(locale, plural_mod, message, file) do
-    Enum.each(0..(plural_mod.nplurals(locale) - 1), fn form ->
+  defp warn_if_missing_plural_forms(locale, nplurals, message, file) do
+    Enum.each(0..(nplurals - 1), fn form ->
       unless Map.has_key?(message.msgstr, form) do
         _ =
           Logger.error([

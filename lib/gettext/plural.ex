@@ -122,18 +122,52 @@ defmodule Gettext.Plural do
 
   """
 
+  alias Expo.Messages
+
+  # Types
+
+  @type locale :: String.t()
+
+  @type pluralization_context :: %{
+          optional(:plural_forms_header) => String.t(),
+          required(:locale) => locale()
+        }
+
+  @type plural_info :: term()
+
   # Behaviour definition.
+
+  @doc """
+  Initialize context for `nplurals/1` / `plurals/2`.
+
+  Perform all preparations (for example parsing the plural forms header) per
+  for the provided locale to offload into compile time.
+
+  If the `init/1` callback is not defined, the `plural_info` will be set to the
+  `locale`.
+  """
+  @callback init(pluralization_context()) :: plural_info()
 
   @doc """
   Returns the number of possible plural forms in the given `locale`.
   """
-  @callback nplurals(locale :: String.t()) :: pos_integer
+  @callback nplurals(plural_info()) :: pos_integer()
 
   @doc """
   Returns the plural form in the given `locale` for the given `count` of
   elements.
   """
-  @callback plural(locale :: String.t(), count :: integer) :: plural_form :: non_neg_integer
+  @callback plural(plural_info(), count :: integer()) :: plural_form :: non_neg_integer()
+
+  @doc """
+  Returns the plural forms header value for the given `locale`.
+
+
+  Fallback if not implemented: `"nplurals={nplurals};"`.
+  """
+  @callback plural_forms_header(locale()) :: String.t() | nil
+
+  @optional_callbacks init: 1, plural_forms_header: 1
 
   defmodule UnknownLocaleError do
     @moduledoc """
@@ -434,9 +468,21 @@ defmodule Gettext.Plural do
     "sk"
   ]
 
+  @doc false
+  def init(%{locale: locale, plural_forms_header: plural_forms_header}) do
+    case read_plural_forms_from_headers(plural_forms_header) do
+      nil -> locale
+      nplurals -> {locale, nplurals}
+    end
+  end
+
+  def init(%{locale: locale}), do: locale
+
   # Number of plural forms.
 
   def nplurals(locale)
+
+  def nplurals({_locale, nplurals}), do: nplurals
 
   # All the groupable forms.
 
@@ -510,6 +556,8 @@ defmodule Gettext.Plural do
   # Plural form of groupable languages.
 
   def plural(locale, count)
+
+  def plural({locale, _nplurals}, count), do: plural(locale, count)
 
   # All the `x_Y` languages that have different pluralization rules than `x`.
 
@@ -679,6 +727,71 @@ defmodule Gettext.Plural do
     case String.split(locale, "_", parts: 2, trim: true) do
       [lang, _territory] -> fun.(lang)
       _other -> raise UnknownLocaleError, locale
+    end
+  end
+
+  @doc false
+  def plural_info(locale, messages_struct, plural_mod) do
+    ensure_loaded!(plural_mod)
+
+    if function_exported?(plural_mod, :init, 1) do
+      pluralization_context = %{locale: locale}
+
+      pluralization_context =
+        case Messages.get_header(messages_struct, "Plural-Forms") do
+          [] ->
+            pluralization_context
+
+          plural_forms ->
+            Map.put(
+              pluralization_context,
+              :plural_forms_header,
+              IO.iodata_to_binary(plural_forms)
+            )
+        end
+
+      plural_mod.init(pluralization_context)
+    else
+      locale
+    end
+  end
+
+  @doc false
+  def plural_forms_header_impl(locale, messages_struct, plural_mod) do
+    ensure_loaded!(plural_mod)
+
+    plural_forms_header =
+      if function_exported?(plural_mod, :plural_forms_header, 1) do
+        plural_mod.plural_forms_header(locale)
+      end
+
+    if plural_forms_header do
+      plural_forms_header
+    else
+      nplurals = plural_mod.nplurals(plural_info(locale, messages_struct, plural_mod))
+
+      "nplurals=#{nplurals}"
+    end
+  end
+
+  defp read_plural_forms_from_headers(header) do
+    with "nplurals=" <> rest <- String.trim(header),
+         {plural_forms, _rest} <- Integer.parse(rest) do
+      plural_forms
+    else
+      _other -> nil
+    end
+  end
+
+  # TODO: remove when we depend on Elixir 1.12+
+  if function_exported?(Code, :ensure_loaded!, 1) do
+    defp ensure_loaded!(mod), do: Code.ensure_loaded!(mod)
+  else
+    defp ensure_loaded!(mod) do
+      case Code.ensure_loaded(mod) do
+        {:module, ^mod} -> :ok
+        _other -> raise "<good error message>"
+      end
     end
   end
 end
