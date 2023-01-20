@@ -5,6 +5,8 @@ defmodule Gettext.PluralTest do
 
   alias Gettext.Plural.UnknownLocaleError
 
+  doctest Gettext.Plural
+
   test "x_* locales are pluralized like x except for exceptions" do
     assert nplurals("en") == nplurals("en_GB")
 

@@ -6,7 +6,7 @@ defmodule Gettext.Plural do
   This module both defines the `Gettext.Plural` behaviour and provides a default
   implementation for it.
 
-  ## Plural forms
+  ## Plural Forms
 
   > For a given language, there is a grammatical rule on how to change words
   > depending on the number qualifying the word. Different languages can have
@@ -26,13 +26,14 @@ defmodule Gettext.Plural do
   The goal of this module is to determine, given a locale:
 
     * how many plural forms exist in that locale (`nplurals/1`);
+
     * to what plural form a given number of elements belongs to in that locale
       (`plural/2`).
 
-  ## Default implementation
+  ## Default Implementation
 
   `Gettext.Plural` provides a default implementation of a plural module. Most
-  languages used on Earth should be covered by this default implementation. If
+  common languages used on Earth should be covered by this default implementation. If
   custom pluralization rules are needed (for example, to add additional
   languages) a different plural module can be specified when creating a Gettext
   backend. For example, pluralization rules for the Elvish language could be
@@ -47,9 +48,9 @@ defmodule Gettext.Plural do
         def plural("elv", 1), do: 1
         def plural("elv", _), do: 2
 
-        # Fallback to Gettext.Plural
-        def nplurals(locale), do: Gettext.Plural.nplurals(locale)
-        def plural(locale, n), do: Gettext.Plural.plural(locale, n)
+        # Fall back to Gettext.Plural
+        defdelegate nplurals(locale), to: Gettext.Plural
+        defdelegate plural(locale, n), to: Gettext.Plural
       end
 
   The mathematical expressions used in this module to determine the plural form
@@ -58,66 +59,72 @@ defmodule Gettext.Plural do
   as well as from [Mozilla's guide on "Localization and
   plurals"](https://udn.realityripple.com/docs/Mozilla/Localization/Localization_and_Plurals).
 
-  Now that we have defined our custom plural forms, we can use them
-  in two ways. You can set it for all `:gettext` backends in your
-  config files:
+  ## Changing Implementations
 
+  Once you have defined your custom plural forms module, you can use it
+  in two ways. You can set it for all Gettext backends in your
+  configuration:
+
+      # For example, in config/config.exs
       config :gettext, :plural_forms, MyApp.Plural
 
-  Or to each specific backend:
+  or you can set it for each specific backend when you call `use Gettext`:
 
       defmodule MyApp.Gettext do
         use Gettext, otp_app: :my_app, plural_forms: MyApp.Plural
       end
 
-  **Note**: set `:plural_forms` in your `config/config.exs` and
-  not in `config/runtime.exs`, as this configuration is read when
-  compiling your backends.
+  > #### Compile-time Configuration {: .warning}
+  >
+  > Set `:plural_forms` in your `config/config.exs` and
+  > not in `config/runtime.exs`, as Gettext reads this option when
+  > compiling your backends.
 
-  Notice that tasks such as `mix gettext.merge` use the plural
-  backend configured under the `:gettext` application, so generally
-  speaking the first format is preferred.
+  Task such as `mix gettext.merge` use the plural
+  backend configured under the `:gettext` application, so in general
+  the global configuration approach is preferred.
 
-  Note some tasks also allow the number of plural forms to be given
+  Some tasks also allow the number of plural forms to be given
   explicitly, for example:
 
       mix gettext.merge priv/gettext --locale=gsw_CH --plural-forms=2
 
-  ### Unknown locales
+  ## Unknown Locales
 
   Trying to call `Gettext.Plural` functions with unknown locales will result in
   a `Gettext.Plural.UnknownLocaleError` exception.
 
-  ### Language and territory
+  ## Language and Territory
 
-  Often, a locale is composed as a language and territory couple, such as
+  Often, a locale is composed as a language and territory pair, such as
   `en_US`. The default implementation for `Gettext.Plural` handles `xx_YY` by
   forwarding it to `xx` (except for *just Brazilian Portuguese*, `pt_BR`, which
-  is not forwarded to `pt` as pluralization rules slightly differ). We treat the
+  is not forwarded to `pt` as pluralization rules differ slightly). We treat the
   underscore as a separator according to
   [ISO 15897](https://en.wikipedia.org/wiki/ISO/IEC_15897). Sometimes, a dash `-` is
   used as a separator (for example [BCP47](https://en.wikipedia.org/wiki/IETF_language_tag)
-  locales use this as in `en-US`): this is not forwarded to `en` in the default
+  locales use this as in `en-US`): this is *not forwarded* to `en` in the default
   `Gettext.Plural` (and it will raise an `Gettext.Plural.UnknownLocaleError` exception
-  if there are no messages for `en-US`).
+  if there are no messages for `en-US`). We recommend defining a custom plural forms
+  module that replaces `-` with `_` if needed.
 
   ## Examples
 
   An example of the plural form of a given number of elements in the Polish
   language:
 
-      iex> Plural.plural("pl", 1)
+      iex> Gettext.Plural.plural("pl", 1)
       0
-      iex> Plural.plural("pl", 2)
+      iex> Gettext.Plural.plural("pl", 2)
       1
-      iex> Plural.plural("pl", 5)
+      iex> Gettext.Plural.plural("pl", 5)
       2
-      iex> Plural.plural("pl", 112)
+      iex> Gettext.Plural.plural("pl", 112)
       2
 
   As expected, `nplurals/1` returns the possible number of plural forms:
 
-      iex> Plural.nplurals("pl")
+      iex> Gettext.Plural.nplurals("pl")
       3
 
   """
@@ -126,45 +133,91 @@ defmodule Gettext.Plural do
 
   # Types
 
-  @type locale :: String.t()
+  @typedoc """
+  A locale passed to `c:plural/2`.
+  """
+  @typedoc since: "0.22.0"
+  @type locale() :: String.t()
 
-  @type pluralization_context :: %{
-          optional(:plural_forms_header) => String.t(),
-          required(:locale) => locale()
+  @typedoc """
+  The context passed to the optional `c:init/1` callback.
+
+  If `:plural_forms_header` is present, it contains the contents
+  of the `Plural-Forms` Gettext header.
+  """
+  @typedoc since: "0.22.0"
+  @type pluralization_context() :: %{
+          required(:locale) => locale(),
+          optional(:plural_forms_header) => String.t()
         }
 
-  @type plural_info :: term()
+  @typedoc """
+  The term that the optional `c:init/1` callback returns.
+  """
+  @typedoc since: "0.22.0"
+  @type plural_info() :: term()
 
-  # Behaviour definition.
+  ## Behaviour definition
 
   @doc """
-  Initialize context for `nplurals/1` / `plurals/2`.
+  Should initialize the context for `c:nplurals/1` and `c:plural/2`.
 
-  Perform all preparations (for example parsing the plural forms header) per
-  for the provided locale to offload into compile time.
+  This callback should perform all preparations for the provided locale, which
+  is part of the pluralization context (see `t:pluralization_context/0`). For
+  example, you can use this callback to parse the `Plural-Forms` header and
+  determine pluralization rules for the locale.
 
-  If the `init/1` callback is not defined, the `plural_info` will be set to the
-  `locale`.
+  If defined, Gettext calls this callback *once* at compile time. If not defined,
+  the returned `plural_info` will be equals to the locale found in
+  `pluralization_context`.
+
+  ## Examples
+
+      defmodule MyApp.Plural do
+        @behaviour Gettext.Plural
+
+        @impl true
+        def init(%{locale: _locale, plural_forms_header: header}) do
+          {nplurals, rule} = parse_plural_forms_header(header)
+
+          # This is what other callbacks can use to determine the plural.
+          {nplurals, rule}
+        end
+
+        @impl true
+        def nplurals({_locale, nplurals, _rule}), do: nplurals
+
+        # ...
+      end
+
   """
+  @doc since: "0.22.0"
   @callback init(pluralization_context()) :: plural_info()
 
   @doc """
-  Returns the number of possible plural forms in the given `locale`.
+  Should return the number of possible plural forms in the given `locale`.
   """
   @callback nplurals(plural_info()) :: pos_integer()
 
   @doc """
-  Returns the plural form in the given `locale` for the given `count` of
+  Should return the plural form in the given `locale` for the given `count` of
   elements.
   """
   @callback plural(plural_info(), count :: integer()) :: plural_form :: non_neg_integer()
 
   @doc """
-  Returns the plural forms header value for the given `locale`.
+  Should return the value of the `Plural-Forms` header for the given `locale`,
+  if present.
 
+  If the value of the `Plural-Forms` header is unavailable for any reason, this
+  function should return `nil`.
 
-  Fallback if not implemented: `"nplurals={nplurals};"`.
+  This callback is optional. If it's not defined, the fallback returns:
+
+      "nplurals={nplurals};"
+
   """
+  @doc since: "0.22.0"
   @callback plural_forms_header(locale()) :: String.t() | nil
 
   @optional_callbacks init: 1, plural_forms_header: 1
@@ -468,11 +521,17 @@ defmodule Gettext.Plural do
     "sk"
   ]
 
+  # Default implementation of the init/1 callback, in case the user uses
+  # Gettext.Plural as their plural forms module.
   @doc false
+  def init(context)
+
   def init(%{locale: locale, plural_forms_header: plural_forms_header}) do
-    case read_plural_forms_from_headers(plural_forms_header) do
-      nil -> locale
-      nplurals -> {locale, nplurals}
+    with "nplurals=" <> rest <- String.trim(plural_forms_header),
+         {plural_forms, _rest} <- Integer.parse(rest) do
+      {locale, plural_forms}
+    else
+      _other -> locale
     end
   end
 
@@ -480,8 +539,12 @@ defmodule Gettext.Plural do
 
   # Number of plural forms.
 
+  @doc """
+  Default implementation of the `c:nplurals/1` callback.
+  """
   def nplurals(locale)
 
+  # If the nplurals was provided, we don't need to look at the locale.
   def nplurals({_locale, nplurals}), do: nplurals
 
   # All the groupable forms.
@@ -555,6 +618,9 @@ defmodule Gettext.Plural do
 
   # Plural form of groupable languages.
 
+  @doc """
+  Default implementation of the `c:plural/2` callback.
+  """
   def plural(locale, count)
 
   def plural({locale, _nplurals}, count), do: plural(locale, count)
@@ -735,19 +801,10 @@ defmodule Gettext.Plural do
     ensure_loaded!(plural_mod)
 
     if function_exported?(plural_mod, :init, 1) do
-      pluralization_context = %{locale: locale}
-
       pluralization_context =
-        case Messages.get_header(messages_struct, "Plural-Forms") do
-          [] ->
-            pluralization_context
-
-          plural_forms ->
-            Map.put(
-              pluralization_context,
-              :plural_forms_header,
-              IO.iodata_to_binary(plural_forms)
-            )
+        case IO.iodata_to_binary(Messages.get_header(messages_struct, "Plural-Forms")) do
+          "" -> %{locale: locale}
+          plural_forms -> %{locale: locale, plural_forms_header: plural_forms}
         end
 
       plural_mod.init(pluralization_context)
@@ -769,17 +826,7 @@ defmodule Gettext.Plural do
       plural_forms_header
     else
       nplurals = plural_mod.nplurals(plural_info(locale, messages_struct, plural_mod))
-
       "nplurals=#{nplurals}"
-    end
-  end
-
-  defp read_plural_forms_from_headers(header) do
-    with "nplurals=" <> rest <- String.trim(header),
-         {plural_forms, _rest} <- Integer.parse(rest) do
-      plural_forms
-    else
-      _other -> nil
     end
   end
 
