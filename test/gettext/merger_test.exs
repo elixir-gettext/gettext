@@ -1,6 +1,8 @@
 defmodule Gettext.MergerTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   alias Expo.Message
   alias Expo.Messages
   alias Gettext.Merger
@@ -425,7 +427,7 @@ defmodule Gettext.MergerTest do
 
     test "if there's a Plural-Forms header, it's used to determine number of plural forms" do
       old_po = %Messages{
-        headers: [~s(Plural-Forms: nplurals=3)],
+        headers: [~s(Plural-Forms: nplurals=3;plural=n>1;)],
         messages: []
       }
 
@@ -446,7 +448,36 @@ defmodule Gettext.MergerTest do
       assert plural_message.msgstr == %{0 => [""], 1 => [""], 2 => [""]}
     end
 
-    test "plural forms can be specified as an option" do
+    test "if there's a Plural-Forms header with only nplurals=<int>, it's used but deprecated" do
+      old_po = %Messages{
+        headers: [~s(Plural-Forms: nplurals=3)],
+        messages: []
+      }
+
+      new_pot = %Messages{
+        messages: [
+          %Message.Singular{msgid: "a"},
+          %Message.Plural{msgid: "b", msgid_plural: "bs"}
+        ]
+      }
+
+      stderr =
+        capture_io(:stderr, fn ->
+          assert {%Messages{messages: [message, plural_message]}, _stats} =
+                   Merger.merge(old_po, new_pot, "en", @opts)
+
+          assert message.msgid == "a"
+
+          assert plural_message.msgid == "b"
+          assert plural_message.msgid_plural == "bs"
+          assert plural_message.msgstr == %{0 => [""], 1 => [""], 2 => [""]}
+        end)
+
+      assert stderr =~ ~s(Plural-Forms headers in the form "nplurals=<int>")
+    end
+
+    # TODO: remove in v0.24.0
+    test "plural forms can be specified as an option, but is deprecated" do
       old_po = %Messages{messages: []}
 
       new_pot = %Messages{
@@ -458,14 +489,20 @@ defmodule Gettext.MergerTest do
 
       opts = [plural_forms: 1] ++ @opts
 
-      assert {%Messages{messages: [message, plural_message]}, _stats} =
-               Merger.merge(old_po, new_pot, "en", opts)
+      stderr =
+        capture_io(:stderr, fn ->
+          assert {%Messages{messages: [message, plural_message]}, _stats} =
+                   Merger.merge(old_po, new_pot, "en", opts)
 
-      assert message.msgid == "a"
+          assert message.msgid == "a"
 
-      assert plural_message.msgid == "b"
-      assert plural_message.msgid_plural == "bs"
-      assert plural_message.msgstr == %{0 => [""]}
+          assert plural_message.msgid == "b"
+          assert plural_message.msgid_plural == "bs"
+          assert plural_message.msgstr == %{0 => [""]}
+        end)
+
+      assert stderr =~ "warning"
+      assert stderr =~ "The --plural-forms and :plural_forms options are deprecated"
     end
   end
 
