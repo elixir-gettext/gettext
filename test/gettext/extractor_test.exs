@@ -5,14 +5,13 @@ defmodule Gettext.ExtractorTest do
   alias Expo.Messages
   alias Gettext.Extractor
 
-  @pot_path "../../tmp/" |> Path.expand(__DIR__) |> Path.relative_to_cwd()
-
   describe "merge_pot_files/2" do
-    test "merges two POT files" do
+    @tag :tmp_dir
+    test "merges two POT files", %{tmp_dir: tmp_dir} do
       paths = %{
-        tomerge: Path.join(@pot_path, "tomerge.pot"),
-        ignored: Path.join(@pot_path, "ignored.pot"),
-        new: Path.join(@pot_path, "new.pot")
+        tomerge: Path.join(tmp_dir, "tomerge.pot"),
+        ignored: Path.join(tmp_dir, "ignored.pot"),
+        new: Path.join(tmp_dir, "new.pot")
       }
 
       extracted_po_structs = [
@@ -55,8 +54,9 @@ defmodule Gettext.ExtractorTest do
              """
     end
 
-    test "reports the filename if syntax error" do
-      path = Path.join(@pot_path, "syntax_error.pot")
+    @tag :tmp_dir
+    test "reports the filename if syntax error", %{tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "syntax_error.pot")
 
       write_file(path, """
       msgid "foo"
@@ -65,7 +65,7 @@ defmodule Gettext.ExtractorTest do
       msgstr ""
       """)
 
-      message = "tmp/syntax_error.pot:3: syntax error before: msgid"
+      message = ~r/syntax_error\.pot:3: syntax error before: msgid/
 
       assert_raise Expo.PO.SyntaxError, message, fn ->
         Extractor.merge_pot_files([{path, %Messages{messages: []}}], [path], [])
