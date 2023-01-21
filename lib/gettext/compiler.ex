@@ -317,7 +317,7 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp public_functions(nil, _repo_opts, _interpolation) do
+  defp public_functions(nil = _repo, _repo_opts, _interpolation) do
     quote do
       def lgettext(locale, domain, msgctxt \\ nil, msgid, bindings) do
         lgettext_compiled(locale, domain, msgctxt, msgid, bindings)
