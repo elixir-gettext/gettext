@@ -48,8 +48,10 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   ## Usage
 
-      mix gettext.merge OLD_FILE UPDATED_FILE [OPTIONS]
-      mix gettext.merge DIR [OPTIONS]
+  ```bash
+  mix gettext.merge OLD_FILE UPDATED_FILE [OPTIONS]
+  mix gettext.merge DIR [OPTIONS]
+  ```
 
   If two files are given as arguments, `OLD_FILE` must be a `.po` file and
   `UPDATE_FILE` must be a `.po`/`.pot` file. The first one is the old PO file,
