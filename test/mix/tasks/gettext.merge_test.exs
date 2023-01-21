@@ -3,13 +3,6 @@ defmodule Mix.Tasks.Gettext.MergeTest do
 
   import ExUnit.CaptureIO
 
-  @priv_path "../../../tmp/gettext.merge" |> Path.expand(__DIR__) |> Path.relative_to_cwd()
-
-  setup do
-    File.rm_rf!(@priv_path)
-    :ok
-  end
-
   test "raises an error when if one of the files doesn't exist" do
     assert_raise Mix.Error, "No such file: foo.po", fn ->
       run(~w(foo.po bar.pot))
@@ -34,47 +27,50 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     end
   end
 
-  test "passing a :fuzzy_threshold outside of 0..1 raises an error" do
-    File.mkdir_p!(@priv_path)
+  @tag :tmp_dir
+  test "passing a :fuzzy_threshold outside of 0..1 raises an error", %{tmp_dir: tmp_dir} do
+    File.mkdir_p(tmp_dir)
 
     assert_raise Mix.Error, "The :fuzzy_threshold option must be a float >= 0.0 and <= 1.0", fn ->
-      run([@priv_path, "--fuzzy-threshold", "5.0"])
+      run([tmp_dir, "--fuzzy-threshold", "5.0"])
     end
   end
 
-  test "merging an existing PO file with a new POT file" do
+  @tag :tmp_dir
+  test "merging an existing PO file with a new POT file", %{tmp_dir: tmp_dir} do
     pot_contents = """
     msgid "hello"
     msgstr ""
     """
 
-    write_file("foo.pot", pot_contents)
+    write_file(Path.join(tmp_dir, "foo.pot"), pot_contents)
 
-    write_file("it/LC_MESSAGES/foo.po", "")
+    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), "")
 
     output =
       capture_io(fn ->
-        run([tmp_path("it/LC_MESSAGES/foo.po"), tmp_path("foo.pot")])
+        run([Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), Path.join(tmp_dir, "foo.pot")])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
+    assert output =~ ~r{Wrote .*/it/LC_MESSAGES/foo\.po}
 
     assert output =~
              "(1 new message, 0 removed, 0 unchanged, 0 reworded (fuzzy), 0 marked as obsolete)"
 
     # The POT file is left unchanged
-    assert read_file("foo.pot") == pot_contents
+    assert File.read!(Path.join(tmp_dir, "foo.pot")) == pot_contents
 
-    assert read_file("it/LC_MESSAGES/foo.po") == """
+    assert File.read!(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po")) == """
            msgid "hello"
            msgstr ""
            """
   end
 
-  test "marks messages as obsolete" do
-    write_file("foo.pot", "")
+  @tag :tmp_dir
+  test "marks messages as obsolete", %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "foo.pot"), "")
 
-    write_file("it/LC_MESSAGES/foo.po", """
+    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), """
     msgid "foo"
     msgstr ""
     """)
@@ -82,41 +78,48 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     output =
       capture_io(fn ->
         run([
-          tmp_path("it/LC_MESSAGES/foo.po"),
-          tmp_path("foo.pot"),
+          Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"),
+          Path.join(tmp_dir, "foo.pot"),
           "--on-obsolete",
           "mark_as_obsolete"
         ])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
+    assert output =~ ~r{Wrote .*/it/LC_MESSAGES/foo.po}
 
     assert output =~
              "(0 new messages, 0 removed, 0 unchanged, 0 reworded (fuzzy), 1 marked as obsolete)"
   end
 
-  test "removes obsolete messages" do
-    write_file("foo.pot", "")
+  @tag :tmp_dir
+  test "removes obsolete messages", %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "foo.pot"), "")
 
-    write_file("it/LC_MESSAGES/foo.po", """
+    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), """
     msgid "foo"
     msgstr ""
     """)
 
     output =
       capture_io(fn ->
-        run([tmp_path("it/LC_MESSAGES/foo.po"), tmp_path("foo.pot"), "--on-obsolete", "delete"])
+        run([
+          Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"),
+          Path.join(tmp_dir, "foo.pot"),
+          "--on-obsolete",
+          "delete"
+        ])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
+    assert output =~ ~r{Wrote .*/it/LC_MESSAGES/foo.po}
 
     assert output =~
              "(0 new messages, 1 removed, 0 unchanged, 0 reworded (fuzzy), 0 marked as obsolete)"
   end
 
-  test "validates on-obsolete" do
-    write_file("foo.pot", "")
-    write_file("it/LC_MESSAGES/foo.po", "")
+  @tag :tmp_dir
+  test "validates on-obsolete", %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "foo.pot"), "")
+    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), "")
 
     expected_message = """
     An invalid value was provided for the option `on_obsolete`.
@@ -125,37 +128,44 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     """
 
     assert_raise Mix.Error, expected_message, fn ->
-      run([tmp_path("it/LC_MESSAGES/foo.po"), tmp_path("foo.pot"), "--on-obsolete", "invalid"])
+      run([
+        Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"),
+        Path.join(tmp_dir, "foo.pot"),
+        "--on-obsolete",
+        "invalid"
+      ])
     end
   end
 
-  test "passing a dir and a --locale opt will update/create PO files in the locale dir" do
-    write_file("default.pot", """
+  @tag :tmp_dir
+  test "passing a dir and a --locale opt will update/create PO files in the locale dir",
+       %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "default.pot"), """
     msgid "def"
     msgstr ""
     """)
 
-    write_file("new.pot", """
+    write_file(Path.join(tmp_dir, "new.pot"), """
     msgid "new"
     msgstr ""
     """)
 
-    write_file("it/LC_MESSAGES/default.po", "")
+    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/default.po"), "")
 
     output =
       capture_io(fn ->
-        run([@priv_path, "--locale", "it"])
+        run([tmp_dir, "--locale", "it"])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/new.po"
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/default.po"
+    assert output =~ ~r{Wrote .*/it/LC_MESSAGES/new.po}
+    assert output =~ ~r{Wrote .*/it/LC_MESSAGES/default.po}
 
-    assert read_file("it/LC_MESSAGES/default.po") == """
+    assert File.read!(Path.join(tmp_dir, "it/LC_MESSAGES/default.po")) == """
            msgid "def"
            msgstr ""
            """
 
-    new_po = read_file("it/LC_MESSAGES/new.po")
+    new_po = File.read!(Path.join(tmp_dir, "it/LC_MESSAGES/new.po"))
 
     assert new_po =~ ~S"""
            msgid ""
@@ -170,25 +180,27 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     assert String.starts_with?(new_po, "## \"msgid\"s in this file come from POT")
   end
 
-  test "enabling --store-previous-message-on-fuzzy-match stores previous message" do
-    write_file("default.pot", """
+  @tag :tmp_dir
+  test "enabling --store-previous-message-on-fuzzy-match stores previous message",
+       %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "default.pot"), """
     msgid "Hello Worlds"
     msgstr ""
     """)
 
-    write_file("it/LC_MESSAGES/default.po", """
+    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/default.po"), """
     msgid "Hello World"
     msgstr ""
     """)
 
     output =
       capture_io(fn ->
-        run([@priv_path, "--locale", "it", "--store-previous-message-on-fuzzy-match"])
+        run([tmp_dir, "--locale", "it", "--store-previous-message-on-fuzzy-match"])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/default.po"
+    assert output =~ ~r{Wrote .*/it/LC_MESSAGES/default.po}
 
-    assert read_file("it/LC_MESSAGES/default.po") == """
+    assert File.read!(Path.join(tmp_dir, "it/LC_MESSAGES/default.po")) == """
            #, fuzzy
            #| msgid "Hello World"
            msgid "Hello Worlds"
@@ -196,21 +208,22 @@ defmodule Mix.Tasks.Gettext.MergeTest do
            """
   end
 
-  test "passing a dir and a --locale opt will update/create PO files in the locale dir with custom plural forms" do
-    write_file("new.pot", """
+  @tag :tmp_dir
+  test "passing a dir and a --locale opt will update/create PO files in the locale dir with custom plural forms",
+       %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "new.pot"), """
     msgid "new"
     msgstr ""
     """)
 
     output =
       capture_io(fn ->
-        run([@priv_path, "--locale", "it", "--plural-forms-header", "nplurals=3"])
+        run([tmp_dir, "--locale", "it", "--plural-forms-header", "nplurals=3"])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/new.po"
-    new_po = read_file("it/LC_MESSAGES/new.po")
+    assert output =~ ~r{Wrote .*/it/LC_MESSAGES/new.po}
 
-    assert new_po =~ ~S"""
+    assert File.read!(Path.join(tmp_dir, "it/LC_MESSAGES/new.po")) =~ ~S"""
            msgid ""
            msgstr ""
            "Language: it\n"
@@ -221,23 +234,24 @@ defmodule Mix.Tasks.Gettext.MergeTest do
            """
   end
 
-  test "passing a dir and a --locale opt will update/create PO files in the locale dir with app env plural forms" do
+  @tag :tmp_dir
+  test "passing a dir and a --locale opt will update/create PO files in the locale dir with app env plural forms",
+       %{tmp_dir: tmp_dir} do
     Application.put_env(:gettext, :plural_forms, GettextTest.CustomPlural)
 
-    write_file("new.pot", """
+    write_file(Path.join(tmp_dir, "new.pot"), """
     msgid "new"
     msgstr ""
     """)
 
     output =
       capture_io(fn ->
-        run([@priv_path, "--locale", "elv"])
+        run([tmp_dir, "--locale", "elv"])
       end)
 
-    assert output =~ "Wrote tmp/gettext.merge/elv/LC_MESSAGES/new.po"
-    new_po = read_file("elv/LC_MESSAGES/new.po")
+    assert output =~ ~r{Wrote .*/elv/LC_MESSAGES/new.po}
 
-    assert new_po =~ ~S"""
+    assert File.read!(Path.join(tmp_dir, "elv/LC_MESSAGES/new.po")) =~ ~S"""
            msgid ""
            msgstr ""
            "Language: elv\n"
@@ -250,78 +264,69 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     Application.put_env(:gettext, :plural_forms, Gettext.Plural)
   end
 
-  test "passing just a dir merges with PO files in every locale" do
-    write_file("fr/LC_MESSAGES/foo.po", "")
-    write_file("it/LC_MESSAGES/foo.po", "")
+  @tag :tmp_dir
+  test "passing just a dir merges with PO files in every locale", %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "fr/LC_MESSAGES/foo.po"), "")
+    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), "")
 
     contents = """
     msgid "foo"
     msgstr ""
     """
 
-    write_file("foo.pot", contents)
+    write_file(Path.join(tmp_dir, "foo.pot"), contents)
 
-    output =
-      capture_io(fn ->
-        run([@priv_path])
-      end)
+    output = capture_io(fn -> run([tmp_dir]) end)
 
-    assert output =~ "Wrote tmp/gettext.merge/fr/LC_MESSAGES/foo.po"
-    assert output =~ "Wrote tmp/gettext.merge/it/LC_MESSAGES/foo.po"
+    assert output =~ ~r{Wrote .*/fr/LC_MESSAGES/foo.po}
+    assert output =~ ~r{Wrote .*/it/LC_MESSAGES/foo.po}
 
-    assert read_file("fr/LC_MESSAGES/foo.po") == contents
-    assert read_file("it/LC_MESSAGES/foo.po") == contents
+    assert File.read!(Path.join(tmp_dir, "fr/LC_MESSAGES/foo.po")) == contents
+    assert File.read!(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po")) == contents
   end
 
-  test "non existing locale/LC_MESSAGES directories are created" do
-    write_file("foo.pot", """
+  @tag :tmp_dir
+  test "non-existing locale/LC_MESSAGES directories are created", %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "foo.pot"), """
     msgid "foo"
     msgstr ""
     """)
 
-    created_dir = Path.join([@priv_path, "en", "LC_MESSAGES"])
+    created_dir = Path.join([tmp_dir, "en", "LC_MESSAGES"])
 
     refute File.dir?(created_dir)
 
     output =
       capture_io(fn ->
-        run([@priv_path, "--locale", "en"])
+        run([tmp_dir, "--locale", "en"])
       end)
 
     assert File.dir?(created_dir)
     assert output =~ "Created directory #{created_dir}"
   end
 
-  test "informative comments at the top of the file" do
-    write_file("inf.pot", """
+  @tag :tmp_dir
+  test "informative comments at the top of the file", %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "inf.pot"), """
     msgid "foo"
     msgstr ""
     """)
 
     capture_io(fn ->
-      run([@priv_path, "--locale", "en"])
-      contents = read_file("en/LC_MESSAGES/inf.po")
+      run([tmp_dir, "--locale", "en"])
+      contents = File.read!(Path.join(tmp_dir, "en/LC_MESSAGES/inf.po"))
       assert contents =~ "## \"msgid\"s in this file"
 
       # Running the task again without having change the PO file shouldn't
       # remove the informative comment.
-      run([@priv_path, "--locale", "en"])
-      assert contents == read_file("en/LC_MESSAGES/inf.po")
+      run([tmp_dir, "--locale", "en"])
+      assert contents == File.read!(Path.join(tmp_dir, "en/LC_MESSAGES/inf.po"))
     end)
   end
 
   defp write_file(path, contents) do
-    path = tmp_path(path)
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, contents)
-  end
-
-  defp read_file(path) do
-    path |> tmp_path() |> File.read!()
-  end
-
-  defp tmp_path(path) do
-    Path.join(@priv_path, path)
   end
 
   defp run(args) do
