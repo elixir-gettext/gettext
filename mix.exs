@@ -49,7 +49,8 @@ defmodule Gettext.Mixfile do
 
   defp deps do
     [
-      {:expo, "~> 0.1.0 or ~> 0.2.0"},
+      # {:expo, "~> 0.1.0 or ~> 0.2.0"},
+      {:expo, github: "elixir-gettext/expo"},
 
       # Dev and test dependencies
       {:ex_doc, "~> 0.19", only: :dev},
