@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.22.0
+
+  * Deprecate (with a warning) the `--plural-forms` CLI option and the `:plural_forms` option in favor of `--plural-forms-header` and `:plural_forms_header`.
+  * Supply the `Plural-Forms` header to `Gettext.Plural` callbacks.
+  * Bump Expo requirement to `~> 0.3.0`.
+  * Add the types:
+    * `Gettext.Interpolation.bindings/0`
+    * `Gettext.Error.t/0`
+    * `Gettext.Plural.locale/0`
+    * `Gettext.Plural.pluralization_context/0`
+    * `Gettext.Plural.plural_info/0`
+  * Add the optional callbacks `Gettext.Plural.init/1` and `Gettext.Plural.plural_forms_header/1`.
+
+### Bug fixes
+
+  * Fix `--check-up-to-date` with `msgid`s split in different ways.
+  * Don't write the same file more than once in references when using `write_reference_line_numbers: false`.
+
 ## v0.21.0
 
 ### New features and improvements
