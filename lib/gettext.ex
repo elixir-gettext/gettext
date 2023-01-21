@@ -168,8 +168,7 @@ defmodule Gettext do
       use Gettext, otp_app: :my_app, priv: "priv/messages"
 
   The messages directory specified by the `:priv` option should be a directory
-  inside `priv/`, otherwise some things (like `mix compile.gettext`) won't work
-  as expected.
+  inside `priv/`, otherwise some things won't work as expected.
 
   ## Locale
 
@@ -539,9 +538,8 @@ defmodule Gettext do
     * `:priv` - a string representing a directory where messages will be
       searched. The directory is relative to the directory of the application
       specified by the `:otp_app` option. It is recommended to always have
-      this directory inside `"priv"`, otherwise some features like the
-      "mix compile.gettext" won't work as expected. By default it's
-      `"priv/gettext"`.
+      this directory inside `"priv"`, otherwise some features won't work as expected.
+      By default it's `"priv/gettext"`.
 
     * `:plural_forms` - a module which will act as a "pluralizer". For more
       information, look at the documentation for `Gettext.Plural`.
