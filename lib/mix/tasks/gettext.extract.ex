@@ -50,6 +50,7 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   @switches [merge: :boolean, check_up_to_date: :boolean]
 
+  @impl true
   def run(args) do
     Application.ensure_all_started(:gettext)
     _ = Mix.Project.get!()
