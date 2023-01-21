@@ -54,7 +54,11 @@ defmodule Gettext.Merger do
           {Messages.t(), map()}
   def merge(%Messages{} = old, %Messages{} = new, locale, opts)
       when is_binary(locale) and is_list(opts) do
-    opts = put_plural_forms_opt(opts, old, locale)
+    opts =
+      opts
+      |> handle_deprecated_plural_forms()
+      |> put_plural_forms_opt(old, locale)
+
     stats = %{new: 0, exact_matches: 0, fuzzy_matches: 0, removed: 0, marked_as_obsolete: 0}
 
     {messages, stats} = merge_messages(old.messages, new.messages, opts, stats)
@@ -67,6 +71,32 @@ defmodule Gettext.Merger do
     }
 
     {po, stats}
+  end
+
+  # TODO: remove in v0.24.0
+  defp handle_deprecated_plural_forms(opts) do
+    plural_forms = Keyword.get(opts, :plural_forms)
+
+    cond do
+      is_nil(plural_forms) ->
+        opts
+
+      Keyword.has_key?(opts, :plural_forms_header) ->
+        raise ArgumentError, """
+        --plural-forms (or :plural_forms) and --plural-forms-header (or :plural_forms_header) \
+        cannot be used together\
+        """
+
+      true ->
+        IO.warn("""
+        The --plural-forms and :plural_forms options are deprecated. If your files \
+        have a Plural-Forms header, Gettext will use that to determin the number of plural \
+        forms for the locale. Otherwise, you can pass a Plural-Forms header via the \
+        --plural-forms-header or :plural_forms_header option.\
+        """)
+
+        Keyword.put(opts, :plural_forms_header, "nplurals=#{plural_forms}")
+    end
   end
 
   defp merge_messages(old, new, opts, stats) do
@@ -299,21 +329,17 @@ defmodule Gettext.Merger do
 
   defp put_plural_forms_opt(opts, messages, locale) do
     plural_mod = Application.get_env(:gettext, :plural_forms, Gettext.Plural)
+    default_nplurals = plural_mod.nplurals(Plural.plural_info(locale, messages, plural_mod))
 
-    opts =
-      Keyword.put_new_lazy(opts, :plural_forms, fn ->
-        plural_mod.nplurals(Plural.plural_info(locale, messages, plural_mod))
-      end)
+    opts = Keyword.put_new(opts, :plural_forms, default_nplurals)
 
     Keyword.put_new_lazy(opts, :plural_forms_header, fn ->
       requested_nplurals = Keyword.fetch!(opts, :plural_forms)
 
-      default_nplurals = plural_mod.nplurals(Plural.plural_info(locale, messages, plural_mod))
-
       # If nplurals is overridden to a non-default value by the user the
       # implementation will not be able to provide a correct header therefore
       # the header is just set to `nplurals=#{n}` and it is up to the user to
-      # put a complete plural forms header himself.
+      # put a complete plural forms header themselves.
       if requested_nplurals == default_nplurals do
         Plural.plural_forms_header_impl(locale, messages, plural_mod)
       else
