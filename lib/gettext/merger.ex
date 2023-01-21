@@ -327,6 +327,7 @@ defmodule Gettext.Merger do
     %{message | comments: Enum.reject(comments, &match?("#" <> _, &1))}
   end
 
+  # TODO: simplify code here once we remove support for :plural_forms.
   defp put_plural_forms_opt(opts, messages, locale) do
     plural_mod = Application.get_env(:gettext, :plural_forms, Gettext.Plural)
     default_nplurals = plural_mod.nplurals(Plural.plural_info(locale, messages, plural_mod))
