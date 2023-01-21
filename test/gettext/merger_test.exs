@@ -426,7 +426,7 @@ defmodule Gettext.MergerTest do
 
     test "if there's a Plural-Forms header, it's used to determine number of plural forms" do
       old_po = %Messages{
-        headers: [~s(Plural-Forms:  nplurals=3)],
+        headers: [~s(Plural-Forms: nplurals=3)],
         messages: []
       }
 
