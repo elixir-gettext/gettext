@@ -1016,7 +1016,7 @@ defmodule Gettext do
 
   """
   @spec with_locale(locale, (() -> result)) :: result when result: var
-  def with_locale(locale, fun) do
+  def with_locale(locale, fun) when is_binary(locale) and is_function(fun) do
     previous_locale = Process.get(Gettext)
     Gettext.put_locale(locale)
 
@@ -1058,8 +1058,9 @@ defmodule Gettext do
       #=> "Bonjour monde"
 
   """
-  @spec with_locale(backend, locale, (() -> result)) :: result when result: var
-  def with_locale(backend, locale, fun) do
+  @spec with_locale(backend(), locale(), (() -> result)) :: result when result: var
+  def with_locale(backend, locale, fun)
+      when is_atom(backend) and is_binary(locale) and is_function(fun) do
     previous_locale = Process.get(backend)
     Gettext.put_locale(backend, locale)
 
@@ -1101,8 +1102,8 @@ defmodule Gettext do
       #=> ["en", "it", "pt_BR"]
 
   """
-  @spec known_locales(backend) :: [locale]
-  def known_locales(backend) do
+  @spec known_locales(backend()) :: [locale()]
+  def known_locales(backend) when is_atom(backend) do
     backend.__gettext__(:known_locales)
   end
 
