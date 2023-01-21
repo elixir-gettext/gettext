@@ -614,62 +614,7 @@ defmodule Gettext do
 
   """
 
-  defmodule Error do
-    @moduledoc """
-    A generic error raised for a variety of possible Gettext-related reasons.
-    """
-
-    @typedoc since: "0.22.0"
-    @type t() :: %__MODULE__{}
-
-    defexception [:message]
-  end
-
-  defmodule PluralFormError do
-    @moduledoc """
-    An generic error for when a plural form is missing for a given locale.
-    """
-
-    @enforce_keys [:form, :locale, :file, :line]
-    defexception [:form, :locale, :file, :line]
-
-    @type t() :: %__MODULE__{
-            form: non_neg_integer(),
-            locale: String.t(),
-            file: String.t(),
-            line: pos_integer()
-          }
-
-    @impl true
-    def message(%__MODULE__{form: form, locale: locale, file: file, line: line}) do
-      "plural form #{form} is required for locale #{inspect(locale)} " <>
-        "but is missing for message compiled from #{file}:#{line}"
-    end
-  end
-
-  defmodule MissingBindingsError do
-    @moduledoc """
-    An error message raised for missing bindings errors.
-    """
-
-    @enforce_keys [:backend, :domain, :msgctxt, :locale, :msgid, :missing]
-    defexception [:backend, :domain, :msgctxt, :locale, :msgid, :missing]
-
-    @type t() :: %__MODULE__{}
-
-    def message(%{
-          backend: backend,
-          domain: domain,
-          msgctxt: msgctxt,
-          locale: locale,
-          msgid: msgid,
-          missing: missing
-        }) do
-      "missing Gettext bindings: #{inspect(missing)} (backend #{inspect(backend)}, " <>
-        "locale #{inspect(locale)}, domain #{inspect(domain)}, msgctxt #{inspect(msgctxt)}, " <>
-        "msgid #{inspect(msgid)})"
-    end
-  end
+  alias Gettext.MissingBindingsError
 
   @type locale :: binary
   @type backend :: module
