@@ -40,7 +40,7 @@ defmodule Gettext.Mixfile do
 
   def hex_package do
     [
-      maintainers: ["Andrea Leopardi", "José Valim"],
+      maintainers: ["Andrea Leopardi", "Jonatan Männchen", "José Valim"],
       licenses: ["Apache-2.0"],
       links: %{"GitHub" => @repo_url},
       files: ~w(lib mix.exs *.md)
