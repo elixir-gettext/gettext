@@ -374,8 +374,12 @@ defmodule Gettext.Plural do
   else
     defp ensure_loaded!(mod) do
       case Code.ensure_loaded(mod) do
-        {:module, ^mod} -> :ok
-        _other -> raise "<good error message>"
+        {:module, ^mod} ->
+          mod
+
+        {:error, reason} ->
+          raise ArgumentError,
+                "could not load module #{inspect(mod)} due to reason #{inspect(reason)}"
       end
     end
   end
