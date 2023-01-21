@@ -1,13 +1,18 @@
 defmodule Gettext.Interpolation.Default do
   @moduledoc """
-  Default Interpolation Implementation
+  Default implementation for the `Gettext.Interpolation` behaviour.
 
-  Replaces `%{binding_name}` with a string value.
+  Replaces `%{binding_name}` with the string value of the `binding_name` binding.
   """
 
   @behaviour Gettext.Interpolation
 
-  @type interpolatable :: [String.t() | atom]
+  @typedoc """
+  Something that can be interpolated.
+
+  It's either a string (a literal) or an atom (representing a binding name).
+  """
+  @type interpolatable() :: [String.t() | atom()]
 
   # Extracts interpolations from a given string.
 
@@ -15,8 +20,8 @@ defmodule Gettext.Interpolation.Default do
   # contained inside `str`, converts them to atoms and then returns a list of
   # string and interpolation keys.
   @doc false
-  @spec to_interpolatable(String.t()) :: interpolatable
-  def to_interpolatable(string) do
+  @spec to_interpolatable(String.t()) :: interpolatable()
+  def to_interpolatable(string) when is_binary(string) do
     start_pattern = :binary.compile_pattern("%{")
     end_pattern = :binary.compile_pattern("}")
 
@@ -62,6 +67,8 @@ defmodule Gettext.Interpolation.Default do
   @doc """
   Interpolate a message or interpolatable with the given bindings.
 
+  Implementation of the `c:Gettext.Interpolation.runtime_interpolate/2` callback.
+
   This function takes a message and some bindings and returns an `{:ok,
   interpolated_string}` tuple if interpolation is successful. If it encounters
   a binding in the message that is missing from `bindings`, it returns
@@ -88,12 +95,14 @@ defmodule Gettext.Interpolation.Default do
       {:missing_bindings, "Hello José, you have %{count} unread messages", [:count]}
 
   """
-  @impl Gettext.Interpolation
-  def runtime_interpolate(message, %{} = bindings) when is_binary(message),
-    do: message |> to_interpolatable() |> runtime_interpolate(bindings)
+  @impl true
+  def runtime_interpolate(message, bindings)
 
-  def runtime_interpolate(interpolatable, bindings)
-      when is_list(interpolatable) and is_map(bindings) do
+  def runtime_interpolate(message, %{} = bindings) when is_binary(message) do
+    message |> to_interpolatable() |> runtime_interpolate(bindings)
+  end
+
+  def runtime_interpolate(interpolatable, %{} = bindings) when is_list(interpolatable) do
     interpolate(interpolatable, bindings, [], [])
   end
 
@@ -131,7 +140,7 @@ defmodule Gettext.Interpolation.Default do
   # atoms represent interpolation keys, then only the atoms in the list are
   # returned.
   @doc false
-  @spec keys(String.t() | interpolatable) :: [atom]
+  @spec keys(String.t() | interpolatable()) :: [atom()]
   def keys(string_or_interpolatable)
 
   def keys(string) when is_binary(string), do: string |> to_interpolatable() |> keys()
@@ -140,9 +149,11 @@ defmodule Gettext.Interpolation.Default do
     do: interpolatable |> Enum.filter(&is_atom/1) |> Enum.uniq()
 
   @doc """
-  Compile a static message to interpolate with dynamic bindings.
+  Compiles a static message to interpolate with dynamic bindings.
 
-  This macro takes a static message and some dynamic bindings. The generated
+  Implementation of the `c:Gettext.Interpolation.compile_interpolate/3` macro callback.
+
+  Takes a static message and some dynamic bindings. The generated
   code will return an `{:ok, interpolated_string}` tuple if the interpolation
   is successful. If it encounters a binding in the message that is missing from
   `bindings`, it returns `{:missing_bindings, incomplete_string, missing_bindings}`,
@@ -150,12 +161,12 @@ defmodule Gettext.Interpolation.Default do
   and `missing_bindings` is a list of atoms representing bindings that are in
   `interpolatable` but not in `bindings`.
   """
-  @impl Gettext.Interpolation
+  @impl true
   defmacro compile_interpolate(message_type, message, bindings) do
     unless is_binary(message) do
       raise """
-      #{__MODULE__}.compile_interpolate/2 can only be used at compile time with static messages.
-      Alternatively use #{__MODULE__}.runtime_interpolate/2.
+      #{inspect(__MODULE__)}.compile_interpolate/2 can only be used at compile time with \
+      static messages. Alternatively, use #{inspect(__MODULE__)}.runtime_interpolate/2.
       """
     end
 
@@ -213,6 +224,15 @@ defmodule Gettext.Interpolation.Default do
     {:<<>>, [], parts}
   end
 
-  @impl Gettext.Interpolation
+  @doc """
+  Implementation of `c:Gettext.Interpolation.message_format/0`.
+
+  ## Examples
+
+      iex> Gettext.Interpolation.Default.message_format()
+      "elixir-format"
+
+  """
+  @impl true
   def message_format, do: "elixir-format"
 end

@@ -21,6 +21,21 @@ defmodule Gettext.Extractor do
 
   @extracted_messages_flag "elixir-autogen"
 
+  @new_pot_comment String.split(
+                     """
+                     # This file is a PO Template file.
+                     #
+                     # "msgid"s here are often extracted from source code.
+                     # Add new messages manually only if they're dynamic
+                     # messages that can't be statically extracted.
+                     #
+                     # Run "mix gettext.extract" to bring this file up to
+                     # date. Leave "msgstr"s empty as changing them here has no
+                     # effect: edit them in PO (.po) files instead.
+                     """,
+                     "\n"
+                   )
+
   @doc """
   Enables message extraction.
   """
@@ -147,7 +162,7 @@ defmodule Gettext.Extractor do
       |> Enum.sort_by(&Message.key/1)
       |> Enum.map(&sort_references/1)
 
-    %Messages{messages: messages}
+    %Messages{messages: messages, top_comments: @new_pot_comment, headers: [""]}
   end
 
   defp sort_references(message) do
@@ -193,7 +208,11 @@ defmodule Gettext.Extractor do
     # then we can take advantage of Map.merge/3 to find files that we have to
     # update, delete, or add.
     pot_files = Map.new(pot_files, &{&1, :existing})
-    po_structs = Map.new(po_structs)
+
+    po_structs =
+      Map.new(po_structs, fn {path, struct} ->
+        {path, Merger.prune_references(struct, gettext_config)}
+      end)
 
     # After Map.merge/3, we have something like:
     #   %{path => {:merged, :unchanged | %Messages{}}, path => %Messages{}, path => :existing}
@@ -202,7 +221,7 @@ defmodule Gettext.Extractor do
     Map.merge(pot_files, po_structs, &merge_existing_and_extracted(&1, &2, &3, gettext_config))
     |> Enum.map(&tag_files(&1, gettext_config))
     |> Enum.reject(&match?({_, {_, :unchanged}}, &1))
-    |> Enum.map(&dump_tagged_file(&1, gettext_config))
+    |> Enum.map(&dump_tagged_file/1)
   end
 
   # This function is called by merge_pot_files/2 as the function passed to
@@ -252,44 +271,10 @@ defmodule Gettext.Extractor do
   # This function "dumps" merged files and unmerged files without any changes,
   # and dumps new POT files adding an informative comment to them. This doesn't
   # write anything to disk, it just returns `{path, contents}` tuples.
-  defp dump_tagged_file({path, {:new, new_po}}, gettext_config),
-    do:
-      {path,
-       [
-         new_pot_comment(),
-         new_po
-         |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
-         |> add_headers_to_new_po()
-         |> PO.compose()
-       ]}
-
-  defp dump_tagged_file({path, {tag, po}}, gettext_config) when tag in [:unmerged, :merged],
-    do:
-      {path,
-       po
-       |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
-       |> PO.compose()}
+  defp dump_tagged_file({path, {_tag, po}}), do: {path, PO.compose(po)}
 
   defp prune_unmerged(path, gettext_config) do
     merge_or_unchanged(path, %Messages{messages: []}, gettext_config)
-  end
-
-  defp new_pot_comment() do
-    """
-    ## This file is a PO Template file.
-    ##
-    ## "msgid"s here are often extracted from source code.
-    ## Add new message manually only if they're dynamic
-    ## message that can't be statically extracted.
-    ##
-    ## Run "mix gettext.extract" to bring this file up to
-    ## date. Leave "msgstr"s empty as changing them here has no
-    ## effect: edit them in PO (.po) files instead.
-    """
-  end
-
-  defp add_headers_to_new_po(%Messages{headers: []} = po) do
-    %{po | headers: [""]}
   end
 
   # Merges a %Messages{} struct representing an existing POT file with an
@@ -317,11 +302,30 @@ defmodule Gettext.Extractor do
 
     messages = old_and_merged ++ unique_new
 
+    sort_by_msgid =
+      case gettext_config[:sort_by_msgid] || false do
+        val when val in [:case_sensitive, :case_insensitive, false] ->
+          val
+
+        true ->
+          IO.warn("""
+          Passing "true" to the :sort_by_msgid option is deprecated. \
+          Use :case_sensitive instead, or specify :case_insensitive.\
+          """)
+
+          :case_sensitive
+      end
+
     messages =
-      if gettext_config[:sort_by_msgid] do
-        Enum.sort_by(messages, & &1.msgid)
-      else
-        messages
+      case sort_by_msgid do
+        :case_sensitive ->
+          Enum.sort_by(messages, &IO.chardata_to_string(&1.msgid))
+
+        :case_insensitive ->
+          Enum.sort_by(messages, &String.downcase(IO.chardata_to_string(&1.msgid)))
+
+        false ->
+          messages
       end
 
     %Messages{

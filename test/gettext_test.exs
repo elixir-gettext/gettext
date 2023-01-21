@@ -23,6 +23,13 @@ defmodule GettextTest.TranslatorWithCustomPluralForms do
     plural_forms: GettextTest.CustomPlural
 end
 
+defmodule GettextTest.TranslatorWithCustomCompiledPluralForms do
+  use Gettext,
+    otp_app: :test_application,
+    priv: "test/fixtures/single_messages",
+    plural_forms: GettextTest.CustomCompiledPlural
+end
+
 defmodule GettextTest.TranslatorWithDefaultDomain do
   use Gettext,
     otp_app: :test_application,
@@ -77,6 +84,7 @@ defmodule GettextTest do
   alias GettextTest.Translator
   alias GettextTest.TranslatorWithAllowedLocalesString
   alias GettextTest.TranslatorWithAllowedLocalesAtom
+  alias GettextTest.TranslatorWithCustomCompiledPluralForms
   alias GettextTest.TranslatorWithCustomPluralForms
   alias GettextTest.TranslatorWithDefaultDomain
   alias GettextTest.HandleMissingMessage
@@ -201,6 +209,14 @@ defmodule GettextTest do
 
     assert T.lngettext("it", "default", nil, "One new email", "%{count} new emails", 2, %{}) ==
              {:ok, "Una nuova email"}
+  end
+
+  test "using a custom Gettext.Plural module with the context parameter" do
+    alias TranslatorWithCustomCompiledPluralForms, as: T
+
+    assert T.lngettext("it", "default", nil, "One new email", "%{count} new emails", 1, %{})
+
+    assert_received {:plural_context, %{plural_forms_header: "nplurals=2; plural=(n != 1);"}}
   end
 
   test "using a custom Gettext.Plural module from app environment" do

@@ -48,7 +48,6 @@ defmodule Gettext.ExtractorTest do
 
       {_, contents} = List.keyfind(structs, paths.new, 0)
       contents = IO.iodata_to_binary(contents)
-      assert String.starts_with?(contents, "## This file is a PO Template file.")
 
       assert contents =~ """
              msgid "new"
@@ -228,20 +227,22 @@ defmodule Gettext.ExtractorTest do
 
     test "messages can be ordered alphabetically through the :sort_by_msgid option" do
       # Old and new messages are mixed together and ordered alphabetically.
-      foo_message = %Message.Singular{msgid: ["foo"], references: [{"foo.ex", 1}]}
+      foo_message_uppercase = %Message.Singular{msgid: ["FOO"], references: [{"FOO.ex", 1}]}
+      foo_message = %Message.Singular{msgid: ["", "foo"], references: [{"foo.ex", 1}]}
 
-      bar_message = %Message.Singular{msgid: ["bar"], references: [{"bar.ex", 1}]}
+      bar_message = %Message.Singular{msgid: ["ba", "r"], references: [{"bar.ex", 1}]}
 
       baz_message = %Message.Plural{
-        msgid: ["baz"],
+        msgid: ["b", "az"],
         msgid_plural: ["bazs"],
         references: [{"baz.ex", 1}]
       }
 
-      qux_message = %Message.Singular{msgid: ["qux"], references: [{"bar.ex", 1}]}
+      qux_message = %Message.Singular{msgid: ["qux", ""], references: [{"bar.ex", 1}]}
 
       po1 = %Messages{
         messages: [
+          foo_message_uppercase,
           foo_message,
           qux_message,
           bar_message
@@ -252,13 +253,47 @@ defmodule Gettext.ExtractorTest do
         messages: [
           baz_message,
           foo_message,
+          bar_message,
+          foo_message_uppercase
+        ]
+      }
+
+      %Messages{messages: messages} =
+        Extractor.merge_template(po1, po2, sort_by_msgid: :case_sensitive)
+
+      assert Enum.map(messages, &IO.chardata_to_string(&1.msgid)) == ~w(FOO bar baz foo qux)
+    end
+
+    test "messages can be ordered alphabetically through the :sort_by_msgid_case_insensitive option" do
+      # Old and new messages are mixed together and ordered alphabetically in a case insensitive fashion.
+      foo_1_message = %Message.Singular{msgid: ["foo"], references: [{"foo.ex", 1}]}
+      foo_2_message = %Message.Singular{msgid: ["Foo"], references: [{"Foo.ex", 1}]}
+      foo_3_message = %Message.Singular{msgid: ["FOO"], references: [{"FOO.ex", 1}]}
+      bar_message = %Message.Singular{msgid: ["bar"], references: [{"bar.ex", 1}]}
+      qux_message = %Message.Singular{msgid: ["qux"], references: [{"qux.ex", 1}]}
+
+      po1 = %Messages{
+        messages: [
+          foo_1_message,
+          qux_message,
+          foo_2_message,
+          bar_message,
+          foo_3_message
+        ]
+      }
+
+      po2 = %Messages{
+        messages: [
+          bar_message,
+          foo_1_message,
           bar_message
         ]
       }
 
-      %Messages{messages: messages} = Extractor.merge_template(po1, po2, sort_by_msgid: true)
+      %Messages{messages: messages} =
+        Extractor.merge_template(po1, po2, sort_by_msgid: :case_insensitive)
 
-      assert Enum.map(messages, &Enum.at(&1.msgid, 0)) == ~w(bar baz foo qux)
+      assert Enum.map(messages, &IO.chardata_to_string(&1.msgid)) == ~w(bar foo Foo FOO qux)
     end
   end
 

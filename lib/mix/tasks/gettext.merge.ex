@@ -10,17 +10,17 @@ defmodule Mix.Tasks.Gettext.Merge do
   This task is used when messages in the source code change: when they do,
   `mix gettext.extract` is usually used to extract the new messages to POT
   files. At this point, developers or translators can use this task to "sync"
-  the newly updated POT files with the existing locale-specific PO files. All
-  the metadata for each message (like position in the source code, comments
-  and so on) is taken from the newly updated POT file; the only things taken
+  the newly-updated POT files with the existing locale-specific PO files. All
+  the metadata for each message (like position in the source code, comments,
+  and so on) is taken from the newly-updated POT file; the only things taken
   from the PO file are the actual translated strings.
 
-  #### Fuzzy matching
+  #### Fuzzy Matching
 
-  messages in the updated PO/POT file that have an exact match (a
-  message with the same msgid) in the old PO file are merged as described
+  Messages in the updated PO/POT file that have an exact match (a
+  message with the same `msgid`) in the old PO file are merged as described
   above. When a message in the updated PO/POT files has no match in the old
-  PO file, a fuzzy match for that message is attempted. For example, assume
+  PO file, Gettext attemps a **fuzzy match** for that message. For example, imagine
   we have this POT file:
 
       msgid "hello, world!"
@@ -28,13 +28,13 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   and we merge it with this PO file:
 
-      # notice no exclamation point here
+      # No exclamation point here in the msgid
       msgid "hello, world"
       msgstr "ciao, mondo"
 
-  Since the two messages are very similar, the msgstr from the existing
-  message will be taken over to the new message, which will however be
-  marked as *fuzzy*:
+  Since the two messages are similar, Gettext takes the `msgstr` from the
+  existing message over to the new message, which it however
+  marks as *fuzzy*:
 
       #, fuzzy
       msgid "hello, world!"
@@ -43,51 +43,57 @@ defmodule Mix.Tasks.Gettext.Merge do
   Generally, a `fuzzy` flag calls for review from a translator.
 
   Fuzzy matching can be configured (for example, the threshold for message
-  similarity can be tweaked) or disabled entirely; look at the "Options" section
-  below.
+  similarity can be tweaked) or disabled entirely. Look at the
+  ["Options" section](#module-options).
 
   ## Usage
 
-      mix gettext.merge OLD_FILE UPDATED_FILE [OPTIONS]
-      mix gettext.merge DIR [OPTIONS]
+  ```bash
+  mix gettext.merge OLD_FILE UPDATED_FILE [OPTIONS]
+  mix gettext.merge DIR [OPTIONS]
+  ```
 
-  If two files are given as arguments, they must be a `.po` file and a
-  `.po`/`.pot` file. The first one is the old PO file, while the second one is
-  the last generated one. They are merged and written over the first file. For
-  example:
+  If two files are given as arguments, `OLD_FILE` must be a `.po` file and
+  `UPDATE_FILE` must be a `.po`/`.pot` file. The first one is the old PO file,
+  while the second one is the last generated one. They are merged and written
+  over the first file. For example:
 
-      mix gettext.merge priv/gettext/en/LC_MESSAGES/default.po priv/gettext/default.pot
+  ```bash
+  mix gettext.merge priv/gettext/en/LC_MESSAGES/default.po priv/gettext/default.pot
+  ```
 
   If only one argument is given, then that argument must be a directory
   containing Gettext messages (with `.pot` files at the root level alongside
   locale directories - this is usually a "backend" directory used by a Gettext
-  backend, see `Gettext.Backend`).
+  backend, see `Gettext.Backend`). For example:
 
-      mix gettext.merge priv/gettext
+  ```bash
+  mix gettext.merge priv/gettext
+  ```
 
   If the `--locale LOCALE` option is given, then only the PO files in
-  `DIR/LOCALE/LC_MESSAGES` will be merged with the POT files in `DIR`. If no
+  `<DIR>/<LOCALE>/LC_MESSAGES` will be merged with the POT files in `DIR`. If no
   options are given, then all the PO files for all locales under `DIR` are
   merged with the POT files in `DIR`.
 
-  ## Plural forms
+  ## Plural Forms
 
-  By default, Gettext will determine the number of plural forms for newly generated messages
+  By default, Gettext will determine the number of plural forms for newly-generated messages
   by checking the value of `nplurals` in the `Plural-Forms` header in the existing `.po` file. If
   a `.po` file doesn't already exist and Gettext is creating a new one or if the `Plural-Forms`
   header is not in the `.po` file, Gettext will use the number of plural forms that
-  `Gettext.Plural` returns for the locale of the file being created. The number of plural forms
-  can be forced through the `--plural-forms` option (see below).
+  the plural module (see `Gettext.Plural`) returns for the locale of the file being created.
+  The content of the `Plural-Forms` header can be forced through the `--plural-forms-header`
+  option (see below).
 
   ## Options
 
     * `--locale` - a string representing a locale. If this is provided, then only the PO
-      files in `DIR/LOCALE/LC_MESSAGES` will be merged with the POT files in `DIR`. This
+      files in `<DIR>/<LOCALE>/LC_MESSAGES` will be merged with the POT files in `DIR`. This
       option can only be given when a single argument is passed to the task
       (a directory).
 
-    * `--no-fuzzy` - stops fuzzy matching from being performed when merging
-      files.
+    * `--no-fuzzy` - don't perform fuzzy matching when merging files.
 
     * `--fuzzy-threshold` - a float between `0` and `1` which represents the
       minimum Jaro distance needed for two messages to be considered a fuzzy
@@ -98,9 +104,16 @@ defmodule Mix.Tasks.Gettext.Merge do
       new messages in the target PO files will have this number of empty
       plural forms. See the "Plural forms" section above.
 
-    * `--on-obsolete` - controls what happens when obsolete messages are found.
+    * `--plural-forms-header` - the content of the `Plural-Forms` header as a string.
+      If this is passed, new messages in the target PO files will use this content
+      to determine the number of plurals. See the ["Plural Forms" section](#module-plural-forms).
+
+    * `--on-obsolete` - controls what happens when **obsolete** messages are found.
       If `mark_as_obsolete`, messages are kept and marked as obsolete.
       If `delete`, obsolete messages are deleted. Defaults to `delete`.
+
+    * `--store-previous-message-on-fuzzy-match` - controls if the previous
+      messages are recorded on fuzzy matches. Is off by default.
 
   """
 
@@ -114,9 +127,12 @@ defmodule Mix.Tasks.Gettext.Merge do
     fuzzy: :boolean,
     fuzzy_threshold: :float,
     plural_forms: :integer,
-    on_obsolete: :string
+    plural_forms_header: :string,
+    on_obsolete: :string,
+    store_previous_message_on_fuzzy_match: :boolean
   ]
 
+  @impl true
   def run(args) do
     _ = Mix.Project.get!()
     gettext_config = Mix.Project.config()[:gettext] || []
@@ -210,7 +226,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       {new_po, stats} = Merger.new_po_file(po_file, pot_file, locale, opts)
 
       {new_po
-       |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
+       |> Merger.prune_references(gettext_config)
        |> PO.compose(), stats}
     end
   end
@@ -220,7 +236,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
 
     {merged
-     |> Merger.maybe_remove_references(gettext_config[:write_reference_comments])
+     |> Merger.prune_references(gettext_config)
      |> PO.compose(), stats}
   end
 
@@ -265,7 +281,15 @@ defmodule Mix.Tasks.Gettext.Merge do
   defp validate_merging_opts!(opts, gettext_config) do
     opts =
       opts
-      |> Keyword.take([:fuzzy, :fuzzy_threshold, :plural_forms, :on_obsolete])
+      |> Keyword.take([
+        :fuzzy,
+        :fuzzy_threshold,
+        :plural_forms,
+        :plural_forms_header,
+        :on_obsolete,
+        :store_previous_message_on_fuzzy_match
+      ])
+      |> Keyword.put_new(:store_previous_message_on_fuzzy_match, false)
       |> Keyword.put_new(:fuzzy, true)
       |> Keyword.put_new_lazy(:fuzzy_threshold, fn ->
         gettext_config[:fuzzy_threshold] || @default_fuzzy_threshold

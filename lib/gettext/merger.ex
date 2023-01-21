@@ -5,6 +5,7 @@ defmodule Gettext.Merger do
   alias Expo.Message
   alias Expo.Messages
   alias Gettext.Fuzzy
+  alias Gettext.Plural
 
   @new_po_informative_comment """
   # "msgid"s in this file come from POT (.pot) files.
@@ -53,7 +54,7 @@ defmodule Gettext.Merger do
           {Messages.t(), map()}
   def merge(%Messages{} = old, %Messages{} = new, locale, opts)
       when is_binary(locale) and is_list(opts) do
-    opts = put_plural_forms_opt(opts, old.headers, locale)
+    opts = put_plural_forms_opt(opts, old, locale)
     stats = %{new: 0, exact_matches: 0, fuzzy_matches: 0, removed: 0, marked_as_obsolete: 0}
 
     {messages, stats} = merge_messages(old.messages, new.messages, opts, stats)
@@ -90,6 +91,16 @@ defmodule Gettext.Merger do
               {:matched, match, fuzzy_merged} ->
                 stats_acc = update_in(stats_acc.fuzzy_matches, &(&1 + 1))
                 unused = Map.delete(unused, Message.key(match))
+
+                fuzzy_merged =
+                  if Keyword.get(opts, :store_previous_message_on_fuzzy_match, false) do
+                    Map.update!(fuzzy_merged, :previous_messages, fn previous ->
+                      Enum.uniq_by(previous ++ [match], &Message.key/1)
+                    end)
+                  else
+                    fuzzy_merged
+                  end
+
                 {fuzzy_merged, {stats_acc, unused}}
 
               :nomatch ->
@@ -210,12 +221,13 @@ defmodule Gettext.Merger do
   """
   def new_po_file(po_file, pot_file, locale, opts) when is_binary(locale) and is_list(opts) do
     pot = PO.parse_file!(pot_file)
-    opts = put_plural_forms_opt(opts, pot.headers, locale)
+    opts = put_plural_forms_opt(opts, pot, locale)
     plural_forms = Keyword.fetch!(opts, :plural_forms)
+    plural_forms_header = Keyword.fetch!(opts, :plural_forms_header)
 
     po = %Messages{
       top_comments: String.split(@new_po_informative_comment, "\n", trim: true),
-      headers: headers_for_new_po_file(locale, plural_forms),
+      headers: headers_for_new_po_file(locale, plural_forms_header),
       file: po_file,
       messages: Enum.map(pot.messages, &prepare_new_message(&1, plural_forms))
     }
@@ -232,22 +244,46 @@ defmodule Gettext.Merger do
   end
 
   @doc false
-  @spec maybe_remove_references(messages :: Messages.t(), remove? :: boolean() | nil) ::
-          Messages.t()
-  def maybe_remove_references(messages, remove?)
+  @spec prune_references(messages :: Messages.t(), gettext_config :: Keyword.t()) :: Messages.t()
+  def prune_references(%Messages{} = all, gettext_config) when is_list(gettext_config) do
+    cond do
+      # Empty out all references.
+      not Keyword.get(gettext_config, :write_reference_comments, true) ->
+        put_in(all, [Access.key!(:messages), Access.all(), Access.key(:references)], [])
 
-  def maybe_remove_references(%Messages{messages: messages} = all, true) do
-    messages = Enum.map(messages, &%{&1 | references: []})
-    %Messages{all | messages: messages}
+      # Remove lines from references and unique them.
+      not Keyword.get(gettext_config, :write_reference_line_numbers, true) ->
+        update_in(
+          all,
+          [Access.key!(:messages), Access.all(), Access.key(:references)],
+          &remove_line_and_unique_references/1
+        )
+
+      true ->
+        all
+    end
   end
 
-  def maybe_remove_references(messages, _remove?), do: messages
+  defp remove_line_and_unique_references(references) do
+    {unique_refs, _} =
+      references
+      |> update_in([Access.all(), Access.all()], fn
+        {file, _line} -> file
+        file -> file
+      end)
+      |> Enum.map_reduce(MapSet.new(), fn line, existing_references ->
+        unique_line = Enum.uniq(line) -- MapSet.to_list(existing_references)
+        {unique_line, MapSet.union(existing_references, MapSet.new(unique_line))}
+      end)
 
-  defp headers_for_new_po_file(locale, plural_forms) do
+    Enum.reject(unique_refs, &match?([], &1))
+  end
+
+  defp headers_for_new_po_file(locale, plural_forms_header) do
     [
       "",
       ~s(Language: #{locale}\n),
-      ~s(Plural-Forms: nplurals=#{plural_forms}\n)
+      ~s(Plural-Forms: #{plural_forms_header}\n)
     ]
   end
 
@@ -261,21 +297,27 @@ defmodule Gettext.Merger do
     %{message | comments: Enum.reject(comments, &match?("#" <> _, &1))}
   end
 
-  defp put_plural_forms_opt(opts, headers, locale) do
-    Keyword.put_new_lazy(opts, :plural_forms, fn ->
-      read_plural_forms_from_headers(headers) ||
-        Application.get_env(:gettext, :plural_forms, Gettext.Plural).nplurals(locale)
-    end)
-  end
+  defp put_plural_forms_opt(opts, messages, locale) do
+    plural_mod = Application.get_env(:gettext, :plural_forms, Gettext.Plural)
 
-  defp read_plural_forms_from_headers(headers) do
-    Enum.find_value(headers, fn header ->
-      with "Plural-Forms:" <> rest <- header,
-           "nplurals=" <> rest <- String.trim(rest),
-           {plural_forms, _rest} <- Integer.parse(rest) do
-        plural_forms
+    opts =
+      Keyword.put_new_lazy(opts, :plural_forms, fn ->
+        plural_mod.nplurals(Plural.plural_info(locale, messages, plural_mod))
+      end)
+
+    Keyword.put_new_lazy(opts, :plural_forms_header, fn ->
+      requested_nplurals = Keyword.fetch!(opts, :plural_forms)
+
+      default_nplurals = plural_mod.nplurals(Plural.plural_info(locale, messages, plural_mod))
+
+      # If nplurals is overridden to a non-default value by the user the
+      # implementation will not be able to provide a correct header therefore
+      # the header is just set to `nplurals=#{n}` and it is up to the user to
+      # put a complete plural forms header himself.
+      if requested_nplurals == default_nplurals do
+        Plural.plural_forms_header_impl(locale, messages, plural_mod)
       else
-        _other -> nil
+        "nplurals=#{requested_nplurals}"
       end
     end)
   end

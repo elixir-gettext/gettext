@@ -204,17 +204,15 @@ defmodule Gettext.MergerTest do
     end
 
     test "new messages are fuzzy-matched against obsolete messages" do
-      old_po = %Messages{
-        messages: [
-          %Message.Singular{
-            msgid: "hello world!",
-            msgstr: ["foo"],
-            comments: ["# existing comment"],
-            extracted_comments: ["#. existing comment"],
-            references: [{"foo.ex", 1}]
-          }
-        ]
+      old_message = %Message.Singular{
+        msgid: ["hello world!"],
+        msgstr: ["foo"],
+        comments: ["# existing comment"],
+        extracted_comments: ["#. existing comment"],
+        references: [{"foo.ex", 1}]
       }
+
+      old_po = %Messages{messages: [old_message]}
 
       new_pot = %Messages{
         messages: [
@@ -237,6 +235,17 @@ defmodule Gettext.MergerTest do
       assert message.extracted_comments == ["#. new comment"]
       assert message.references == [{"foo.ex", 2}]
       assert message.flags == [["my-flag", "fuzzy"]]
+      assert message.previous_messages == []
+
+      assert {%Messages{messages: [message]}, _stats} =
+               Merger.merge(
+                 old_po,
+                 new_pot,
+                 "en",
+                 @opts ++ [store_previous_message_on_fuzzy_match: true]
+               )
+
+      assert message.previous_messages == [old_message]
     end
 
     test "exact matches have precedence over fuzzy matches" do
@@ -417,7 +426,7 @@ defmodule Gettext.MergerTest do
 
     test "if there's a Plural-Forms header, it's used to determine number of plural forms" do
       old_po = %Messages{
-        headers: [~s(Plural-Forms:  nplurals=3)],
+        headers: [~s(Plural-Forms: nplurals=3)],
         messages: []
       }
 
@@ -458,6 +467,71 @@ defmodule Gettext.MergerTest do
       assert plural_message.msgid == "b"
       assert plural_message.msgid_plural == "bs"
       assert plural_message.msgstr == %{0 => [""]}
+    end
+  end
+
+  describe "prune_references/2" do
+    test "prunes all references when `write_reference_comments` is `false`" do
+      po = %Messages{
+        messages: [
+          %Message.Singular{msgid: "a", references: [[{"path/to/file.ex", 12}]]},
+          %Message.Plural{msgid: "a", msgid_plural: "ab", references: [[{"path/to/file.ex", 12}]]}
+        ]
+      }
+
+      config = [write_reference_comments: false]
+
+      assert %Messages{
+               messages: [
+                 %Message.Singular{references: []},
+                 %Message.Plural{references: []}
+               ]
+             } = Merger.prune_references(po, config)
+    end
+
+    test "prunes reference line numbers when `write_reference_line_numbers` is `false`" do
+      po = %Messages{
+        messages: [
+          %Message.Singular{
+            msgid: "a",
+            references: [
+              [{"path/to/file.ex", 12}, {"path/to/file.ex", 24}, {"a", 1}],
+              [{"path/to/file.ex", 42}, {"b", 1}],
+              [{"path/to/file.ex", 42}],
+              [{"path/to/other_file.ex", 24}]
+            ]
+          },
+          %Message.Plural{msgid: "a", msgid_plural: "ab", references: [[{"path/to/file.ex", 12}]]}
+        ]
+      }
+
+      config = [write_reference_line_numbers: false]
+
+      assert %Messages{
+               messages: [
+                 %Message.Singular{
+                   references: [
+                     ["path/to/file.ex", "a"],
+                     ["b"],
+                     ["path/to/other_file.ex"]
+                   ]
+                 },
+                 %Message.Plural{references: [["path/to/file.ex"]]}
+               ]
+             } = Merger.prune_references(po, config)
+    end
+
+    test "does nothing per default" do
+      po = %Messages{
+        messages: [
+          %Message.Singular{msgid: "a", references: [[{"path/to/file.ex", 12}]]},
+          %Message.Plural{msgid: "a", msgid_plural: "ab", references: [{"path/to/file.ex", 12}]}
+        ]
+      }
+
+      config = []
+
+      assert po == Merger.prune_references(po, config)
     end
   end
 

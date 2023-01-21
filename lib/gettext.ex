@@ -4,15 +4,88 @@ defmodule Gettext do
   [gettext](https://www.gnu.org/software/gettext/)-based API for working with
   internationalized applications.
 
-  ## Using Gettext
+  ## Basic Overview
 
-  To use `Gettext`, a module that calls `use Gettext` has to be defined:
+  When you use Gettext, you replace hardcoded user-facing text like this:
+
+      "Hello world"
+
+  with calls like this:
+
+      gettext("Hello world")
+
+  Here, the string `"Hello world"` serves two purposes:
+
+    1. It's displayed by default (if no translation is specified in the current
+       language). This means that, at the very least, switching from a hardcoded
+       string to a Gettext call is harmless.
+
+    2. It serves as the message ID to which translations will be mapped.
+
+  An example translation workflow is as follows.
+
+  First, call `mix gettext.extract` to extract `gettext()` calls to `.pot`
+  ([Portable Object Template](https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html))
+  files, which are the base for all translations. These files are *templates*, which
+  means they only contain translation IDs, and not actual translated strings. POT files have
+  entries like this:
+
+      #: lib/myapp_web/live/hello_live.html.heex:2
+      #, elixir-autogen, elixir-format
+      msgid "Hello world"
+      msgstr ""
+
+  Then, call `mix gettext.merge priv/gettext` to update all
+  locale-specific `.po` (Portable Object) files so that they include this message ID.
+  Entries in PO files contain translations for their specific locale. For example,
+  in a PO file for Italian, the entry above would look like this:
+
+      #: lib/myapp_web/live/hello_live.html.heex:2
+      #, elixir-autogen, elixir-format
+      msgid "Hello world"
+      msgstr "Ciao mondo"
+
+  The English string is the `msgid` which is used to look up the
+  correct Italian string.
+  That's handy, because unlike a generic key like `site.greeting` (as some
+  translations systems use), the message ID tells exactly what needs to be
+  translated. This is easier to work with for translators, for example.
+
+  But it raises a question: what if you change the original English string in the code?
+  Does that break all translations, requiring manual edits everywhere? Not necessarily.
+  After you run `mix gettext.extract` again, the next `mix gettext.merge` can
+  do **fuzzy matching**.
+  So, if you change `"Hello world"` to `"Hello world!"`, Gettext will see that the new
+  message ID is similar to an existing `msgid`, and will do two things:
+
+    1. It will update the `msgid` in all `.po` files to match the new text.
+
+    2. It will mark those entries as "fuzzy"; this hints that a (probably human)
+       translator should check whether the Italian translation of this string needs
+       an update.
+
+  The resulting change in the `.po` file is this (note the "fuzzy" annotation):
+
+      #: lib/myapp_web/live/hello_live.html.heex:2
+      #, elixir-autogen, elixir-format, fuzzy
+      msgid "Hello world!"
+      msgstr "Ciao mondo"
+
+  This "fuzzy matching" behavior can be configured or disabled, but its
+  existence makes updating translations to match changes in the base text easier.
+
+  The rest of the documentation will cover the Gettext API in detail.
+
+  ## Gettext API
+
+  To use `Gettext`, a module that calls `use Gettext` (referred to below as a
+  "backend") has to be defined:
 
       defmodule MyApp.Gettext do
         use Gettext, otp_app: :my_app
       end
 
-  This automatically defines some macros in the `MyApp.Gettext` module.
+  This automatically defines some macros in the `MyApp.Gettext` backend module.
   Here are some examples:
 
       import MyApp.Gettext
@@ -95,14 +168,13 @@ defmodule Gettext do
       use Gettext, otp_app: :my_app, priv: "priv/messages"
 
   The messages directory specified by the `:priv` option should be a directory
-  inside `priv/`, otherwise some things (like `mix compile.gettext`) won't work
-  as expected.
+  inside `priv/`, otherwise some things won't work as expected.
 
   ## Locale
 
   At runtime, all gettext-related functions and macros that do not explicitly
-  take a locale as an argument read the locale from the backend locale and
-  fallbacks to Gettext's locale.
+  take a locale as an argument read the locale from the backend and fall back
+  to Gettext's default locale.
 
   `Gettext.put_locale/1` can be used to change the locale of all backends for
   the current Elixir process. That's the preferred mechanism for setting the
@@ -325,10 +397,10 @@ defmodule Gettext do
       #=> "Ciao, Meg!"
 
   Interpolation keys that are in a string but not in the provided bindings
-  result in a `Gettext.Error` exception:
+  result in an exception:
 
       MyApp.Gettext.gettext("Hello, %{name}!")
-      #=> ** (Gettext.Error) missing interpolation keys: name
+      #=> ** (Gettext.MissingBindingsError) ...
 
   Keys that are in the interpolation bindings but that don't occur in the string
   are ignored. Interpolations in Gettext are often expanded at compile time,
@@ -403,12 +475,13 @@ defmodule Gettext do
 
   As mentioned above, using the Gettext macros (as opposed to functions) allows
   Gettext to operate on those messages *at compile-time*. This can be used
-  to extract messages from the source code into POT files automatically
-  (instead of having to manually add messages to POT files when they're added
-  to the source code). The `gettext.extract` does exactly this: whenever there
-  are new messages in the source code, running `gettext.extract` syncs the
-  existing POT files with the changed code base. Read the documentation for
-  `Mix.Tasks.Gettext.Extract` for more information on the extraction process.
+  to extract messages from the source code into POT (Portable Object Template)
+  files automatically (instead of having to manually add messages to POT files
+  when they're added to the source code). The `gettext.extract` does exactly
+  this: whenever there are new messages in the source code, running
+  `gettext.extract` syncs the existing POT files with the changed code base.
+  Read the documentation for `Mix.Tasks.Gettext.Extract` for more information
+  on the extraction process.
 
   POT files are just *template* files and the messages in them do not
   actually contain translated strings. A POT file looks like this:
@@ -465,9 +538,8 @@ defmodule Gettext do
     * `:priv` - a string representing a directory where messages will be
       searched. The directory is relative to the directory of the application
       specified by the `:otp_app` option. It is recommended to always have
-      this directory inside `"priv"`, otherwise some features like the
-      "mix compile.gettext" won't work as expected. By default it's
-      `"priv/gettext"`.
+      this directory inside `"priv"`, otherwise some features won't work as expected.
+      By default it's `"priv/gettext"`.
 
     * `:plural_forms` - a module which will act as a "pluralizer". For more
       information, look at the documentation for `Gettext.Plural`.
@@ -519,60 +591,30 @@ defmodule Gettext do
       reference comments will not be written when extracting messages or merging
       messages, and the ones already found in files will be discarded.
 
-    * `:sort_by_msgid` - a boolean that modifies the sorting behavior.
-      By default, the order of existing messages in a POT file is kept and new
-      messages are appended to the file. If `:sort_by_msgid` is set to `true`,
+    * `:write_reference_line_numbers` - a boolean that specifies whether file
+      reference comments include line numbers when outputting PO(T) files.
+      Defaults to `true`.
+
+    * `:sort_by_msgid` - modifies the sorting behavior. Can be either `nil` (the default),
+      `:case_sensitive`, or `:case_insensitive`.
+      By default or if `nil`, the order of existing messages in a POT file is kept and new
+      messages are appended to the file. If `:sort_by_msgid` is set to `:case_sensitive`,
       existing and new messages will be mixed and sorted alphabetically by msgid.
+      If set to `:case_insensitive`, the same applies but the sorting is case insensitive.
+      *Note*: this option also supports `true` and `false` for backwards compatibility,
+      but these values are deprecated as of v0.21.0.
 
     * `:on_obsolete` - controls what happens when obsolete messages are found.
       If `:mark_as_obsolete`, messages are kept and marked as obsolete.
       If `:delete`, obsolete messages are deleted. Defaults to `:delete`.
 
+    * `:store_previous_message_on_fuzzy_match` - a boolean that controls
+      whether to store the previous message text in case of a fuzzy match.
+      Defaults to `false`.
+
   """
 
-  defmodule Error do
-    @moduledoc """
-    A generic error raised for a variety of possible Gettext-related reasons
-    (for example, missing interpolation keys).
-    """
-    defexception [:message]
-  end
-
-  defmodule PluralFormError do
-    @enforce_keys [:form, :locale, :file, :line]
-    defexception [:form, :locale, :file, :line]
-
-    @type t() :: %__MODULE__{}
-
-    def message(%{form: form, locale: locale, file: file, line: line}) do
-      "plural form #{form} is required for locale #{inspect(locale)} " <>
-        "but is missing for message compiled from #{file}:#{line}"
-    end
-  end
-
-  defmodule MissingBindingsError do
-    @moduledoc """
-    An error message raised for missing bindings errors.
-    """
-
-    @enforce_keys [:backend, :domain, :msgctxt, :locale, :msgid, :missing]
-    defexception [:backend, :domain, :msgctxt, :locale, :msgid, :missing]
-
-    @type t() :: %__MODULE__{}
-
-    def message(%{
-          backend: backend,
-          domain: domain,
-          msgctxt: msgctxt,
-          locale: locale,
-          msgid: msgid,
-          missing: missing
-        }) do
-      "missing Gettext bindings: #{inspect(missing)} (backend #{inspect(backend)}, " <>
-        "locale #{inspect(locale)}, domain #{inspect(domain)}, msgctxt #{inspect(msgctxt)}, " <>
-        "msgid #{inspect(msgid)})"
-    end
-  end
+  alias Gettext.MissingBindingsError
 
   @type locale :: binary
   @type backend :: module
@@ -974,7 +1016,7 @@ defmodule Gettext do
 
   """
   @spec with_locale(locale, (() -> result)) :: result when result: var
-  def with_locale(locale, fun) do
+  def with_locale(locale, fun) when is_binary(locale) and is_function(fun) do
     previous_locale = Process.get(Gettext)
     Gettext.put_locale(locale)
 
@@ -1016,8 +1058,9 @@ defmodule Gettext do
       #=> "Bonjour monde"
 
   """
-  @spec with_locale(backend, locale, (() -> result)) :: result when result: var
-  def with_locale(backend, locale, fun) do
+  @spec with_locale(backend(), locale(), (() -> result)) :: result when result: var
+  def with_locale(backend, locale, fun)
+      when is_atom(backend) and is_binary(locale) and is_function(fun) do
     previous_locale = Process.get(backend)
     Gettext.put_locale(backend, locale)
 
@@ -1059,8 +1102,8 @@ defmodule Gettext do
       #=> ["en", "it", "pt_BR"]
 
   """
-  @spec known_locales(backend) :: [locale]
-  def known_locales(backend) do
+  @spec known_locales(backend()) :: [locale()]
+  def known_locales(backend) when is_atom(backend) do
     backend.__gettext__(:known_locales)
   end
 

@@ -1,5 +1,6 @@
 defmodule Gettext.ExtractorAgent do
   @moduledoc false
+
   use Agent
 
   alias Expo.Message
@@ -16,8 +17,8 @@ defmodule Gettext.ExtractorAgent do
     extracting?: false
   }
 
-  @spec start_link(any) :: Agent.on_start()
-  def start_link(_) do
+  @spec start_link(keyword()) :: Agent.on_start()
+  def start_link([] = _opts) do
     Agent.start_link(fn -> @initial_state end, name: @name)
   end
 

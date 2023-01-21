@@ -7,4 +7,25 @@ defmodule GettextTest.CustomPlural do
   def plural("it", _), do: 0
 end
 
+defmodule GettextTest.CustomCompiledPlural do
+  @behaviour Gettext.Plural
+
+  @impl Gettext.Plural
+  def init(context), do: context
+
+  @impl Gettext.Plural
+  def nplurals(context) do
+    send(self(), {:nplurals_context, context})
+
+    2
+  end
+
+  @impl Gettext.Plural
+  def plural(context, _count) do
+    send(self(), {:plural_context, context})
+
+    0
+  end
+end
+
 ExUnit.start()

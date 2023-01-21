@@ -6,7 +6,7 @@ defmodule Gettext.Plural do
   This module both defines the `Gettext.Plural` behaviour and provides a default
   implementation for it.
 
-  ## Plural forms
+  ## Plural Forms
 
   > For a given language, there is a grammatical rule on how to change words
   > depending on the number qualifying the word. Different languages can have
@@ -26,13 +26,14 @@ defmodule Gettext.Plural do
   The goal of this module is to determine, given a locale:
 
     * how many plural forms exist in that locale (`nplurals/1`);
+
     * to what plural form a given number of elements belongs to in that locale
       (`plural/2`).
 
-  ## Default implementation
+  ## Default Implementation
 
   `Gettext.Plural` provides a default implementation of a plural module. Most
-  languages used on Earth should be covered by this default implementation. If
+  common languages used on Earth should be covered by this default implementation. If
   custom pluralization rules are needed (for example, to add additional
   languages) a different plural module can be specified when creating a Gettext
   backend. For example, pluralization rules for the Elvish language could be
@@ -47,9 +48,9 @@ defmodule Gettext.Plural do
         def plural("elv", 1), do: 1
         def plural("elv", _), do: 2
 
-        # Fallback to Gettext.Plural
-        def nplurals(locale), do: Gettext.Plural.nplurals(locale)
-        def plural(locale, n), do: Gettext.Plural.plural(locale, n)
+        # Fall back to Gettext.Plural
+        defdelegate nplurals(locale), to: Gettext.Plural
+        defdelegate plural(locale, n), to: Gettext.Plural
       end
 
   The mathematical expressions used in this module to determine the plural form
@@ -58,82 +59,168 @@ defmodule Gettext.Plural do
   as well as from [Mozilla's guide on "Localization and
   plurals"](https://udn.realityripple.com/docs/Mozilla/Localization/Localization_and_Plurals).
 
-  Now that we have defined our custom plural forms, we can use them
-  in two ways. You can set it for all `:gettext` backends in your
-  config files:
+  ## Changing Implementations
 
+  Once you have defined your custom plural forms module, you can use it
+  in two ways. You can set it for all Gettext backends in your
+  configuration:
+
+      # For example, in config/config.exs
       config :gettext, :plural_forms, MyApp.Plural
 
-  Or to each specific backend:
+  or you can set it for each specific backend when you call `use Gettext`:
 
       defmodule MyApp.Gettext do
         use Gettext, otp_app: :my_app, plural_forms: MyApp.Plural
       end
 
-  **Note**: set `:plural_forms` in your `config/config.exs` and
-  not in `config/runtime.exs`, as this configuration is read when
-  compiling your backends.
+  > #### Compile-time Configuration {: .warning}
+  >
+  > Set `:plural_forms` in your `config/config.exs` and
+  > not in `config/runtime.exs`, as Gettext reads this option when
+  > compiling your backends.
 
-  Notice that tasks such as `mix gettext.merge` use the plural
-  backend configured under the `:gettext` application, so generally
-  speaking the first format is preferred.
+  Task such as `mix gettext.merge` use the plural
+  backend configured under the `:gettext` application, so in general
+  the global configuration approach is preferred.
 
-  Note some tasks also allow the number of plural forms to be given
+  Some tasks also allow the number of plural forms to be given
   explicitly, for example:
 
       mix gettext.merge priv/gettext --locale=gsw_CH --plural-forms=2
 
-  ### Unknown locales
+  ## Unknown Locales
 
   Trying to call `Gettext.Plural` functions with unknown locales will result in
   a `Gettext.Plural.UnknownLocaleError` exception.
 
-  ### Language and territory
+  ## Language and Territory
 
-  Often, a locale is composed as a language and territory couple, such as
+  Often, a locale is composed as a language and territory pair, such as
   `en_US`. The default implementation for `Gettext.Plural` handles `xx_YY` by
   forwarding it to `xx` (except for *just Brazilian Portuguese*, `pt_BR`, which
-  is not forwarded to `pt` as pluralization rules slightly differ). We treat the
+  is not forwarded to `pt` as pluralization rules differ slightly). We treat the
   underscore as a separator according to
   [ISO 15897](https://en.wikipedia.org/wiki/ISO/IEC_15897). Sometimes, a dash `-` is
   used as a separator (for example [BCP47](https://en.wikipedia.org/wiki/IETF_language_tag)
-  locales use this as in `en-US`): this is not forwarded to `en` in the default
+  locales use this as in `en-US`): this is *not forwarded* to `en` in the default
   `Gettext.Plural` (and it will raise an `Gettext.Plural.UnknownLocaleError` exception
-  if there are no messages for `en-US`).
+  if there are no messages for `en-US`). We recommend defining a custom plural forms
+  module that replaces `-` with `_` if needed.
 
   ## Examples
 
   An example of the plural form of a given number of elements in the Polish
   language:
 
-      iex> Plural.plural("pl", 1)
+      iex> Gettext.Plural.plural("pl", 1)
       0
-      iex> Plural.plural("pl", 2)
+      iex> Gettext.Plural.plural("pl", 2)
       1
-      iex> Plural.plural("pl", 5)
+      iex> Gettext.Plural.plural("pl", 5)
       2
-      iex> Plural.plural("pl", 112)
+      iex> Gettext.Plural.plural("pl", 112)
       2
 
   As expected, `nplurals/1` returns the possible number of plural forms:
 
-      iex> Plural.nplurals("pl")
+      iex> Gettext.Plural.nplurals("pl")
       3
 
   """
 
-  # Behaviour definition.
+  alias Expo.Messages
 
-  @doc """
-  Returns the number of possible plural forms in the given `locale`.
+  # Types
+
+  @typedoc """
+  A locale passed to `c:plural/2`.
   """
-  @callback nplurals(locale :: String.t()) :: pos_integer
+  @typedoc since: "0.22.0"
+  @type locale() :: String.t()
+
+  @typedoc """
+  The context passed to the optional `c:init/1` callback.
+
+  If `:plural_forms_header` is present, it contains the contents
+  of the `Plural-Forms` Gettext header.
+  """
+  @typedoc since: "0.22.0"
+  @type pluralization_context() :: %{
+          required(:locale) => locale(),
+          optional(:plural_forms_header) => String.t()
+        }
+
+  @typedoc """
+  The term that the optional `c:init/1` callback returns.
+  """
+  @typedoc since: "0.22.0"
+  @type plural_info() :: term()
+
+  ## Behaviour definition
 
   @doc """
-  Returns the plural form in the given `locale` for the given `count` of
+  Should initialize the context for `c:nplurals/1` and `c:plural/2`.
+
+  This callback should perform all preparations for the provided locale, which
+  is part of the pluralization context (see `t:pluralization_context/0`). For
+  example, you can use this callback to parse the `Plural-Forms` header and
+  determine pluralization rules for the locale.
+
+  If defined, Gettext calls this callback *once* at compile time. If not defined,
+  the returned `plural_info` will be equals to the locale found in
+  `pluralization_context`.
+
+  ## Examples
+
+      defmodule MyApp.Plural do
+        @behaviour Gettext.Plural
+
+        @impl true
+        def init(%{locale: _locale, plural_forms_header: header}) do
+          {nplurals, rule} = parse_plural_forms_header(header)
+
+          # This is what other callbacks can use to determine the plural.
+          {nplurals, rule}
+        end
+
+        @impl true
+        def nplurals({_locale, nplurals, _rule}), do: nplurals
+
+        # ...
+      end
+
+  """
+  @doc since: "0.22.0"
+  @callback init(pluralization_context()) :: plural_info()
+
+  @doc """
+  Should return the number of possible plural forms in the given `locale`.
+  """
+  @callback nplurals(plural_info()) :: pos_integer()
+
+  @doc """
+  Should return the plural form in the given `locale` for the given `count` of
   elements.
   """
-  @callback plural(locale :: String.t(), count :: integer) :: plural_form :: non_neg_integer
+  @callback plural(plural_info(), count :: integer()) :: plural_form :: non_neg_integer()
+
+  @doc """
+  Should return the value of the `Plural-Forms` header for the given `locale`,
+  if present.
+
+  If the value of the `Plural-Forms` header is unavailable for any reason, this
+  function should return `nil`.
+
+  This callback is optional. If it's not defined, the fallback returns:
+
+      "nplurals={nplurals};"
+
+  """
+  @doc since: "0.22.0"
+  @callback plural_forms_header(locale()) :: String.t() | nil
+
+  @optional_callbacks init: 1, plural_forms_header: 1
 
   defmodule UnknownLocaleError do
     @moduledoc """
@@ -169,516 +256,131 @@ defmodule Gettext.Plural do
     end
   end
 
-  @one_form [
-    # Aymará
-    "ay",
-    # Tibetan
-    "bo",
-    # Chiga
-    "cgg",
-    # Dzongkha
-    "dz",
-    # Persian
-    "fa",
-    # Indonesian
-    "id",
-    # Japanese
-    "ja",
-    # Lojban
-    "jbo",
-    # Georgian
-    "ka",
-    # Kazakh
-    "kk",
-    # Khmer
-    "km",
-    # Korean
-    "ko",
-    # Kyrgyz
-    "ky",
-    # Lao
-    "lo",
-    # Malay
-    "ms",
-    # Burmese
-    "my",
-    # Yakut
-    "sah",
-    # Sundanese
-    "su",
-    # Thai
-    "th",
-    # Tatar
-    "tt",
-    # Uyghur
-    "ug",
-    # Vietnamese
-    "vi",
-    # Wolof
-    "wo",
-    # Chinese [2]
-    "zh"
-  ]
+  # Default implementation of the init/1 callback, in case the user uses
+  # Gettext.Plural as their plural forms module.
+  @doc false
+  def init(context)
 
-  @two_forms_1 [
-    # Afrikaans
-    "af",
-    # Aragonese
-    "an",
-    # Angika
-    "anp",
-    # Assamese
-    "as",
-    # Asturian
-    "ast",
-    # Azerbaijani
-    "az",
-    # Bulgarian
-    "bg",
-    # Bengali
-    "bn",
-    # Bodo
-    "brx",
-    # Catalan
-    "ca",
-    # Danish
-    "da",
-    # German
-    "de",
-    # Dogri
-    "doi",
-    # Greek
-    "el",
-    # English
-    "en",
-    # Esperanto
-    "eo",
-    # Spanish
-    "es",
-    # Estonian
-    "et",
-    # Basque
-    "eu",
-    # Fulah
-    "ff",
-    # Finnish
-    "fi",
-    # Faroese
-    "fo",
-    # Friulian
-    "fur",
-    # Frisian
-    "fy",
-    # Galician
-    "gl",
-    # Gujarati
-    "gu",
-    # Hausa
-    "ha",
-    # Hebrew
-    "he",
-    # Hindi
-    "hi",
-    # Chhattisgarhi
-    "hne",
-    # Armenian
-    "hy",
-    # Hungarian
-    "hu",
-    # Interlingua
-    "ia",
-    # Italian
-    "it",
-    # Greenlandic
-    "kl",
-    # Kannada
-    "kn",
-    # Kurdish
-    "ku",
-    # Letzeburgesch
-    "lb",
-    # Maithili
-    "mai",
-    # Malayalam
-    "ml",
-    # Mongolian
-    "mn",
-    # Manipuri
-    "mni",
-    # Marathi
-    "mr",
-    # Nahuatl
-    "nah",
-    # Neapolitan
-    "nap",
-    # Norwegian Bokmal
-    "nb",
-    # Nepali
-    "ne",
-    # Dutch
-    "nl",
-    # Northern Sami
-    "se",
-    # Norwegian Nynorsk
-    "nn",
-    # Norwegian (old code)
-    "no",
-    # Northern Sotho
-    "nso",
-    # Oriya
-    "or",
-    # Pashto
-    "ps",
-    # Punjabi
-    "pa",
-    # Papiamento
-    "pap",
-    # Piemontese
-    "pms",
-    # Portuguese
-    "pt",
-    # Romansh
-    "rm",
-    # Kinyarwanda
-    "rw",
-    # Santali
-    "sat",
-    # Scots
-    "sco",
-    # Sindhi
-    "sd",
-    # Sinhala
-    "si",
-    # Somali
-    "so",
-    # Songhay
-    "son",
-    # Albanian
-    "sq",
-    # Swahili
-    "sw",
-    # Swedish
-    "sv",
-    # Tamil
-    "ta",
-    # Telugu
-    "te",
-    # Turkmen
-    "tk",
-    # Urdu
-    "ur",
-    # Yoruba
-    "yo"
-  ]
+  def init(%{locale: locale, plural_forms_header: plural_forms_header}) do
+    case Expo.PluralForms.parse(plural_forms_header) do
+      {:ok, plural_forms} ->
+        {locale, plural_forms}
 
-  @two_forms_2 [
-    # Acholi
-    "ach",
-    # Akan
-    "ak",
-    # Amharic
-    "am",
-    # Mapudungun
-    "arn",
-    # Breton
-    "br",
-    # Filipino
-    "fil",
-    # French
-    "fr",
-    # Gun
-    "gun",
-    # Lingala
-    "ln",
-    # Mauritian Creole
-    "mfe",
-    # Malagasy
-    "mg",
-    # Maori
-    "mi",
-    # Occitan
-    "oc",
-    # Tajik
-    "tg",
-    # Tigrinya
-    "ti",
-    # Tagalog
-    "tl",
-    # Turkish
-    "tr",
-    # Uzbek
-    "uz",
-    # Walloon
-    "wa"
-  ]
+      {:error, _reason} ->
+        # Fall back to parsing headers such as "nplurals=3", without the "plural=..." part.
+        # TODO: remove this at some point.
+        with "nplurals=" <> rest <- String.trim(plural_forms_header),
+             {plural_forms, _rest} <- Integer.parse(rest) do
+          {locale, plural_forms}
+        else
+          _other -> locale
+        end
+    end
+  end
 
-  @three_forms_slavic [
-    # Belarusian
-    "be",
-    # Bosnian
-    "bs",
-    # Croatian
-    "hr",
-    # Serbian
-    "sr",
-    # Russian
-    "ru",
-    # Ukrainian
-    "uk"
-  ]
-
-  @three_forms_slavic_alt [
-    # Czech
-    "cs",
-    # Slovak
-    "sk"
-  ]
+  def init(%{locale: locale}), do: locale
 
   # Number of plural forms.
 
+  @doc """
+  Default implementation of the `c:nplurals/1` callback.
+  """
   def nplurals(locale)
 
-  # All the groupable forms.
-
-  for l <- @one_form do
-    def nplurals(unquote(l)), do: 1
+  # TODO: this is a fallback for headers such as "nplurals=x", without "plural=...".
+  # We should remove support for these at some point.
+  def nplurals({_locale, nplurals}) when is_integer(nplurals) do
+    nplurals
   end
 
-  for l <- @two_forms_1 ++ @two_forms_2 do
-    def nplurals(unquote(l)), do: 2
+  # If the nplurals was provided, we don't need to look at the locale.
+  def nplurals({_locale, plural_forms}) do
+    plural_forms.nplurals
   end
 
-  for l <- @three_forms_slavic ++ @three_forms_slavic_alt do
-    def nplurals(unquote(l)), do: 3
-  end
-
-  # Then, all other ones.
-
-  # Arabic
-  def nplurals("ar"), do: 6
-
-  # Kashubian
-  def nplurals("csb"), do: 3
-
-  # Welsh
-  def nplurals("cy"), do: 4
-
-  # Irish
-  def nplurals("ga"), do: 5
-
-  # Scottish Gaelic
-  def nplurals("gd"), do: 4
-
-  # Icelandic
-  def nplurals("is"), do: 2
-
-  # Javanese
-  def nplurals("jv"), do: 2
-
-  # Cornish
-  def nplurals("kw"), do: 4
-
-  # Lithuanian
-  def nplurals("lt"), do: 3
-
-  # Latvian
-  def nplurals("lv"), do: 3
-
-  # Macedonian
-  def nplurals("mk"), do: 3
-
-  # Mandinka
-  def nplurals("mnk"), do: 3
-
-  # Maltese
-  def nplurals("mt"), do: 4
-
-  # Polish
-  def nplurals("pl"), do: 3
-
-  # Romanian
-  def nplurals("ro"), do: 3
-
-  # Slovenian
-  def nplurals("sl"), do: 4
-
-  # Match-all clause.
   def nplurals(locale) do
-    recall_if_territory_or_raise(locale, &nplurals/1)
+    case Expo.PluralForms.plural_form(locale) do
+      {:ok, plural_form} -> plural_form.nplurals
+      :error -> recall_if_territory_or_raise(locale, &nplurals/1)
+    end
   end
 
-  # Plural form of groupable languages.
-
+  @doc """
+  Default implementation of the `c:plural/2` callback.
+  """
   def plural(locale, count)
 
-  # All the `x_Y` languages that have different pluralization rules than `x`.
-
-  def plural("pt_BR", n) when n in [0, 1], do: 0
-  def plural("pt_BR", _n), do: 1
-
-  # Groupable forms.
-
-  for l <- @one_form do
-    def plural(unquote(l), _n), do: 0
+  # TODO: this is a fallback for headers such as "nplurals=x", without "plural=...".
+  # We should remove support for these at some point.
+  def plural({locale, nplurals}, count) when is_integer(nplurals) do
+    plural(locale, count)
   end
 
-  for l <- @two_forms_1 do
-    def plural(unquote(l), 1), do: 0
-    def plural(unquote(l), _n), do: 1
+  def plural({_locale, plural_form}, count) do
+    Expo.PluralForms.index(plural_form, count)
   end
 
-  for l <- @two_forms_2 do
-    def plural(unquote(l), n) when n in [0, 1], do: 0
-    def plural(unquote(l), _n), do: 1
-  end
-
-  for l <- @three_forms_slavic do
-    def plural(unquote(l), n)
-        when ends_in(n, 1) and rem(n, 100) != 11,
-        do: 0
-
-    def plural(unquote(l), n)
-        when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
-        do: 1
-
-    def plural(unquote(l), _n), do: 2
-  end
-
-  for l <- @three_forms_slavic_alt do
-    def plural(unquote(l), 1), do: 0
-    def plural(unquote(l), n) when n in 2..4, do: 1
-    def plural(unquote(l), _n), do: 2
-  end
-
-  # Custom plural forms.
-
-  # Arabic
-  # n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5
-  def plural("ar", 0), do: 0
-  def plural("ar", 1), do: 1
-  def plural("ar", 2), do: 2
-  def plural("ar", n) when rem(n, 100) >= 3 and rem(n, 100) <= 10, do: 3
-  def plural("ar", n) when rem(n, 100) >= 11, do: 4
-  def plural("ar", _n), do: 5
-
-  # Kashubian
-  # (n==1) ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;
-  def plural("csb", 1), do: 0
-
-  def plural("csb", n)
-      when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
-      do: 1
-
-  def plural("csb", _n), do: 2
-
-  # Welsh
-  # (n==1) ? 0 : (n==2) ? 1 : (n != 8 && n != 11) ? 2 : 3
-  def plural("cy", 1), do: 0
-  def plural("cy", 2), do: 1
-  def plural("cy", n) when n != 8 and n != 11, do: 2
-  def plural("cy", _n), do: 3
-
-  # Irish
-  # n==1 ? 0 : n==2 ? 1 : (n>2 && n<7) ? 2 :(n>6 && n<11) ? 3 : 4
-  def plural("ga", 1), do: 0
-  def plural("ga", 2), do: 1
-  def plural("ga", n) when n in 3..6, do: 2
-  def plural("ga", n) when n in 7..10, do: 3
-  def plural("ga", _n), do: 4
-
-  # Scottish Gaelic
-  # (n==1 || n==11) ? 0 : (n==2 || n==12) ? 1 : (n > 2 && n < 20) ? 2 : 3
-  def plural("gd", n) when n == 1 or n == 11, do: 0
-  def plural("gd", n) when n == 2 or n == 12, do: 1
-  def plural("gd", n) when n > 2 and n < 20, do: 2
-  def plural("gd", _n), do: 3
-
-  # Icelandic
-  # n%10!=1 || n%100==11
-  def plural("is", n) when ends_in(n, 1) and rem(n, 100) != 11, do: 0
-  def plural("is", _n), do: 1
-
-  # Javanese
-  # n != 0
-  def plural("jv", 0), do: 0
-  def plural("jv", _), do: 1
-
-  # Cornish
-  # (n==1) ? 0 : (n==2) ? 1 : (n == 3) ? 2 : 3
-  def plural("kw", 1), do: 0
-  def plural("kw", 2), do: 1
-  def plural("kw", 3), do: 2
-  def plural("kw", _), do: 3
-
-  # Lithuanian
-  # n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2
-  def plural("lt", n)
-      when ends_in(n, 1) and rem(n, 100) != 11,
-      do: 0
-
-  def plural("lt", n)
-      when rem(n, 10) >= 2 and (rem(n, 100) < 10 or rem(n, 100) >= 20),
-      do: 1
-
-  def plural("lt", _), do: 2
-
-  # Latvian
-  # n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2
-  def plural("lv", n) when ends_in(n, 1) and rem(n, 100) != 11, do: 0
-  def plural("lv", n) when n != 0, do: 1
-  def plural("lv", _), do: 2
-
-  # Macedonian
-  # n==1 || n%10==1 ? 0 : 1; Can’t be correct needs a 2 somewhere
-  def plural("mk", n) when ends_in(n, 1), do: 0
-  def plural("mk", n) when ends_in(n, 2), do: 1
-  def plural("mk", _), do: 2
-
-  # Mandinka
-  # n==0 ? 0 : n==1 ? 1 : 2
-  def plural("mnk", 0), do: 0
-  def plural("mnk", 1), do: 1
-  def plural("mnk", _), do: 2
-
-  # Maltese
-  # n==1 ? 0 : n==0 || ( n%100>1 && n%100<11) ? 1 : (n%100>10 && n%100<20 ) ? 2 : 3
-  def plural("mt", 1), do: 0
-  def plural("mt", n) when n == 0 or (rem(n, 100) > 1 and rem(n, 100) < 11), do: 1
-  def plural("mt", n) when rem(n, 100) > 10 and rem(n, 100) < 20, do: 2
-  def plural("mt", _), do: 3
-
-  # Polish
-  # n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2
-  def plural("pl", 1), do: 0
-
-  def plural("pl", n)
-      when ends_in(n, [2, 3, 4]) and (rem(n, 100) < 10 or rem(n, 100) >= 20),
-      do: 1
-
-  def plural("pl", _), do: 2
-
-  # Romanian
-  # n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2
-  def plural("ro", 1), do: 0
-  def plural("ro", n) when n == 0 or (rem(n, 100) > 0 and rem(n, 100) < 20), do: 1
-  def plural("ro", _), do: 2
-
-  # Slovenian
-  # n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n%100==4 ? 3 : 0
-  def plural("sl", n) when rem(n, 100) == 1, do: 1
-  def plural("sl", n) when rem(n, 100) == 2, do: 2
-  def plural("sl", n) when rem(n, 100) == 3, do: 3
-  def plural("sl", _), do: 0
-
-  # Match-all clause.
-  def plural(locale, n) do
-    recall_if_territory_or_raise(locale, &plural(&1, n))
+  def plural(locale, count) do
+    case Expo.PluralForms.plural_form(locale) do
+      {:ok, plural_form} -> Expo.PluralForms.index(plural_form, count)
+      :error -> recall_if_territory_or_raise(locale, &plural(&1, count))
+    end
   end
 
   defp recall_if_territory_or_raise(locale, fun) do
     case String.split(locale, "_", parts: 2, trim: true) do
       [lang, _territory] -> fun.(lang)
       _other -> raise UnknownLocaleError, locale
+    end
+  end
+
+  @doc false
+  def plural_info(locale, messages_struct, plural_mod) do
+    ensure_loaded!(plural_mod)
+
+    if function_exported?(plural_mod, :init, 1) do
+      pluralization_context =
+        case IO.iodata_to_binary(Messages.get_header(messages_struct, "Plural-Forms")) do
+          "" -> %{locale: locale}
+          plural_forms -> %{locale: locale, plural_forms_header: plural_forms}
+        end
+
+      plural_mod.init(pluralization_context)
+    else
+      locale
+    end
+  end
+
+  @doc false
+  def plural_forms_header_impl(locale, messages_struct, plural_mod) do
+    ensure_loaded!(plural_mod)
+
+    plural_forms_header =
+      if function_exported?(plural_mod, :plural_forms_header, 1) do
+        plural_mod.plural_forms_header(locale)
+      end
+
+    if plural_forms_header do
+      plural_forms_header
+    else
+      nplurals = plural_mod.nplurals(plural_info(locale, messages_struct, plural_mod))
+      "nplurals=#{nplurals}"
+    end
+  end
+
+  # TODO: remove when we depend on Elixir 1.12+
+  if function_exported?(Code, :ensure_loaded!, 1) do
+    defp ensure_loaded!(mod), do: Code.ensure_loaded!(mod)
+  else
+    defp ensure_loaded!(mod) do
+      case Code.ensure_loaded(mod) do
+        {:module, ^mod} ->
+          mod
+
+        {:error, reason} ->
+          raise ArgumentError,
+                "could not load module #{inspect(mod)} due to reason #{inspect(reason)}"
+      end
     end
   end
 end
