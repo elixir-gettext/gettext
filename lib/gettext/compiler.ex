@@ -45,10 +45,6 @@ defmodule Gettext.Compiler do
         {mod, opts} when is_atom(mod) -> {mod, mod.init(opts)}
       end
 
-    plural_mod =
-      Keyword.get(opts, :plural_forms) ||
-        Application.get_env(:gettext, :plural_forms, Gettext.Plural)
-
     quote do
       @behaviour Gettext.Backend
 
@@ -74,9 +70,9 @@ defmodule Gettext.Compiler do
 
       unquote(macros())
 
-      unquote(public_functions(repo, repo_opts, interpolation, plural_mod))
+      unquote(public_functions(repo, repo_opts, interpolation))
 
-      unquote(compile_po_files(env, known_po_files, plural_mod, opts))
+      unquote(compile_po_files(env, known_po_files, opts))
 
       # Catch-all clauses.
       defp lgettext_compiled(locale, domain, msgctxt, msgid, bindings),
@@ -321,7 +317,7 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp public_functions(nil, _repo_opts, _interpolation, _plural_mod) do
+  defp public_functions(nil, _repo_opts, _interpolation) do
     quote do
       def lgettext(locale, domain, msgctxt \\ nil, msgid, bindings) do
         lgettext_compiled(locale, domain, msgctxt, msgid, bindings)
@@ -333,7 +329,7 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp public_functions(repo, repo_opts, interpolation, plural_mod) do
+  defp public_functions(repo, repo_opts, interpolation) do
     quote do
       def lgettext(locale, domain, msgctxt, msgid, bindings) do
         case unquote(repo).get_translation(locale, domain, msgctxt, msgid, unquote(repo_opts)) do
@@ -346,15 +342,13 @@ defmodule Gettext.Compiler do
       end
 
       def lngettext(locale, domain, msgctxt, msgid, msgid_plural, n, bindings) do
-        plural_form = unquote(plural_mod).plural(locale, n)
-
         case unquote(repo).get_plural_translation(
                locale,
                domain,
                msgctxt,
                msgid,
                msgid_plural,
-               plural_form,
+               n,
                unquote(repo_opts)
              ) do
           {:ok, msgstr} ->
@@ -447,7 +441,11 @@ defmodule Gettext.Compiler do
 
   # Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
   # and `lngettext/6` function clauses.
-  defp compile_po_files(env, known_po_files, plural_mod, opts) do
+  defp compile_po_files(env, known_po_files, opts) do
+    plural_mod =
+      Keyword.get(opts, :plural_forms) ||
+        Application.get_env(:gettext, :plural_forms, Gettext.Plural)
+
     opts =
       if opts[:one_module_per_locale] do
         IO.warn(

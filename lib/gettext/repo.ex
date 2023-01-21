@@ -8,7 +8,7 @@ defmodule Gettext.Repo do
   @type msgctxt() :: String.t() | nil
   @type msgid() :: String.t()
   @type msgid_plural() :: String.t()
-  @type plural_form() :: integer()
+  @type count() :: integer()
   @type msgstr() :: binary()
   @type opts() :: term()
 
@@ -26,6 +26,6 @@ defmodule Gettext.Repo do
   @doc """
   Should return a plural translation string.
   """
-  @callback get_plural_translation(locale(), domain(), msgctxt(), msgid(), msgid_plural(), plural_form(), opts()) ::
+  @callback get_plural_translation(locale(), domain(), msgctxt(), msgid(), msgid_plural(), count(), opts()) ::
               {:ok, msgstr()} | :not_found
 end
