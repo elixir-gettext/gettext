@@ -267,6 +267,20 @@ defmodule Gettext.Plural do
         {locale, plural_forms}
 
       {:error, _reason} ->
+        message_about_header =
+          case Expo.PluralForms.plural_form(locale) do
+            {:ok, plural_form} ->
+              """
+
+              For the #{inspect(locale)} locale, you can use the following header:
+
+              #{Expo.PluralForms.to_string(plural_form)}
+              """
+
+            :error ->
+              ""
+          end
+
         # Fall back to parsing headers such as "nplurals=3", without the "plural=..." part.
         # TODO: remove this in v0.24.0
         with "nplurals=" <> rest <- String.trim(plural_forms_header),
@@ -277,7 +291,7 @@ defmodule Gettext.Plural do
           versions. Make sure to use a complete Plural-Forms header, which also specifies \
           the pluralization rules, or remove the Plural-Forms header completely. If you \
           do the latter, Gettext will use its built-in pluralization rules for the languages \
-          it knows about (see Gettext.Plural).\
+          it knows about (see Gettext.Plural).#{message_about_header}\
           """)
 
           {locale, plural_forms}
