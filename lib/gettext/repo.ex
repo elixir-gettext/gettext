@@ -26,6 +26,14 @@ defmodule Gettext.Repo do
   @doc """
   Should return a plural translation string.
   """
-  @callback get_plural_translation(locale(), domain(), msgctxt(), msgid(), msgid_plural(), count(), opts()) ::
+  @callback get_plural_translation(
+              locale(),
+              domain(),
+              msgctxt(),
+              msgid(),
+              msgid_plural(),
+              count(),
+              opts()
+            ) ::
               {:ok, msgstr()} | :not_found
 end
