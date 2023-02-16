@@ -121,6 +121,7 @@ defmodule Gettext.Extractor do
               "Please set the :priv option to different directories or use Gettext " <>
               "inside each backend"
           )
+
           acc
 
         %{} ->
