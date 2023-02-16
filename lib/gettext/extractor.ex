@@ -122,6 +122,8 @@ defmodule Gettext.Extractor do
               "inside each backend"
           )
 
+          acc
+
         %{} ->
           Map.put(acc, priv, backend)
       end
