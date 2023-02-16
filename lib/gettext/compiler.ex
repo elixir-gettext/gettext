@@ -504,7 +504,7 @@ defmodule Gettext.Compiler do
     %{locale: locale, domain: domain, path: path} = po_file
     %Messages{messages: messages, file: file} = messages_struct = PO.parse_file!(path)
 
-    plural_forms_fun = :"{locale}_#{domain}_plural"
+    plural_forms_fun = :"#{locale}_#{domain}_plural"
 
     plural_forms = compile_plural_forms(locale, messages_struct, plural_mod, plural_forms_fun)
     nplurals = nplurals(locale, messages_struct, plural_mod)
