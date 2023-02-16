@@ -11,20 +11,24 @@ defmodule GettextTest.CustomCompiledPlural do
   @behaviour Gettext.Plural
 
   @impl Gettext.Plural
-  def init(context), do: context
+  def init(plural_info), do: plural_info
 
   @impl Gettext.Plural
-  def nplurals(context) do
-    send(self(), {:nplurals_context, context})
+  def nplurals(plural_info) do
+    send(self(), {:nplurals_context, plural_info})
 
-    2
+    plural_info
+    |> Gettext.Plural.init()
+    |> Gettext.Plural.nplurals()
   end
 
   @impl Gettext.Plural
-  def plural(context, _count) do
-    send(self(), {:plural_context, context})
+  def plural(plural_info, count) do
+    send(self(), {:plural_context, plural_info})
 
-    0
+    plural_info
+    |> Gettext.Plural.init()
+    |> Gettext.Plural.plural(count)
   end
 end
 

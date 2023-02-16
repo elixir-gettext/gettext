@@ -1,0 +1,6 @@
+msgid "Invalid email address"
+msgstr "無効なメールアドレス"
+
+msgid "There was an error"
+msgid_plural "There were %{count} errors"
+msgstr[0] "%{count} エラーがありました"

@@ -249,6 +249,17 @@ defmodule GettextTest do
       lngettext("it", "errors", nil, "There was an error", "There were %{count} errors", 3, %{})
 
     assert message == {:ok, "Ci sono stati 3 errori"}
+
+    assert {:ok, "3 エラーがありました"} =
+             lngettext(
+               "ja",
+               "errors",
+               nil,
+               "There was an error",
+               "There were %{count} errors",
+               3,
+               %{}
+             )
   end
 
   test "by default, non-found pluralized message behave like regular message" do
@@ -817,7 +828,7 @@ defmodule GettextTest do
   end
 
   test "known_locales/1: returns all the locales for which a backend has PO files" do
-    assert Gettext.known_locales(Translator) == ["it"]
+    assert Gettext.known_locales(Translator) == ["it", "ja"]
     assert Gettext.known_locales(TranslatorWithAllowedLocalesAtom) == ["es"]
     assert Gettext.known_locales(TranslatorWithAllowedLocalesString) == ["es"]
   end
