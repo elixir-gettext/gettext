@@ -350,6 +350,15 @@ defmodule Gettext.Plural do
     end
   end
 
+  def plural_forms_header(locale) do
+    case Expo.PluralForms.plural_form(locale) do
+      {:ok, plural_form} -> Expo.PluralForms.to_string(plural_form)
+      :error -> recall_if_territory_or_raise(locale, &plural_forms_header(&1))
+    end
+  rescue
+    UnknownLocaleError -> nil
+  end
+
   defp recall_if_territory_or_raise(locale, fun) do
     case String.split(locale, "_", parts: 2, trim: true) do
       [lang, _territory] -> fun.(lang)
