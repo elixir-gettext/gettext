@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.22.1
+
+  * Put correct `Plural-Forms` header on `gettext.merge` for the first time.
+  * Fix extractor crash in case of conflicting backends.
+  * Fix to use the correct plural forms for multiple languages.
+  * Update expo to `~> 0.4.0` to fix issues with empty `msgstr`.
+
 ## v0.22.0
 
   * Deprecate (with a warning) the `--plural-forms` CLI option and the `:plural_forms` option in favor of `--plural-forms-header` and `:plural_forms_header`.
