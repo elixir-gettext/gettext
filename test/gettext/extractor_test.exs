@@ -91,7 +91,7 @@ defmodule Gettext.ExtractorTest do
       message_1 = %Message.Singular{
         msgid: ["foo"],
         msgstr: ["bar"],
-        references: [{"foo.ex", 1}],
+        references: [[{"foo.ex", 1}, {"bar.ex", 1}], [{"baz.ex", 1}]],
         flags: [["elixir-autogen", "elixir-format"]]
       }
 

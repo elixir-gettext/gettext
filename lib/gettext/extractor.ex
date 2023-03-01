@@ -422,5 +422,5 @@ defmodule Gettext.Extractor do
     do: false
 
   defp protected?(%{references: refs}, pattern),
-    do: Enum.any?(refs, fn {path, _} -> Regex.match?(pattern, path) end)
+    do: refs |> List.flatten() |> Enum.any?(fn {path, _} -> Regex.match?(pattern, path) end)
 end
