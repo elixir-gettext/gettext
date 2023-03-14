@@ -368,7 +368,7 @@ defmodule Gettext.Plural do
 
   @doc false
   def plural_info(locale, messages_struct, plural_mod) do
-    ensure_loaded!(plural_mod)
+    ensure_compiled!(plural_mod)
 
     if function_exported?(plural_mod, :init, 1) do
       pluralization_context =
@@ -385,7 +385,7 @@ defmodule Gettext.Plural do
 
   @doc false
   def plural_forms_header_impl(locale, messages_struct, plural_mod) do
-    ensure_loaded!(plural_mod)
+    ensure_compiled!(plural_mod)
 
     plural_forms_header =
       if function_exported?(plural_mod, :plural_forms_header, 1) do
@@ -402,9 +402,9 @@ defmodule Gettext.Plural do
 
   # TODO: remove when we depend on Elixir 1.12+
   if function_exported?(Code, :ensure_compiled!, 1) do
-    defp ensure_loaded!(mod), do: Code.ensure_compiled!(mod)
+    defp ensure_compiled!(mod), do: Code.ensure_compiled!(mod)
   else
-    defp ensure_loaded!(mod) do
+    defp ensure_compiled!(mod) do
       case Code.ensure_compiled(mod) do
         {:module, ^mod} ->
           mod
