@@ -401,8 +401,8 @@ defmodule Gettext.Plural do
   end
 
   # TODO: remove when we depend on Elixir 1.12+
-  if function_exported?(Code, :ensure_loaded!, 1) do
-    defp ensure_loaded!(mod), do: Code.ensure_loaded!(mod)
+  if function_exported?(Code, :ensure_compiled!, 1) do
+    defp ensure_loaded!(mod), do: Code.ensure_compiled!(mod)
   else
     defp ensure_loaded!(mod) do
       case Code.ensure_compiled(mod) do
