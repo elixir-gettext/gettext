@@ -405,7 +405,7 @@ defmodule Gettext.Plural do
     defp ensure_loaded!(mod), do: Code.ensure_loaded!(mod)
   else
     defp ensure_loaded!(mod) do
-      case Code.ensure_loaded(mod) do
+      case Code.ensure_compiled(mod) do
         {:module, ^mod} ->
           mod
 
