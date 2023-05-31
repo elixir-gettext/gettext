@@ -27,7 +27,7 @@ defmodule Gettext do
   First, call `mix gettext.extract` to extract `gettext()` calls to `.pot`
   ([Portable Object Template](https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html))
   files, which are the base for all translations. These files are *templates*, which
-  means they only contain translation IDs, and not actual translated strings. POT files have
+  means they only contain message IDs, and not actual translated strings. POT files have
   entries like this:
 
       #: lib/myapp_web/live/hello_live.html.heex:2
