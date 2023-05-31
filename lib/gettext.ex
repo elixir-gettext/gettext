@@ -225,18 +225,6 @@ defmodule Gettext do
 
       config :my_app, MyApp.Gettext, default_locale: "fr"
 
-  ### Default Domain
-
-  Each backend can be configured with a specific `:default_domain`
-  that replaces `"default"` in `gettext/2`, `pgettext/3`, and `ngettext/4`
-  for that backend.
-
-      defmodule MyApp.Gettext do
-        use Gettext, otp_app: :my_app, default_domain: "messages"
-      end
-
-      config :my_app, MyApp.Gettext, default_domain: "messages"
-
   ## Gettext API
 
   There are two ways to use Gettext:
@@ -363,6 +351,18 @@ defmodule Gettext do
   default domain is used (which defaults to "default"). The `Gettext`
   functions accepting a backend (`gettext/3`, `ngettext/5`, and `pgettext/4`)
   _always_ use a domain of "default".
+
+  ### Default Domain
+
+  Each backend can be configured with a specific `:default_domain`
+  that replaces `"default"` in `gettext/2`, `pgettext/3`, and `ngettext/4`
+  for that backend.
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app, default_domain: "messages"
+      end
+
+      config :my_app, MyApp.Gettext, default_domain: "messages"
 
   ## Contexts
 
