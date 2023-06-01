@@ -137,6 +137,8 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   @impl true
   def run(args) do
+    Mix.Task.run("loadpaths")
+
     _ = Mix.Project.get!()
     gettext_config = Mix.Project.config()[:gettext] || []
 
