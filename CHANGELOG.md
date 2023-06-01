@@ -2,9 +2,9 @@
 
 ## v0.22.2
 
-* Use `Code.ensure_compiled` instead of `Code.ensure_loaded` for Elixir < 1.12 compatibility.
-* Ensure all modules are properly loaded for `mix gettext.merge`.
-* Fix protected check in `Gettext.Extractor`.
+  * Use `Code.ensure_compiled/1` instead of `Code.ensure_loaded/1` for Elixir < 1.12 compatibility.
+  * Ensure all modules are properly loaded for `mix gettext.merge`.
+  * Fix a "protected" check when extracting translations.
 
 ## v0.22.1
 
