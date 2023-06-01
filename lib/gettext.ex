@@ -27,7 +27,7 @@ defmodule Gettext do
   First, call `mix gettext.extract` to extract `gettext()` calls to `.pot`
   ([Portable Object Template](https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html))
   files, which are the base for all translations. These files are *templates*, which
-  means they only contain translation IDs, and not actual translated strings. POT files have
+  means they only contain message IDs, and not actual translated strings. POT files have
   entries like this:
 
       #: lib/myapp_web/live/hello_live.html.heex:2
@@ -225,18 +225,6 @@ defmodule Gettext do
 
       config :my_app, MyApp.Gettext, default_locale: "fr"
 
-  ### Default Domain
-
-  Each backend can be configured with a specific `:default_domain`
-  that replaces `"default"` in `gettext/2`, `pgettext/3`, and `ngettext/4`
-  for that backend.
-
-      defmodule MyApp.Gettext do
-        use Gettext, otp_app: :my_app, default_domain: "messages"
-      end
-
-      config :my_app, MyApp.Gettext, default_domain: "messages"
-
   ## Gettext API
 
   There are two ways to use Gettext:
@@ -363,6 +351,18 @@ defmodule Gettext do
   default domain is used (which defaults to "default"). The `Gettext`
   functions accepting a backend (`gettext/3`, `ngettext/5`, and `pgettext/4`)
   _always_ use a domain of "default".
+
+  ### Default Domain
+
+  Each backend can be configured with a specific `:default_domain`
+  that replaces `"default"` in `gettext/2`, `pgettext/3`, and `ngettext/4`
+  for that backend.
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app, default_domain: "messages"
+      end
+
+      config :my_app, MyApp.Gettext, default_domain: "messages"
 
   ## Contexts
 
