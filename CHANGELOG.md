@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.22.2
+
+* Use `Code.ensure_compiled` instead of `Code.ensure_loaded` for Elixir < 1.12 compatibility.
+* Ensure all modules are properly loaded for `mix gettext.merge`.
+* Fix protected check in `Gettext.Extractor`.
+
 ## v0.22.1
 
   * Put correct `Plural-Forms` header on `gettext.merge` for the first time.
