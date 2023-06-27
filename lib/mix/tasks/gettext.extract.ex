@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp force_compile do
-    Enum.map(Mix.Tasks.Compile.Elixir.manifests(), &make_old_if_exists/1)
+    Enum.map(Mix.Tasks.Compile.Elixir.manifests(), &File.rm/1)
 
     # If "compile" was never called, the reenabling is a no-op and
     # "compile.elixir" is a no-op as well (because it wasn't reenabled after
@@ -122,10 +122,6 @@ defmodule Mix.Tasks.Gettext.Extract do
     Mix.Task.reenable("compile.elixir")
     Mix.Task.run("compile")
     Mix.Task.run("compile.elixir", ["--force"])
-  end
-
-  defp make_old_if_exists(path) do
-    :file.change_time(path, {{2000, 1, 1}, {0, 0, 0}})
   end
 
   defp run_merge(pot_files, argv) do
