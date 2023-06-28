@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp force_compile do
-    Enum.map(Mix.Tasks.Compile.Elixir.manifests(), &File.rm/1)
+    Mix.Tasks.Compile.Elixir.clean()
 
     # If "compile" was never called, the reenabling is a no-op and
     # "compile.elixir" is a no-op as well (because it wasn't reenabled after
