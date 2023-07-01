@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.22.3
+
+  * Fix a bug with extracting translations in Elixir 1.15.0+.
+
 ## v0.22.2
 
   * Use `Code.ensure_compiled/1` instead of `Code.ensure_loaded/1` for Elixir < 1.12 compatibility.
