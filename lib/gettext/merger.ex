@@ -50,9 +50,9 @@ defmodule Gettext.Merger do
         by the references in the POT file
 
   """
-  @spec merge(Messages.t(), Messages.t(), String.t(), Keyword.t()) ::
+  @spec merge(Messages.t(), Messages.t(), String.t(), Keyword.t(), Keyword.t()) ::
           {Messages.t(), map()}
-  def merge(%Messages{} = old, %Messages{} = new, locale, opts)
+  def merge(%Messages{} = old, %Messages{} = new, locale, opts, gettext_config)
       when is_binary(locale) and is_list(opts) do
     opts =
       opts
@@ -61,7 +61,7 @@ defmodule Gettext.Merger do
 
     stats = %{new: 0, exact_matches: 0, fuzzy_matches: 0, removed: 0, marked_as_obsolete: 0}
 
-    {messages, stats} = merge_messages(old.messages, new.messages, opts, stats)
+    {messages, stats} = merge_messages(old.messages, new.messages, opts, gettext_config, stats)
 
     po = %Messages{
       top_comments: old.top_comments,
@@ -99,10 +99,11 @@ defmodule Gettext.Merger do
     end
   end
 
-  defp merge_messages(old, new, opts, stats) do
+  defp merge_messages(old, new, opts, gettext_config, stats) do
     fuzzy? = Keyword.fetch!(opts, :fuzzy)
     fuzzy_threshold = Keyword.fetch!(opts, :fuzzy_threshold)
     plural_forms = Keyword.fetch!(opts, :plural_forms)
+    custom_flags_to_keep = Keyword.get(gettext_config, :custom_flags_to_keep, [])
 
     old = Map.new(old, &{Message.key(&1), &1})
 
@@ -114,7 +115,9 @@ defmodule Gettext.Merger do
         case Map.fetch(old, key) do
           {:ok, exact_match} ->
             stats = update_in(stats_acc.exact_matches, &(&1 + 1))
-            {merge_two_messages(exact_match, message), {stats, Map.delete(unused, key)}}
+
+            {merge_two_messages(exact_match, message, custom_flags_to_keep),
+             {stats, Map.delete(unused, key)}}
 
           :error when fuzzy? ->
             case maybe_merge_fuzzy(message, old, key, fuzzy_threshold) do
@@ -202,19 +205,23 @@ defmodule Gettext.Merger do
   # flags: we should take the new flags and preserve the fuzzy flag
   # references: new contains the updated and most recent references
 
-  defp merge_two_messages(%Message.Singular{} = old, %Message.Singular{} = new) do
+  defp merge_two_messages(
+         %Message.Singular{} = old,
+         %Message.Singular{} = new,
+         custom_flags_to_keep
+       ) do
     %Message.Singular{
       msgctxt: new.msgctxt,
       msgid: new.msgid,
       msgstr: old.msgstr,
       comments: old.comments,
       extracted_comments: new.extracted_comments,
-      flags: merge_flags(old, new),
+      flags: merge_flags(old, new, custom_flags_to_keep),
       references: new.references
     }
   end
 
-  defp merge_two_messages(%Message.Plural{} = old, %Message.Plural{} = new) do
+  defp merge_two_messages(%Message.Plural{} = old, %Message.Plural{} = new, custom_flags_to_keep) do
     %Message.Plural{
       msgctxt: new.msgctxt,
       msgid: new.msgid,
@@ -222,17 +229,25 @@ defmodule Gettext.Merger do
       msgstr: old.msgstr,
       comments: old.comments,
       extracted_comments: new.extracted_comments,
-      flags: merge_flags(old, new),
+      flags: merge_flags(old, new, custom_flags_to_keep),
       references: new.references
     }
   end
 
-  defp merge_flags(old, new) do
-    if Message.has_flag?(old, "fuzzy") do
-      Message.append_flag(new, "fuzzy").flags
-    else
-      new.flags
-    end
+  @default_flags_to_keep ["elixir-format", "fuzzy"]
+  defp merge_flags(old_message, new_message, custom_flags_to_keep) do
+    flags_to_keep = Enum.uniq(@default_flags_to_keep ++ custom_flags_to_keep)
+
+    %{flags: flags} =
+      Enum.reduce(flags_to_keep, new_message, fn flag, message ->
+        if Message.has_flag?(old_message, flag) do
+          Message.append_flag(message, flag)
+        else
+          message
+        end
+      end)
+
+    flags
   end
 
   @doc """

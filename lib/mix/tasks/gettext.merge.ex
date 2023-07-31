@@ -238,7 +238,13 @@ defmodule Mix.Tasks.Gettext.Merge do
 
   defp merge_files(po_file, pot_file, locale, opts, gettext_config) do
     {merged, stats} =
-      Merger.merge(PO.parse_file!(po_file), PO.parse_file!(pot_file), locale, opts)
+      Merger.merge(
+        PO.parse_file!(po_file),
+        PO.parse_file!(pot_file),
+        locale,
+        opts,
+        gettext_config
+      )
 
     {merged
      |> Merger.prune_references(gettext_config)

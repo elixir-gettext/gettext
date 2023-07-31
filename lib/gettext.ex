@@ -586,6 +586,11 @@ defmodule Gettext do
       have a matching reference. You can use this pattern to prevent Gettext from
       removing messages that you have extracted using another tool.
 
+    * `:custom_flags_to_keep` - a list of custom flags that will be kept for
+      existing messages during a merge. Gettext always keeps the `elixir-format`
+      and `fuzzy` flags.
+      
+
     * `:write_reference_comments` - a boolean that specifies whether reference
       comments should be written when outputting PO(T) files. If this is `false`,
       reference comments will not be written when extracting messages or merging
