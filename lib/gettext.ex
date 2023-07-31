@@ -587,9 +587,9 @@ defmodule Gettext do
       removing messages that you have extracted using another tool.
 
     * `:custom_flags_to_keep` - a list of custom flags that will be kept for
-      existing messages during a merge. Gettext always keeps the `elixir-format`
-      and `fuzzy` flags.
-      
+      existing messages during a merge. Gettext always keeps the `fuzzy` flag.
+      If you want to keep the `elixir-format` flag, which is also commonly
+      used by Gettext, add it to this list.
 
     * `:write_reference_comments` - a boolean that specifies whether reference
       comments should be written when outputting PO(T) files. If this is `false`,

@@ -234,9 +234,9 @@ defmodule Gettext.Merger do
     }
   end
 
-  @default_flags_to_keep ["elixir-format", "fuzzy"]
   defp merge_flags(old_message, new_message, custom_flags_to_keep) do
-    flags_to_keep = Enum.uniq(@default_flags_to_keep ++ custom_flags_to_keep)
+    # Force the "fuzzy" flag.
+    flags_to_keep = Enum.uniq(["fuzzy" | custom_flags_to_keep])
 
     %{flags: flags} =
       Enum.reduce(flags_to_keep, new_message, fn flag, message ->
