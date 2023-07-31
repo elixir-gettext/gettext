@@ -525,7 +525,7 @@ defmodule Gettext.MergerTest do
       assert stderr =~ "The --plural-forms and :plural_forms options are deprecated"
     end
 
-    test "custom flags defined by `custom_flag_to_keep` config are kept" do
+    test "custom flags defined by :custom_flag_to_keep config are kept" do
       old_po = %Messages{
         messages: [
           %Message.Singular{
