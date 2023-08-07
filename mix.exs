@@ -1,7 +1,7 @@
 defmodule Gettext.Mixfile do
   use Mix.Project
 
-  @version "0.23.0-dev"
+  @version "0.23.0"
 
   @description "Internationalization and localization through gettext"
   @repo_url "https://github.com/elixir-gettext/gettext"
@@ -53,7 +53,8 @@ defmodule Gettext.Mixfile do
 
       # Dev and test dependencies
       {:ex_doc, "~> 0.19", only: :dev},
-      {:excoveralls, "~> 0.15.1", only: :test}
+      # TODO: replace with Hex version once it gets released
+      {:excoveralls, github: "whatyouhide/excoveralls", branch: "httpc", only: :test}
     ]
   end
 end

@@ -589,7 +589,7 @@ defmodule Gettext do
     * `:custom_flags_to_keep` - a list of custom flags that will be kept for
       existing messages during a merge. Gettext always keeps the `fuzzy` flag.
       If you want to keep the `elixir-format` flag, which is also commonly
-      used by Gettext, add it to this list.
+      used by Gettext, add it to this list. Available since v0.23.0.
 
     * `:write_reference_comments` - a boolean that specifies whether reference
       comments should be written when outputting PO(T) files. If this is `false`,
@@ -1020,7 +1020,7 @@ defmodule Gettext do
       #=> "Bonjour monde"
 
   """
-  @spec with_locale(locale, (() -> result)) :: result when result: var
+  @spec with_locale(locale, (-> result)) :: result when result: var
   def with_locale(locale, fun) when is_binary(locale) and is_function(fun) do
     previous_locale = Process.get(Gettext)
     Gettext.put_locale(locale)
@@ -1063,7 +1063,7 @@ defmodule Gettext do
       #=> "Bonjour monde"
 
   """
-  @spec with_locale(backend(), locale(), (() -> result)) :: result when result: var
+  @spec with_locale(backend(), locale(), (-> result)) :: result when result: var
   def with_locale(backend, locale, fun)
       when is_atom(backend) and is_binary(locale) and is_function(fun) do
     previous_locale = Process.get(backend)

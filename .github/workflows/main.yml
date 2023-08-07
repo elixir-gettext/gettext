@@ -8,14 +8,14 @@ on:
 
 jobs:
   test:
-    name: Test (Elixir ${{matrix.elixir}} | Erlang/OTP ${{matrix.erlang}})
+    name: Test (Elixir ${{ matrix.elixir }} | Erlang/OTP ${{ matrix.erlang }})
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          - erlang: "25.2"
-            elixir: "1.14.2"
+          - erlang: "26.0"
+            elixir: "1.15"
             lint: true
             coverage: true
           - erlang: "24.1"
