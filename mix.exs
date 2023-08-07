@@ -53,7 +53,8 @@ defmodule Gettext.Mixfile do
 
       # Dev and test dependencies
       {:ex_doc, "~> 0.19", only: :dev},
-      {:excoveralls, "~> 0.15.1", only: :test}
+      # TODO: replace with Hex version once it gets released
+      {:excoveralls, github: "whatyouhide/excoveralls", branch: "httpc", only: :test}
     ]
   end
 end
