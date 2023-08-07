@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.23.0
+
+  * Add the `:custom_flags_to_keep` Gettext option.
+
 ## v0.22.3
 
   * Fix a bug with extracting translations in Elixir 1.15.0+.
