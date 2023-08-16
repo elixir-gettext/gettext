@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.23.1
+
+  * Use the Hex version of the excoveralls dependency.
+
 ## v0.23.0
 
   * Add the `:custom_flags_to_keep` Gettext option.
