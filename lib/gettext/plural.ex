@@ -248,14 +248,6 @@ defmodule Gettext.Plural do
 
   # Behaviour implementation.
 
-  defmacrop ends_in(n, digits) do
-    digits = List.wrap(digits)
-
-    quote do
-      rem(unquote(n), 10) in unquote(digits)
-    end
-  end
-
   # Default implementation of the init/1 callback, in case the user uses
   # Gettext.Plural as their plural forms module.
   @doc false
