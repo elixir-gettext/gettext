@@ -337,10 +337,7 @@ defmodule Gettext.Extractor do
     }
   end
 
-  defp merge_message(
-         %Message.Singular{} = old,
-         %Message.Singular{comments: []} = new
-       ) do
+  defp merge_message(old, new) do
     ensure_empty_msgstr!(old)
     ensure_empty_msgstr!(new)
 
@@ -353,36 +350,15 @@ defmodule Gettext.Extractor do
         old.flags
       end
 
-    %Message.Singular{
-      msgid: old.msgid,
-      msgstr: old.msgstr,
-      msgctxt: new.msgctxt,
+    old
+    |> Message.merge(new)
+    |> Map.merge(%{
       flags: flags,
-      # The new in-memory message has no comments since it was extracted
-      # from the source code.
-      comments: old.comments,
       # We don't care about the references of the old message since the new
       # in-memory message has all the actual and current references.
       references: new.references,
       extracted_comments: new.extracted_comments
-    }
-  end
-
-  defp merge_message(%Message.Plural{} = old, %Message.Plural{comments: []} = new) do
-    ensure_empty_msgstr!(old)
-    ensure_empty_msgstr!(new)
-
-    # The logic here is the same as for %Message.Singular{}s.
-    %Message.Plural{
-      msgid: old.msgid,
-      msgctxt: new.msgctxt,
-      msgid_plural: old.msgid_plural,
-      msgstr: old.msgstr,
-      flags: old.flags,
-      comments: old.comments,
-      references: new.references,
-      extracted_comments: new.extracted_comments
-    }
+    })
   end
 
   defp ensure_empty_msgstr!(%Message.Singular{msgstr: msgstr} = message) do
@@ -392,8 +368,8 @@ defmodule Gettext.Extractor do
     end
   end
 
-  defp ensure_empty_msgstr!(%Message.Plural{msgstr: %{0 => str0, 1 => str1}} = message) do
-    if not blank?(str0) or not blank?(str1) do
+  defp ensure_empty_msgstr!(%Message.Plural{msgstr: msgstr} = message) do
+    if Enum.any?(Map.values(msgstr), &(not blank?(&1))) do
       raise Error,
             "plural message with msgid '#{IO.iodata_to_binary(message.msgid)}' has a non-empty msgstr"
     end

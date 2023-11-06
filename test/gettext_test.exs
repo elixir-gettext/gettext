@@ -262,6 +262,15 @@ defmodule GettextTest do
              )
   end
 
+  test "plural messages can be used for singular message" do
+    import Translator, only: [lgettext: 5]
+
+    message =
+      lgettext("it", "errors", nil, "There was an error", %{})
+
+    assert message == {:ok, "C'è stato un errore"}
+  end
+
   test "by default, non-found pluralized message behave like regular message" do
     assert Translator.lngettext("it", "not a domain", nil, "foo", "foos", 1, %{}) ==
              {:default, "foo"}
