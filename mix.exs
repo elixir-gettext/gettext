@@ -49,7 +49,7 @@ defmodule Gettext.Mixfile do
 
   defp deps do
     [
-      {:expo, "~> 0.4.0"},
+      {:expo, "~> 0.5.0"},
 
       # Dev and test dependencies
       {:ex_doc, "~> 0.19", only: :dev},
