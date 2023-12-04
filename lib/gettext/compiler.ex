@@ -622,7 +622,7 @@ defmodule Gettext.Compiler do
          kind,
          locale,
          %Message.Plural{} = message,
-         _singular_fun,
+         singular_fun,
          plural_fun,
          file,
          {plural_forms_fun, nplurals},
@@ -665,22 +665,54 @@ defmodule Gettext.Compiler do
               line: unquote(Message.source_line_number(message, :msgid))
         end
 
-      quote generated: true do
-        Kernel.unquote(kind)(
-          unquote(plural_fun)(
-            unquote(msgctxt),
-            unquote(msgid),
-            unquote(msgid_plural),
-            n,
-            bindings
-          )
-        ) do
-          plural_form = unquote(plural_forms_fun)(n)
+      singular_fun_impl =
+        msgstr
+        |> Enum.find(&match?({0, _msgstr}, &1))
+        |> case do
+          {0, ""} ->
+            nil
 
-          var!(bindings) = Map.put(bindings, :count, n)
+          {0, msgstr} ->
+            quote do
+              Kernel.unquote(kind)(
+                unquote(singular_fun)(unquote(msgctxt), unquote(msgid), bindings)
+              ) do
+                require unquote(interpolation_module)
 
-          case plural_form, do: unquote(clauses ++ error_clause)
+                unquote(interpolation_module).compile_interpolate(
+                  :translation,
+                  unquote(msgstr),
+                  bindings
+                )
+              end
+            end
+
+          nil ->
+            nil
         end
+
+      plural_fun_impl =
+        quote generated: true do
+          Kernel.unquote(kind)(
+            unquote(plural_fun)(
+              unquote(msgctxt),
+              unquote(msgid),
+              unquote(msgid_plural),
+              n,
+              bindings
+            )
+          ) do
+            plural_form = unquote(plural_forms_fun)(n)
+
+            var!(bindings) = Map.put(bindings, :count, n)
+
+            case plural_form, do: unquote(clauses ++ error_clause)
+          end
+        end
+
+      quote do
+        unquote(singular_fun_impl)
+        unquote(plural_fun_impl)
       end
     end
   end

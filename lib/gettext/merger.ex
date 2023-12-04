@@ -205,33 +205,15 @@ defmodule Gettext.Merger do
   # flags: we should take the new flags and preserve the fuzzy flag
   # references: new contains the updated and most recent references
 
-  defp merge_two_messages(
-         %Message.Singular{} = old,
-         %Message.Singular{} = new,
-         custom_flags_to_keep
-       ) do
-    %Message.Singular{
-      msgctxt: new.msgctxt,
-      msgid: new.msgid,
-      msgstr: old.msgstr,
+  defp merge_two_messages(old, new, custom_flags_to_keep) do
+    old
+    |> Message.merge(new)
+    |> Map.merge(%{
       comments: old.comments,
       extracted_comments: new.extracted_comments,
       flags: merge_flags(old, new, custom_flags_to_keep),
       references: new.references
-    }
-  end
-
-  defp merge_two_messages(%Message.Plural{} = old, %Message.Plural{} = new, custom_flags_to_keep) do
-    %Message.Plural{
-      msgctxt: new.msgctxt,
-      msgid: new.msgid,
-      msgid_plural: new.msgid_plural,
-      msgstr: old.msgstr,
-      comments: old.comments,
-      extracted_comments: new.extracted_comments,
-      flags: merge_flags(old, new, custom_flags_to_keep),
-      references: new.references
-    }
+    })
   end
 
   defp merge_flags(old_message, new_message, custom_flags_to_keep) do
