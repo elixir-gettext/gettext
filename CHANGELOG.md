@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.24.0
+
+  * Handle singular and plural messages with the same `msgid` as the same
+    message.
+
+    This change produces a `Expo.PO.DuplicateMessagesError` if you already have
+    messages with the same singular `msgid`. This can be solved by calling the
+    `expo.msguniq` mix task on your `.po` file:
+
+    ```bash
+    mix expo.msguniq \
+      priv/gettext/LOCALE/LC_MESSAGES/DOMAIN.po \
+      --output-file priv/gettext/LOCALE/LC_MESSAGES/DOMAIN.po
+    ```
+
 ## v0.23.1
 
   * Use the Hex version of the excoveralls dependency.
