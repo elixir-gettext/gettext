@@ -33,9 +33,9 @@ defmodule Gettext.ExtractorTest do
         Extractor.merge_pot_files(extracted_po_structs, [paths.tomerge, paths.ignored], [])
 
       # Unchanged files are not returned
-      assert List.keyfind(structs, paths.ignored, 0) == nil
+      assert {_path, :unchanged} = List.keyfind(structs, paths.ignored, 0)
 
-      {_, contents} = List.keyfind(structs, paths.tomerge, 0)
+      assert {_, {:changed, contents}} = List.keyfind(structs, paths.tomerge, 0)
 
       assert IO.iodata_to_binary(contents) == """
              msgid "foo"
@@ -45,7 +45,7 @@ defmodule Gettext.ExtractorTest do
              msgstr ""
              """
 
-      {_, contents} = List.keyfind(structs, paths.new, 0)
+      assert {_, {:changed, contents}} = List.keyfind(structs, paths.new, 0)
       contents = IO.iodata_to_binary(contents)
 
       assert contents =~ """
@@ -385,7 +385,11 @@ defmodule Gettext.ExtractorTest do
     assert [] = Extractor.pot_files(:unknown, [])
 
     pot_files = Extractor.pot_files(:test_application, [])
-    dumped = Enum.map(pot_files, fn {k, v} -> {k, IO.iodata_to_binary(v)} end)
+
+    dumped =
+      pot_files
+      |> Enum.reject(&match?({_path, :unchanged}, &1))
+      |> Enum.map(fn {k, {:changed, v}} -> {k, IO.iodata_to_binary(v)} end)
 
     # We check that dumped strings end with the `expected` string because
     # there's the informative comment at the start of each dumped string.

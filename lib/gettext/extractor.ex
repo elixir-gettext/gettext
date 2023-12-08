@@ -222,7 +222,6 @@ defmodule Gettext.Extractor do
     #   %{path => {:merged, :unchanged | %Messages{}}, path => {:unmerged, :unchanged | %Messages{}}, path => {:new, %Messages{}}}
     Map.merge(pot_files, po_structs, &merge_existing_and_extracted(&1, &2, &3, gettext_config))
     |> Enum.map(&tag_files(&1, gettext_config))
-    |> Enum.reject(&match?({_, {_, :unchanged}}, &1))
     |> Enum.map(&dump_tagged_file/1)
   end
 
@@ -273,7 +272,8 @@ defmodule Gettext.Extractor do
   # This function "dumps" merged files and unmerged files without any changes,
   # and dumps new POT files adding an informative comment to them. This doesn't
   # write anything to disk, it just returns `{path, contents}` tuples.
-  defp dump_tagged_file({path, {_tag, po}}), do: {path, PO.compose(po)}
+  defp dump_tagged_file({path, {_tag, :unchanged}}), do: {path, :unchanged}
+  defp dump_tagged_file({path, {_tag, po}}), do: {path, {:changed, PO.compose(po)}}
 
   defp prune_unmerged(path, gettext_config) do
     merge_or_unchanged(path, %Messages{messages: []}, gettext_config)
