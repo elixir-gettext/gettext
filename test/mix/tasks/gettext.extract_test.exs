@@ -60,6 +60,10 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
            msgid "other"
            msgstr ""
            """
+
+    capture_io(fn ->
+      Mix.Project.in_project(test, tmp_dir, fn _module -> run(["--merge"]) end)
+    end) =~ "Wrote priv/gettext/it/LC_MESSAGES/my_domain.po"
   end
 
   test "--check-up-to-date should fail if no POT files have been created",

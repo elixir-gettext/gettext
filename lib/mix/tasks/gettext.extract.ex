@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp run_message_extraction(pot_files, opts, args) do
-    for {path, contents} <- pot_files do
+    for {path, {:changed, contents}} <- pot_files do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)
       Mix.shell().info("Extracted #{Path.relative_to_cwd(path)}")
@@ -89,9 +89,9 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp run_up_to_date_check(pot_files) do
-    not_extracted_paths = for {path, _contents} <- pot_files, do: path
+    not_extracted_paths = for {path, {:changed, _contents}} <- pot_files, do: path
 
-    if pot_files == [] do
+    if not_extracted_paths == [] do
       :ok
     else
       Mix.raise("""
