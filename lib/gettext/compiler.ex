@@ -38,6 +38,13 @@ defmodule Gettext.Compiler do
 
     interpolation = opts[:interpolation] || Gettext.Interpolation.Default
 
+    {repo, repo_opts} =
+      case opts[:repo] do
+        nil -> {nil, nil}
+        mod when is_atom(mod) -> {mod, mod.init([])}
+        {mod, opts} when is_atom(mod) -> {mod, mod.init(opts)}
+      end
+
     quote do
       @behaviour Gettext.Backend
 
@@ -63,17 +70,15 @@ defmodule Gettext.Compiler do
 
       unquote(macros())
 
-      # These are the two functions we generated inside the backend.
-      def lgettext(locale, domain, msgctxt \\ nil, msgid, bindings)
-      def lngettext(locale, domain, msgctxt \\ nil, msgid, msgid_plural, n, bindings)
+      unquote(public_functions(repo, repo_opts, interpolation))
 
       unquote(compile_po_files(env, known_po_files, opts))
 
       # Catch-all clauses.
-      def lgettext(locale, domain, msgctxt, msgid, bindings),
+      defp lgettext_compiled(locale, domain, msgctxt, msgid, bindings),
         do: handle_missing_translation(locale, domain, msgctxt, msgid, bindings)
 
-      def lngettext(locale, domain, msgctxt, msgid, msgid_plural, n, bindings),
+      defp lngettext_compiled(locale, domain, msgctxt, msgid, msgid_plural, n, bindings),
         do:
           handle_missing_plural_translation(
             locale,
@@ -312,6 +317,51 @@ defmodule Gettext.Compiler do
     end
   end
 
+  defp public_functions(nil = _repo, _repo_opts, _interpolation) do
+    quote do
+      def lgettext(locale, domain, msgctxt \\ nil, msgid, bindings) do
+        lgettext_compiled(locale, domain, msgctxt, msgid, bindings)
+      end
+
+      def lngettext(locale, domain, msgctxt \\ nil, msgid, msgid_plural, n, bindings) do
+        lngettext_compiled(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)
+      end
+    end
+  end
+
+  defp public_functions(repo, repo_opts, interpolation) do
+    quote do
+      def lgettext(locale, domain, msgctxt, msgid, bindings) do
+        case unquote(repo).get_translation(locale, domain, msgctxt, msgid, unquote(repo_opts)) do
+          {:ok, msgstr} ->
+            unquote(interpolation).runtime_interpolate(msgstr, bindings)
+
+          _ ->
+            lgettext_compiled(locale, domain, msgctxt, msgid, bindings)
+        end
+      end
+
+      def lngettext(locale, domain, msgctxt, msgid, msgid_plural, n, bindings) do
+        case unquote(repo).get_plural_translation(
+               locale,
+               domain,
+               msgctxt,
+               msgid,
+               msgid_plural,
+               n,
+               unquote(repo_opts)
+             ) do
+          {:ok, msgstr} ->
+            bindings = Map.put(bindings, :count, n)
+            unquote(interpolation).runtime_interpolate(msgstr, bindings)
+
+          _ ->
+            lngettext_compiled(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)
+        end
+      end
+    end
+  end
+
   @doc """
   Expands the given `msgid` in the given `env`, raising if it doesn't expand to
   a binary.
@@ -452,11 +502,19 @@ defmodule Gettext.Compiler do
     quote do
       unquote(quoted)
 
-      def lgettext(unquote(locale), unquote(domain), msgctxt, msgid, bindings) do
+      defp lgettext_compiled(unquote(locale), unquote(domain), msgctxt, msgid, bindings) do
         unquote(singular_fun)(msgctxt, msgid, bindings)
       end
 
-      def lngettext(unquote(locale), unquote(domain), msgctxt, msgid, msgid_plural, n, bindings) do
+      defp lngettext_compiled(
+             unquote(locale),
+             unquote(domain),
+             msgctxt,
+             msgid,
+             msgid_plural,
+             n,
+             bindings
+           ) do
         unquote(plural_fun)(msgctxt, msgid, msgid_plural, n, bindings)
       end
     end
@@ -480,11 +538,19 @@ defmodule Gettext.Compiler do
 
     current_module_quoted =
       quote do
-        def lgettext(unquote(locale), unquote(domain), msgctxt, msgid, bindings) do
+        defp lgettext_compiled(unquote(locale), unquote(domain), msgctxt, msgid, bindings) do
           unquote(module).unquote(singular_fun)(msgctxt, msgid, bindings)
         end
 
-        def lngettext(unquote(locale), unquote(domain), msgctxt, msgid, msgid_plural, n, bindings) do
+        defp lngettext_compiled(
+               unquote(locale),
+               unquote(domain),
+               msgctxt,
+               msgid,
+               msgid_plural,
+               n,
+               bindings
+             ) do
           unquote(module).unquote(plural_fun)(msgctxt, msgid, msgid_plural, n, bindings)
         end
       end
