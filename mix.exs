@@ -52,6 +52,7 @@ defmodule Gettext.Mixfile do
       {:expo, "~> 0.5.1"},
 
       # Dev and test dependencies
+      {:castore, "~> 1.0", only: :test},
       {:ex_doc, "~> 0.19", only: :dev},
       {:excoveralls, "~> 0.17", only: :test}
     ]
