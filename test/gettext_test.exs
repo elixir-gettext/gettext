@@ -313,7 +313,15 @@ defmodule GettextTest do
                  ~r/plural form 2 is required for locale \"ru\" but is missing/,
                  fn ->
                    # Dynamic module to avoid warnings.
-                   apply(BadTranslations, :lngettext, ["ru", "errors", nil, msgid, msgid_plural, 8, %{}])
+                   apply(BadTranslations, :lngettext, [
+                     "ru",
+                     "errors",
+                     nil,
+                     msgid,
+                     msgid_plural,
+                     8,
+                     %{}
+                   ])
                  end
   end
 
