@@ -20,7 +20,7 @@ jobs:
             lint: true
             coverage: true
 
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             erlang: "24.1"
             elixir: "1.13"
 
