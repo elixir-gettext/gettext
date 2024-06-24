@@ -10,10 +10,10 @@ defmodule Gettext.Mixfile do
     [
       app: :gettext,
       version: @version,
-      elixir: "~> 1.11",
+      elixir: "~> 1.12",
       build_embedded: Mix.env() == :prod,
       deps: deps(),
-      preferred_cli_env: ["coveralls.html": :test, "coveralls.github": :test],
+      preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.github": :test],
       test_coverage: [tool: ExCoveralls],
 
       # Hex
@@ -53,8 +53,9 @@ defmodule Gettext.Mixfile do
 
       # Dev and test dependencies
       {:castore, "~> 1.0", only: :test},
+      {:jason, "~> 1.0", only: :test},
       {:ex_doc, "~> 0.19", only: :dev},
-      {:excoveralls, "~> 0.17", only: :test}
+      {:excoveralls, "~> 0.18.0", only: :test}
     ]
   end
 end
