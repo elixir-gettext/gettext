@@ -11,6 +11,10 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     :ok
   end
 
+  defp in_project(module, dir, fun) do
+    Mix.Project.in_project(module, dir, [prune_code_paths: false], fun)
+  end
+
   test "extracting and extracting with --merge", %{test: test, tmp_dir: tmp_dir} = context do
     create_test_mix_file(context)
 
@@ -27,7 +31,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     output =
       capture_io(fn ->
-        Mix.Project.in_project(test, tmp_dir, fn _module -> run([]) end)
+        in_project(test, tmp_dir, fn _module -> run([]) end)
       end)
 
     assert output =~ "Extracted priv/gettext/default.pot"
@@ -51,7 +55,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     write_file(context, "priv/gettext/it/LC_MESSAGES/my_domain.po", "")
 
     capture_io(fn ->
-      Mix.Project.in_project(test, tmp_dir, fn _module -> run(["--merge"]) end)
+      in_project(test, tmp_dir, fn _module -> run(["--merge"]) end)
     end)
 
     assert read_file(context, "priv/gettext/it/LC_MESSAGES/my_domain.po") == """
@@ -62,7 +66,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
            """
 
     capture_io(fn ->
-      Mix.Project.in_project(test, tmp_dir, fn _module -> run(["--merge"]) end)
+      in_project(test, tmp_dir, fn _module -> run(["--merge"]) end)
     end) =~ "Wrote priv/gettext/it/LC_MESSAGES/my_domain.po"
   end
 
@@ -98,7 +102,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     capture_io(fn ->
       assert_raise Mix.Error, expected_message, fn ->
-        Mix.Project.in_project(test, tmp_dir, fn _module ->
+        in_project(test, tmp_dir, fn _module ->
           run(["--check-up-to-date"])
         end)
       end
@@ -121,11 +125,11 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     """)
 
     capture_io(fn ->
-      Mix.Project.in_project(test, tmp_dir, fn _module ->
+      in_project(test, tmp_dir, fn _module ->
         run([])
       end)
 
-      Mix.Project.in_project(test, tmp_dir, fn _module ->
+      in_project(test, tmp_dir, fn _module ->
         run(["--check-up-to-date"])
       end)
     end)
@@ -154,7 +158,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     """)
 
     capture_io(fn ->
-      Mix.Project.in_project(test, tmp_dir, fn _module -> run([]) end)
+      in_project(test, tmp_dir, fn _module -> run([]) end)
     end)
 
     write_file(context, "lib/my_app.ex", """
@@ -177,7 +181,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     capture_io(fn ->
       assert_raise Mix.Error, expected_message, fn ->
-        Mix.Project.in_project(test, tmp_dir, fn _module ->
+        in_project(test, tmp_dir, fn _module ->
           run(["--check-up-to-date"])
         end)
       end
