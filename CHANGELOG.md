@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.25.0
+
+  * Run merging for `mix gettext.extract`'s POT files even if they are unchanged.
+  * Allow Expo 1.0+.
+
 ## v0.24.0
 
   * Handle singular and plural messages with the same `msgid` as the same
@@ -150,8 +155,8 @@
 
 ## v0.17.2
 
-* Support `pgettext`
-* Consider extracted comments when merging templates during extraction
+  * Support `pgettext`
+  * Consider extracted comments when merging templates during extraction
 
 ## v0.17.1
 
