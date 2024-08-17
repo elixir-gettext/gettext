@@ -27,13 +27,6 @@ defmodule Gettext.Backend do
     # TODO: From Elixir v1.13 onwards, use compile_env and remove this if.
     env_fun = if function_exported?(Module, :attributes_in, 1), do: :compile_env, else: :get_env
 
-    opts =
-      if Macro.quoted_literal?(opts) do
-        Macro.prewalk(opts, &expand_alias(&1, __CALLER__))
-      else
-        opts
-      end
-
     quote do
       require Logger
 
@@ -81,14 +74,6 @@ defmodule Gettext.Backend do
 
       defoverridable handle_missing_translation: 5, handle_missing_plural_translation: 7
     end
-  end
-
-  defp expand_alias({:__aliases__, _, _} = als, env) do
-    Macro.expand(als, %{env | function: {:__gettext__, 1}})
-  end
-
-  defp expand_alias(other, _env) do
-    other
   end
 
   @doc """
