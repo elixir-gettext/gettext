@@ -1,7 +1,95 @@
 defmodule Gettext.Backend do
   @moduledoc """
-  Behaviour that defines the macros that a Gettext backend has to implement.
+  Defines a Gettext backend.
+
+  ## Usage
+
+  A Gettext **backend** must `use` this module.
+
+      defmodule MyApp.Gettext do
+        use Gettext.Backend, otp_app: :my_app
+      end
+
+  Using this module generates all the callbacks required by the `Gettext.Backend`
+  behaviour into the module that uses it. For more options and information,
+  see `Gettext`.
+
+  > #### `use Gettext.Backend` Is a Recent Feature {: .info}
+  >
+  > Before version v0.26.0, you could only `use Gettext` to generate a backend.
+  >
+  > Version v0.26.0 changes the way backends work so that now a Gettext backend
+  > must `use Gettext.Backend`, while to use the functions in the backend you
+  > will do `use Gettext, backend: MyApp.Gettext`.
   """
+
+  defmacro __using__(opts) do
+    # TODO: From Elixir v1.13 onwards, use compile_env and remove this if.
+    env_fun = if function_exported?(Module, :attributes_in, 1), do: :compile_env, else: :get_env
+
+    opts =
+      if Macro.quoted_literal?(opts) do
+        Macro.prewalk(opts, &expand_alias(&1, __CALLER__))
+      else
+        opts
+      end
+
+    quote do
+      require Logger
+
+      opts = unquote(opts)
+      otp_app = Keyword.fetch!(opts, :otp_app)
+
+      @gettext_opts opts
+                    |> Keyword.merge(Application.unquote(env_fun)(otp_app, __MODULE__, []))
+                    |> Keyword.put_new(:interpolation, Gettext.Interpolation.Default)
+
+      @interpolation Keyword.fetch!(@gettext_opts, :interpolation)
+
+      @before_compile Gettext.Compiler
+
+      def handle_missing_bindings(exception, incomplete) do
+        _ = Logger.error(Exception.message(exception))
+        incomplete
+      end
+
+      defoverridable handle_missing_bindings: 2
+
+      def handle_missing_translation(_locale, domain, _msgctxt, msgid, bindings) do
+        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+
+        with {:ok, interpolated} <- @interpolation.runtime_interpolate(msgid, bindings),
+             do: {:default, interpolated}
+      end
+
+      def handle_missing_plural_translation(
+            _locale,
+            domain,
+            _msgctxt,
+            msgid,
+            msgid_plural,
+            n,
+            bindings
+          ) do
+        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
+        string = if n == 1, do: msgid, else: msgid_plural
+        bindings = Map.put(bindings, :count, n)
+
+        with {:ok, interpolated} <- @interpolation.runtime_interpolate(string, bindings),
+             do: {:default, interpolated}
+      end
+
+      defoverridable handle_missing_translation: 5, handle_missing_plural_translation: 7
+    end
+  end
+
+  defp expand_alias({:__aliases__, _, _} = als, env) do
+    Macro.expand(als, %{env | function: {:__gettext__, 1}})
+  end
+
+  defp expand_alias(other, _env) do
+    other
+  end
 
   @doc """
   Default handling for missing bindings.

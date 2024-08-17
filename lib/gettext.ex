@@ -78,11 +78,11 @@ defmodule Gettext do
 
   ## Gettext API
 
-  To use `Gettext`, a module that calls `use Gettext` (referred to below as a
+  To use `Gettext`, a module that calls `use Gettext.Backend` (referred to below as a
   "backend") has to be defined:
 
       defmodule MyApp.Gettext do
-        use Gettext, otp_app: :my_app
+        use Gettext.Backend, otp_app: :my_app
       end
 
   This automatically defines some macros in the `MyApp.Gettext` backend module.
@@ -627,55 +627,15 @@ defmodule Gettext do
 
   @doc false
   defmacro __using__(opts) do
-    # From Elixir v1.13 onwards, use compile_env
-    env_fun = if function_exported?(Module, :attributes_in, 1), do: :compile_env, else: :get_env
-
     quote do
-      require Logger
-
       opts = unquote(opts)
-      otp_app = Keyword.fetch!(opts, :otp_app)
 
-      @gettext_opts opts
-                    |> Keyword.merge(Application.unquote(env_fun)(otp_app, __MODULE__, []))
-                    |> Keyword.put_new(:interpolation, Gettext.Interpolation.Default)
-
-      @interpolation Keyword.fetch!(@gettext_opts, :interpolation)
-
-      @before_compile Gettext.Compiler
-
-      def handle_missing_bindings(exception, incomplete) do
-        _ = Logger.error(Exception.message(exception))
-        incomplete
+      if Keyword.has_key?(opts, :backend) do
+        raise "not implemented yet"
+      else
+        require Gettext.Backend
+        Gettext.Backend.__using__(opts)
       end
-
-      defoverridable handle_missing_bindings: 2
-
-      def handle_missing_translation(_locale, domain, _msgctxt, msgid, bindings) do
-        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
-
-        with {:ok, interpolated} <- @interpolation.runtime_interpolate(msgid, bindings),
-             do: {:default, interpolated}
-      end
-
-      def handle_missing_plural_translation(
-            _locale,
-            domain,
-            _msgctxt,
-            msgid,
-            msgid_plural,
-            n,
-            bindings
-          ) do
-        Gettext.Compiler.warn_if_domain_contains_slashes(domain)
-        string = if n == 1, do: msgid, else: msgid_plural
-        bindings = Map.put(bindings, :count, n)
-
-        with {:ok, interpolated} <- @interpolation.runtime_interpolate(string, bindings),
-             do: {:default, interpolated}
-      end
-
-      defoverridable handle_missing_translation: 5, handle_missing_plural_translation: 7
     end
   end
 
