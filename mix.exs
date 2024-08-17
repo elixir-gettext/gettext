@@ -11,6 +11,7 @@ defmodule Gettext.Mixfile do
       app: :gettext,
       version: @version,
       elixir: "~> 1.12",
+      elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       deps: deps(),
       preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.github": :test],
@@ -46,6 +47,9 @@ defmodule Gettext.Mixfile do
       files: ~w(lib mix.exs *.md)
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_other), do: ["lib"]
 
   defp deps do
     [

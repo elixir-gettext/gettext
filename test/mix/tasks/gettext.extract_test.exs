@@ -2,6 +2,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
   use ExUnit.Case
 
   import ExUnit.CaptureIO
+  import GettextTest.MixProjectHelpers
 
   @moduletag :tmp_dir
 
@@ -9,10 +10,6 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     # To suppress the `redefining module MyApp` warnings for the test modules
     Code.compiler_options(ignore_module_conflict: true)
     :ok
-  end
-
-  defp in_project(module, dir, fun) do
-    Mix.Project.in_project(module, dir, [prune_code_paths: false], fun)
   end
 
   test "extracting and extracting with --merge", %{test: test, tmp_dir: tmp_dir} = context do
@@ -186,32 +183,6 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
         end)
       end
     end)
-  end
-
-  defp create_test_mix_file(context, gettext_config \\ []) do
-    write_file(context, "mix.exs", """
-    defmodule MyApp.MixProject do
-      use Mix.Project
-
-      def project() do
-        [app: #{inspect(context.test)}, version: "0.1.0", gettext: #{inspect(gettext_config)}]
-      end
-
-      def application() do
-        [extra_applications: [:logger, :gettext]]
-      end
-    end
-    """)
-  end
-
-  defp write_file(context, path, contents) do
-    path = Path.join(context.tmp_dir, path)
-    File.mkdir_p!(Path.dirname(path))
-    File.write!(path, contents)
-  end
-
-  defp read_file(context, path) do
-    context.tmp_dir |> Path.join(path) |> File.read!()
   end
 
   defp run(args) do
