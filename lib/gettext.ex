@@ -633,6 +633,7 @@ defmodule Gettext do
       if Keyword.has_key?(opts, :backend) do
         raise "not implemented yet"
       else
+        # TODO: Deprecate this branch
         require Gettext.Backend
         Gettext.Backend.__using__(opts)
       end
