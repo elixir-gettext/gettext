@@ -19,6 +19,10 @@ defmodule Gettext.Macros do
 
   @moduledoc since: "0.26.0"
 
+  @doc false
+  def __expand_runtime_domain__(backend, :default), do: backend.__gettext__(:default_domain)
+  def __expand_runtime_domain__(_backend, domain) when is_binary(domain), do: domain
+
   @doc """
   Marks the given message for extraction and returns it unchanged.
 
@@ -85,11 +89,7 @@ defmodule Gettext.Macros do
   """
   defmacro gettext_noop(msgid) do
     quote do
-      unquote(__MODULE__).dpgettext_noop(
-        {@__gettext_backend__, :__default_domain__},
-        nil,
-        unquote(msgid)
-      )
+      unquote(__MODULE__).dpgettext_noop(:default, nil, unquote(msgid))
     end
   end
 
@@ -108,11 +108,7 @@ defmodule Gettext.Macros do
   """
   defmacro pgettext_noop(msgid, context) do
     quote do
-      unquote(__MODULE__).dpgettext_noop(
-        {@__gettext_backend__, :__default_domain__},
-        unquote(context),
-        unquote(msgid)
-      )
+      unquote(__MODULE__).dpgettext_noop(:default, unquote(context), unquote(msgid))
     end
   end
 
@@ -195,7 +191,7 @@ defmodule Gettext.Macros do
   defmacro pngettext_noop(msgctxt, msgid, msgid_plural) do
     quote do
       unquote(__MODULE__).dpngettext_noop(
-        {@__gettext_backend__, :__default_domain__},
+        :default,
         unquote(msgctxt),
         unquote(msgid),
         unquote(msgid_plural)
@@ -209,12 +205,7 @@ defmodule Gettext.Macros do
   """
   defmacro ngettext_noop(msgid, msgid_plural) do
     quote do
-      unquote(__MODULE__).dpngettext_noop(
-        {@__gettext_backend__, :__default_domain__},
-        nil,
-        unquote(msgid),
-        unquote(msgid_plural)
-      )
+      unquote(__MODULE__).dpngettext_noop(:default, nil, unquote(msgid), unquote(msgid_plural))
     end
   end
 
@@ -234,7 +225,7 @@ defmodule Gettext.Macros do
 
       Gettext.dpgettext(
         @__gettext_backend__,
-        unquote(domain),
+        unquote(__MODULE__).__expand_runtime_domain__(@__gettext_backend__, unquote(domain)),
         unquote(msgctxt),
         msgid,
         unquote(bindings)
@@ -265,7 +256,7 @@ defmodule Gettext.Macros do
   defmacro pgettext(msgctxt, msgid, bindings \\ Macro.escape(%{})) do
     quote do
       unquote(__MODULE__).dpgettext(
-        {@__gettext_backend__, :__default_domain__},
+        :default,
         unquote(msgctxt),
         unquote(msgid),
         unquote(bindings)
@@ -281,12 +272,7 @@ defmodule Gettext.Macros do
   """
   defmacro gettext(msgid, bindings \\ Macro.escape(%{})) do
     quote do
-      unquote(__MODULE__).dpgettext(
-        {@__gettext_backend__, :__default_domain__},
-        nil,
-        unquote(msgid),
-        unquote(bindings)
-      )
+      unquote(__MODULE__).dpgettext(:default, nil, unquote(msgid), unquote(bindings))
     end
   end
 
@@ -313,7 +299,7 @@ defmodule Gettext.Macros do
 
       Gettext.dpngettext(
         @__gettext_backend__,
-        unquote(domain),
+        unquote(__MODULE__).__expand_runtime_domain__(@__gettext_backend__, unquote(domain)),
         unquote(msgctxt),
         msgid,
         msgid_plural,
@@ -354,7 +340,7 @@ defmodule Gettext.Macros do
   defmacro ngettext(msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
     quote do
       unquote(__MODULE__).dpngettext(
-        {@__gettext_backend__, :__default_domain__},
+        :default,
         nil,
         unquote(msgid),
         unquote(msgid_plural),
@@ -375,7 +361,7 @@ defmodule Gettext.Macros do
   defmacro pngettext(msgctxt, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
     quote do
       unquote(__MODULE__).dpngettext(
-        {@__gettext_backend__, :__default_domain__},
+        :default,
         unquote(msgctxt),
         unquote(msgid),
         unquote(msgid_plural),
@@ -413,17 +399,11 @@ defmodule Gettext.Macros do
     :ok
   end
 
-  defp expand_domain({backend, :__default_domain__}, env) do
-    if Gettext.Extractor.extracting?() do
-      Macro.expand(backend, env).__gettext__(:default_domain)
-    else
-      quote do
-        apply(unquote(backend), :__gettext__, [:default_domain])
-      end
-    end
+  defp expand_domain(:default, _env) do
+    :default
   end
 
-  defp expand_domain(domain, _env) do
-    domain
+  defp expand_domain(domain, env) do
+    Gettext.Compiler.expand_to_binary(domain, "domain", __MODULE__, env)
   end
 end

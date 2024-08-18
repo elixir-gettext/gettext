@@ -68,9 +68,22 @@ defmodule Gettext.Extractor do
 
   Note that this function doesn't perform any operation on the filesystem.
   """
-  @spec extract(Macro.Env.t(), module, binary, binary, binary | {binary, binary}, [binary]) :: :ok
+  @spec extract(
+          Macro.Env.t(),
+          backend :: module,
+          domain :: binary | :default,
+          msgctxt :: binary,
+          id :: binary | {binary, binary},
+          extracted_comments :: [binary]
+        ) :: :ok
   def extract(%Macro.Env{} = caller, backend, domain, msgctxt, id, extracted_comments) do
     format_flag = backend.__gettext__(:interpolation).message_format()
+
+    domain =
+      case domain do
+        :default -> backend.__gettext__(:default_domain)
+        string when is_binary(string) -> string
+      end
 
     message =
       create_message_struct(
