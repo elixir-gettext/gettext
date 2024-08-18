@@ -954,8 +954,8 @@ defmodule GettextTest do
   end
 
   test "use Gettext for defining backends is deprecated" do
-    {_, stderr} =
-      with_io(:stderr, fn ->
+    stderr =
+      capture_io(:stderr, fn ->
         Code.eval_quoted(
           quote do
             defmodule DeprecatedWayOfDefiningBackend do
