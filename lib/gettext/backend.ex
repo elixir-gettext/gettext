@@ -175,255 +175,34 @@ defmodule Gettext.Backend do
               {:ok, String.t()} | {:default, String.t()} | {:missing_bindings, String.t(), [atom]}
 
   @doc """
-  Translates the given `msgid` with a given context (`msgctxt`) in the given `domain`.
+  Translates a message.
 
-  `bindings` is a map of bindings to support interpolation.
-
-  See also `Gettext.dpgettext/5`.
+  See `Gettext.gettext/3` for more information.
   """
-  @macrocallback dpgettext(
-                   domain :: Macro.t(),
-                   msgctxt :: String.t(),
-                   msgid :: String.t(),
-                   bindings :: Macro.t()
-                 ) :: Macro.t()
+  @doc since: "0.26.0"
+  @callback lgettext(
+              Gettext.locale(),
+              domain :: String.t(),
+              msgctxt :: String.t() | nil,
+              msgid :: String.t(),
+              bindings :: map()
+            ) ::
+              {:ok, String.t()} | {:default, String.t()} | {:missing_bindings, String.t(), [atom]}
 
   @doc """
-  Same as `dpgettext(domain, msgctxt, msgid, %{})`.
+  Translates a plural message.
 
-  See also `Gettext.dpgettext/5`.
+  See `Gettext.ngettext/5` for more information.
   """
-  @macrocallback dpgettext(domain :: Macro.t(), msgctxt :: String.t(), msgid :: String.t()) ::
-                   Macro.t()
-
-  @doc """
-  Translates the given `msgid` in the given `domain`.
-
-  `bindings` is a map of bindings to support interpolation.
-
-  See also `Gettext.dgettext/4`.
-  """
-  @macrocallback dgettext(domain :: Macro.t(), msgid :: String.t(), bindings :: Macro.t()) ::
-                   Macro.t()
-
-  @doc """
-  Same as `dgettext(domain, msgid, %{})`.
-
-  See also `Gettext.dgettext/4`.
-  """
-  @macrocallback dgettext(domain :: Macro.t(), msgid :: String.t()) :: Macro.t()
-
-  @doc """
-  Translates the given `msgid` with the given context (`msgctxt`).
-
-  `bindings` is a map of bindings to support interpolation.
-
-  See also `Gettext.pgettext/4`.
-  """
-  @macrocallback pgettext(msgctxt :: String.t(), msgid :: String.t(), bindings :: Macro.t()) ::
-                   Macro.t()
-
-  @doc """
-  Same as `pgettext(msgctxt, msgid, %{})`.
-
-  See also `Gettext.pgettext/4`.
-  """
-  @macrocallback pgettext(msgctxt :: String.t(), msgid :: String.t()) :: Macro.t()
-
-  @doc """
-  Same as `dgettext("default", msgid, %{})`, but will use a per-backend
-  configured default domain if provided.
-
-  See also `Gettext.gettext/3`.
-  """
-  @macrocallback gettext(msgid :: String.t(), bindings :: Macro.t()) :: Macro.t()
-
-  @doc """
-  Same as `gettext(msgid, %{})`.
-
-  See also `Gettext.gettext/3`.
-  """
-  @macrocallback gettext(msgid :: String.t()) :: Macro.t()
-
-  @doc """
-  Translates the given plural message (`msgid` + `msgid_plural`) with the given context (`msgctxt`)
-  in the given `domain`.
-
-  `n` is an integer used to determine how to pluralize the
-  message. `bindings` is a map of bindings to support interpolation.
-
-  See also `Gettext.dpngettext/7`.
-  """
-  @macrocallback dpngettext(
-                   domain :: Macro.t(),
-                   msgctxt :: String.t(),
-                   msgid :: String.t(),
-                   msgid_plural :: String.t(),
-                   n :: Macro.t(),
-                   bindings :: Macro.t()
-                 ) :: Macro.t()
-
-  @doc """
-  Same as `dpngettext(domain, msgctxt, msgid, msgid_plural, n, %{})`.
-
-  See also `Gettext.dpngettext/7`.
-  """
-  @macrocallback dpngettext(
-                   domain :: Macro.t(),
-                   msgctxt :: String.t(),
-                   msgid :: String.t(),
-                   msgid_plural :: String.t(),
-                   n :: Macro.t()
-                 ) :: Macro.t()
-
-  @doc """
-  Translates the given plural message (`msgid` + `msgid_plural`) in the
-  given `domain`.
-
-  `n` is an integer used to determine how to pluralize the
-  message. `bindings` is a map of bindings to support interpolation.
-
-  See also `Gettext.dngettext/6`.
-  """
-  @macrocallback dngettext(
-                   domain :: Macro.t(),
-                   msgid :: String.t(),
-                   msgid_plural :: String.t(),
-                   n :: Macro.t(),
-                   bindings :: Macro.t()
-                 ) :: Macro.t()
-
-  @doc """
-  Same as `dngettext(domain, msgid, msgid_plural, n, %{})`.
-
-  See also `Gettext.dngettext/6`.
-  """
-  @macrocallback dngettext(
-                   domain :: Macro.t(),
-                   msgid :: String.t(),
-                   msgid_plural :: String.t(),
-                   n :: Macro.t()
-                 ) :: Macro.t()
-
-  @doc """
-  Translates the given plural message (`msgid` + `msgid_plural`) with the given context (`msgctxt`).
-
-  `n` is an integer used to determine how to pluralize the
-  message. `bindings` is a map of bindings to support interpolation.
-
-  See also `Gettext.pngettext/6`.
-  """
-  @macrocallback pngettext(
-                   msgctxt :: String.t(),
-                   msgid :: String.t(),
-                   msgid_plural :: String.t(),
-                   n :: Macro.t(),
-                   bindings :: Macro.t()
-                 ) :: Macro.t()
-
-  @doc """
-  Same as `pngettext(msgctxt, msgid, msgid_plural, n, %{})`.
-
-  See also `Gettext.pngettext/6`.
-  """
-  @macrocallback pngettext(
-                   msgctxt :: String.t(),
-                   msgid :: String.t(),
-                   msgid_plural :: String.t(),
-                   n :: Macro.t()
-                 ) :: Macro.t()
-
-  @doc """
-  Same as `dngettext("default", msgid, msgid_plural, n, bindings)`, but will
-  use a per-backend configured default domain if provided.
-
-  See also `Gettext.ngettext/5`.
-  """
-  @macrocallback ngettext(
-                   msgid :: String.t(),
-                   msgid_plural :: String.t(),
-                   n :: Macro.t(),
-                   bindings :: Macro.t()
-                 ) :: Macro.t()
-
-  @doc """
-  Same as `ngettext(msgid, msgid_plural, n, %{})`.
-
-  See also `Gettext.ngettext/5`.
-  """
-  @macrocallback ngettext(msgid :: String.t(), msgid_plural :: String.t(), n :: Macro.t()) ::
-                   Macro.t()
-
-  @doc """
-  Marks the given message for extraction and returns it unchanged.
-
-  This macro can be used to mark a message for extraction when `mix
-  gettext.extract` is run. The return value is the given string, so that this
-  macro can be used seamlessly in place of the string to extract.
-
-  ## Examples
-
-      MyApp.Gettext.dgettext_noop("errors", "Error found!")
-      #=> "Error found!"
-
-  """
-  @macrocallback dgettext_noop(domain :: String.t(), msgid :: String.t()) :: Macro.t()
-
-  @doc """
-  Same as `dgettext_noop("default", msgid)`.
-  """
-  @macrocallback gettext_noop(msgid :: String.t()) :: Macro.t()
-
-  @doc """
-  Marks the given message for extraction and returns
-  `{msgid, msgid_plural}`.
-
-  This macro can be used to mark a message for extraction when `mix
-  gettext.extract` is run. The return value of this macro is `{msgid,
-  msgid_plural}`.
-
-  ## Examples
-
-      my_fun = fn {msgid, msgid_plural} ->
-        # do something with msgid and msgid_plural
-      end
-
-      my_fun.(MyApp.Gettext.dngettext_noop("errors", "One error", "%{count} errors"))
-
-  """
-  @macrocallback dngettext_noop(
-                   domain :: Macro.t(),
-                   msgid :: String.t(),
-                   msgid_plural :: String.t()
-                 ) :: Macro.t()
-
-  @doc """
-  Same as `dngettext_noop("default", msgid, mgsid_plural)`, but will use a
-  per-backend configured default domain if provided.
-  """
-  @macrocallback ngettext_noop(msgid :: String.t(), msgid_plural :: String.t()) :: Macro.t()
-
-  @doc """
-  Stores an "extracted comment" for the next message.
-
-  This macro can be used to add comments (Gettext refers to such
-  comments as *extracted comments*) to the next message that will
-  be extracted. Extracted comments will be prefixed with `#.` in POT
-  files.
-
-  Calling this function multiple times will accumulate the comments;
-  when another Gettext macro (such as `c:gettext/2`) is called,
-  the comments will be extracted and attached to that message, and
-  they will be flushed so as to start again.
-
-  This macro always returns `:ok`.
-
-  ## Examples
-
-      MyApp.Gettext.gettext_comment("The next message is awesome")
-      MyApp.Gettext.gettext_comment("Another comment for the next message")
-      MyApp.Gettext.gettext("The awesome message")
-
-  """
-  @macrocallback gettext_comment(comment :: String.t()) :: :ok
+  @doc since: "0.26.0"
+  @callback lngettext(
+              Gettext.locale(),
+              domain :: String.t(),
+              msgctxt :: String.t() | nil,
+              msgid :: String.t(),
+              msgid_plural :: String.t(),
+              n :: non_neg_integer(),
+              bindings :: map()
+            ) ::
+              {:ok, String.t()} | {:default, String.t()} | {:missing_bindings, String.t(), [atom]}
 end

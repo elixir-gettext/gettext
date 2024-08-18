@@ -627,17 +627,34 @@ defmodule Gettext do
 
   @doc false
   defmacro __using__(opts) do
-    quote do
-      opts = unquote(opts)
-
-      if Keyword.has_key?(opts, :backend) do
-        raise "not implemented yet"
+    opts =
+      if Macro.quoted_literal?(opts) do
+        Macro.prewalk(opts, &expand_alias(&1, __CALLER__))
       else
-        # TODO: Deprecate this branch
-        require Gettext.Backend
-        Gettext.Backend.__using__(opts)
+        opts
       end
+
+    case Keyword.keyword?(opts) && Keyword.fetch(opts, :backend) do
+      {:ok, backend} ->
+        quote do
+          @__gettext_backend__ unquote(backend)
+          import Gettext.Macros
+        end
+
+      _other ->
+        quote do
+          # TODO: Deprecate this branch
+          use Gettext.Backend, unquote(opts)
+        end
     end
+  end
+
+  defp expand_alias({:__aliases__, _, _} = als, env) do
+    Macro.expand(als, %{env | function: {:__gettext__, 1}})
+  end
+
+  defp expand_alias(other, _env) do
+    other
   end
 
   @doc """
