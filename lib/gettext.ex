@@ -634,14 +634,14 @@ defmodule Gettext do
         opts
       end
 
-    case Keyword.fetch(opts, :backend) do
+    case Keyword.keyword?(opts) && Keyword.fetch(opts, :backend) do
       {:ok, backend} ->
         quote do
           @__gettext_backend__ unquote(backend)
           import Gettext.Macros
         end
 
-      :error ->
+      _other ->
         quote do
           # TODO: Deprecate this branch
           use Gettext.Backend, unquote(opts)

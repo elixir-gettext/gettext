@@ -63,8 +63,12 @@ defmodule Gettext.Compiler do
 
       unquote(macros())
 
-      # These are the two functions we generated inside the backend.
+      # These are the two functions we generate inside the backend.
+
+      @impl Gettext.Backend
       def lgettext(locale, domain, msgctxt \\ nil, msgid, bindings)
+
+      @impl Gettext.Backend
       def lngettext(locale, domain, msgctxt \\ nil, msgid, msgid_plural, n, bindings)
 
       unquote(compile_po_files(env, known_po_files, opts))
