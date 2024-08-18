@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
-      use Gettext, otp_app: #{inspect(test)}
+      use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
     defmodule MyApp do
@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
-    use Gettext, otp_app: #{inspect(test)}
+    use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
     defmodule MyApp do
@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
-      use Gettext, otp_app: #{inspect(test)}
+      use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
     defmodule MyApp do
@@ -138,7 +138,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
-    use Gettext, otp_app: #{inspect(test)}
+    use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
     defmodule MyApp do
@@ -160,7 +160,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
-    use Gettext, otp_app: #{inspect(test)}
+    use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
     defmodule MyApp do

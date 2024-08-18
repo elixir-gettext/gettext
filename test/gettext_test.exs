@@ -1,44 +1,48 @@
 defmodule GettextTest.Translator do
-  use Gettext, otp_app: :test_application, priv: "test/fixtures/single_messages"
+  use Gettext.Backend,
+    otp_app: :test_application,
+    priv: "test/fixtures/single_messages"
 end
 
 defmodule GettextTest.TranslatorWithAllowedLocalesString do
-  use Gettext,
+  use Gettext.Backend,
     otp_app: :test_application,
     priv: "test/fixtures/multi_messages",
     allowed_locales: ["es"]
 end
 
 defmodule GettextTest.TranslatorWithAllowedLocalesAtom do
-  use Gettext,
+  use Gettext.Backend,
     otp_app: :test_application,
     priv: "test/fixtures/multi_messages",
     allowed_locales: [:es]
 end
 
 defmodule GettextTest.TranslatorWithCustomPluralForms do
-  use Gettext,
+  use Gettext.Backend,
     otp_app: :test_application,
     priv: "test/fixtures/single_messages",
     plural_forms: GettextTest.CustomPlural
 end
 
 defmodule GettextTest.TranslatorWithCustomCompiledPluralForms do
-  use Gettext,
+  use Gettext.Backend,
     otp_app: :test_application,
     priv: "test/fixtures/single_messages",
     plural_forms: GettextTest.CustomCompiledPlural
 end
 
 defmodule GettextTest.TranslatorWithDefaultDomain do
-  use Gettext,
+  use Gettext.Backend,
     otp_app: :test_application,
     priv: "test/fixtures/single_messages",
     default_domain: "errors"
 end
 
 defmodule GettextTest.HandleMissingMessage do
-  use Gettext, otp_app: :test_application, priv: "test/fixtures/single_messages"
+  use Gettext.Backend,
+    otp_app: :test_application,
+    priv: "test/fixtures/single_messages"
 
   def handle_missing_translation(locale, domain, msgctxt, msgid, bindings) do
     send(self(), {locale, domain, msgctxt, msgid, bindings})
@@ -70,7 +74,7 @@ defmodule GettextTest.TranslatorWithDuckInterpolator.Interpolator do
 end
 
 defmodule GettextTest.TranslatorWithDuckInterpolator do
-  use Gettext,
+  use Gettext.Backend,
     otp_app: :test_application,
     interpolation: GettextTest.TranslatorWithDuckInterpolator.Interpolator,
     priv: "test/fixtures/single_messages"
@@ -79,6 +83,7 @@ end
 defmodule GettextTest do
   use ExUnit.Case
 
+  import ExUnit.CaptureIO
   import ExUnit.CaptureLog
 
   alias GettextTest.Translator
@@ -223,7 +228,7 @@ defmodule GettextTest do
     Application.put_env(:gettext, :plural_forms, GettextTest.CustomPlural)
 
     defmodule TranslatorWithAppPluralForms do
-      use Gettext, otp_app: :test_application, priv: "test/fixtures/single_messages"
+      use Gettext.Backend, otp_app: :test_application, priv: "test/fixtures/single_messages"
     end
 
     alias TranslatorWithAppPluralForms, as: T
@@ -296,7 +301,7 @@ defmodule GettextTest do
         Code.eval_quoted(
           quote do
             defmodule BadTranslations do
-              use Gettext,
+              use Gettext.Backend,
                 otp_app: :test_application,
                 priv: "test/fixtures/bad_messages"
             end
@@ -859,7 +864,7 @@ defmodule GettextTest do
   end
 
   defmodule TranslatorWithOneModulePerLocale do
-    use Gettext,
+    use Gettext.Backend,
       otp_app: :test_application,
       split_module_by: [:locale],
       split_module_compilation: :parallel,
@@ -901,7 +906,7 @@ defmodule GettextTest do
   end
 
   defmodule TranslatorWithOneModulePerLocaleDomain do
-    use Gettext,
+    use Gettext.Backend,
       otp_app: :test_application,
       split_module_by: [:locale, :domain],
       split_module_compilation: :serial,
@@ -946,5 +951,21 @@ defmodule GettextTest do
     import GettextTest.TranslatorWithDuckInterpolator, only: [gettext: 1]
 
     assert "quack foo %{} quack" = gettext("foo")
+  end
+
+  test "use Gettext for defining backends is deprecated" do
+    {_, stderr} =
+      with_io(:stderr, fn ->
+        Code.eval_quoted(
+          quote do
+            defmodule DeprecatedWayOfDefiningBackend do
+              use Gettext, otp_app: :my_app
+            end
+          end
+        )
+      end)
+
+    assert stderr =~ "defining a Gettext backend by calling"
+    assert stderr =~ "is deprecated"
   end
 end

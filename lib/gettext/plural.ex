@@ -71,7 +71,9 @@ defmodule Gettext.Plural do
   or you can set it for each specific backend when you call `use Gettext`:
 
       defmodule MyApp.Gettext do
-        use Gettext, otp_app: :my_app, plural_forms: MyApp.Plural
+        use Gettext.Backend,
+          otp_app: :my_app,
+          plural_forms: MyApp.Plural
       end
 
   > #### Compile-time Configuration {: .warning}

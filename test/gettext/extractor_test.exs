@@ -306,11 +306,11 @@ defmodule Gettext.ExtractorTest do
 
     code = """
     defmodule Gettext.ExtractorTest.MyGettext do
-      use Gettext, otp_app: :test_application
+      use Gettext.Backend, otp_app: :test_application
     end
 
     defmodule Gettext.ExtractorTest.MyOtherGettext do
-      use Gettext, otp_app: :test_application, priv: "messages"
+      use Gettext.Backend, otp_app: :test_application, priv: "messages"
     end
 
     defmodule Foo do
@@ -410,11 +410,11 @@ defmodule Gettext.ExtractorTest do
 
     code = """
     defmodule Gettext.ExtractorConflictTest.MyGettext do
-      use Gettext, otp_app: :test_application
+      use Gettext.Backend, otp_app: :test_application
     end
 
     defmodule Gettext.ExtractorConflictTest.MyOtherGettext do
-      use Gettext, otp_app: :test_application
+      use Gettext.Backend, otp_app: :test_application
     end
 
     defmodule FooConflict do

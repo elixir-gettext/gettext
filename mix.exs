@@ -26,7 +26,17 @@ defmodule Gettext.Mixfile do
       docs: [
         source_ref: "v#{@version}",
         main: "Gettext",
-        source_url: @repo_url
+        source_url: @repo_url,
+        groups_for_docs: [
+          # Gettext
+          "Translation Functions": &(&1[:section] == :translation),
+          "Locale Functions": &(&1[:section] == :locale),
+
+          # Gettext.Macros
+          "Comment Macros": &(&1[:module] == Gettext.Macros and &1[:name] == :gettext_comment),
+          "No-op Macros": &(&1[:module] == Gettext.Macros and to_string(&1[:name]) =~ ~r/_noop$/),
+          "Translation Macros": &(&1[:module] == Gettext.Macros)
+        ]
       ]
     ]
   end
