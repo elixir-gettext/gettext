@@ -10,6 +10,8 @@ defmodule Gettext.MacrosTest do
 
   import ExUnit.CaptureLog
 
+  require Gettext.Macros, as: Macros
+
   @backend Gettext.MacrosTest.Translator
   @gettext_msgid "Hello world"
 
@@ -254,5 +256,140 @@ defmodule Gettext.MacrosTest do
 
     assert pngettext_noop("test", "One message", "%{count} messages") ==
              {"One message", "%{count} messages"}
+  end
+
+  ## _with_backend variants
+
+  describe "dpgettext_noop_with_backend/4" do
+    test "supports test with context based messages" do
+      assert Macros.dpgettext_noop_with_backend(@backend, "test", "ctx", "Hello world") ==
+               "Hello world"
+    end
+  end
+
+  describe "dgettext_noop_with_backend/4" do
+    test "supports test with context based messages" do
+      assert Macros.dgettext_noop_with_backend(@backend, "test", "Hello world") == "Hello world"
+    end
+  end
+
+  describe "pgettext_noop_with_backend/4" do
+    test "supports test with context based messages" do
+      assert Macros.pgettext_noop_with_backend(@backend, "ctx", "Hello world") == "Hello world"
+    end
+  end
+
+  describe "gettext_noop_with_backend/2" do
+    test "supports test with context based messages" do
+      assert Macros.gettext_noop_with_backend(@backend, "Hello world") == "Hello world"
+    end
+  end
+
+  describe "dpngettext_noop_with_backend/5" do
+    test "supports test with context based messages" do
+      assert Macros.dpngettext_noop_with_backend(
+               @backend,
+               "test",
+               "ctx",
+               "One message",
+               "%{count} messages"
+             ) ==
+               {"One message", "%{count} messages"}
+    end
+  end
+
+  describe "dngettext_noop_with_backend/4" do
+    test "supports test with context based messages" do
+      assert Macros.dngettext_noop_with_backend(
+               @backend,
+               "test",
+               "One message",
+               "%{count} messages"
+             ) ==
+               {"One message", "%{count} messages"}
+    end
+  end
+
+  describe "pngettext_noop_with_backend/4" do
+    test "supports test with context based messages" do
+      assert Macros.pngettext_noop_with_backend(
+               @backend,
+               "ctx",
+               "One message",
+               "%{count} messages"
+             ) ==
+               {"One message", "%{count} messages"}
+    end
+  end
+
+  describe "ngettext_noop_with_backend/3" do
+    test "supports test with context based messages" do
+      assert Macros.ngettext_noop_with_backend(@backend, "One message", "%{count} messages") ==
+               {"One message", "%{count} messages"}
+    end
+  end
+
+  describe "translation macros *_with_backend" do
+    setup do
+      Gettext.put_locale(@backend, "it")
+      :ok
+    end
+
+    test "dpgettext_with_backend/5" do
+      assert Macros.dpgettext_with_backend(@backend, "default", "test", "Hello world", %{}) ==
+               "Ciao mondo"
+    end
+
+    test "dgettext_with_backend/4" do
+      assert Macros.dgettext_with_backend(@backend, "default", "Hello world") == "Ciao mondo"
+    end
+
+    test "pgettext_with_backend/4" do
+      assert Macros.pgettext_with_backend(@backend, "test", "Hello world") == "Ciao mondo"
+    end
+
+    test "gettext_with_backend/2" do
+      assert Macros.gettext_with_backend(@backend, "Hello world") == "Ciao mondo"
+    end
+
+    test "dpngettext_with_backend/6" do
+      assert Macros.dpngettext_with_backend(
+               @backend,
+               "default",
+               "test",
+               "One new email",
+               "%{count} new emails",
+               1
+             ) == "Una nuova test email"
+    end
+
+    test "dngettext_with_backend/5" do
+      assert Macros.dngettext_with_backend(
+               @backend,
+               "default",
+               "One new email",
+               "%{count} new emails",
+               1
+             ) == "Una nuova email"
+    end
+
+    test "pngettext_with_backend/5" do
+      assert Macros.pngettext_with_backend(
+               @backend,
+               "test",
+               "One new email",
+               "%{count} new emails",
+               1
+             ) == "Una nuova test email"
+    end
+
+    test "ngettext_with_backend/4" do
+      assert Macros.ngettext_with_backend(
+               @backend,
+               "One new email",
+               "%{count} new emails",
+               1
+             ) == "Una nuova email"
+    end
   end
 end
