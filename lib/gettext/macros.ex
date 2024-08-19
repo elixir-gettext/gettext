@@ -401,6 +401,341 @@ defmodule Gettext.Macros do
     :ok
   end
 
+  ## Macros that also take a backend.
+
+  @doc """
+  Same as `dpgettext_noop/3`, but takes an explicit backend.
+  """
+  defmacro dpgettext_noop_with_backend(backend, domain, msgctxt, msgid) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+    domain = expand_domain(domain, __CALLER__)
+    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
+    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
+
+    if Gettext.Extractor.extracting?() do
+      Gettext.Extractor.extract(
+        __CALLER__,
+        backend,
+        domain,
+        msgctxt,
+        msgid,
+        Gettext.Compiler.get_and_flush_extracted_comments()
+      )
+    end
+
+    msgid
+  end
+
+  @doc """
+  Same as `dgettext_noop/2`, but takes an explicit backend.
+  """
+  defmacro dgettext_noop_with_backend(backend, domain, msgid) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpgettext_noop_with_backend(
+        unquote(backend),
+        unquote(domain),
+        nil,
+        unquote(msgid)
+      )
+    end
+  end
+
+  @doc """
+  Same as `gettext_noop/1`, but takes an explicit backend.
+  """
+  defmacro gettext_noop_with_backend(backend, msgid) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpgettext_noop_with_backend(
+        unquote(backend),
+        :default,
+        nil,
+        unquote(msgid)
+      )
+    end
+  end
+
+  @doc """
+  Same as `pgettext_noop/2`, but takes an explicit backend.
+  """
+  defmacro pgettext_noop_with_backend(backend, msgid, context) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpgettext_noop_with_backend(
+        unquote(backend),
+        :default,
+        unquote(context),
+        unquote(msgid)
+      )
+    end
+  end
+
+  @doc """
+  Same as `dpngettext_noop/4`, but takes an explicit backend.
+  """
+  defmacro dpngettext_noop_with_backend(backend, domain, msgctxt, msgid, msgid_plural) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+    domain = expand_domain(domain, __CALLER__)
+    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
+    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
+    msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __CALLER__)
+
+    if Gettext.Extractor.extracting?() do
+      Gettext.Extractor.extract(
+        __CALLER__,
+        backend,
+        domain,
+        msgctxt,
+        {msgid, msgid_plural},
+        Gettext.Compiler.get_and_flush_extracted_comments()
+      )
+    end
+
+    {msgid, msgid_plural}
+  end
+
+  @doc """
+  Same as `dngettext_noop/3`, but takes an explicit backend.
+  """
+  defmacro dngettext_noop_with_backend(backend, domain, msgid, msgid_plural) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpngettext_noop_with_backend(
+        unquote(backend),
+        unquote(domain),
+        nil,
+        unquote(msgid),
+        unquote(msgid_plural)
+      )
+    end
+  end
+
+  @doc """
+  Same as `pngettext_noop/3`, but takes an explicit backend.
+  """
+  defmacro pngettext_noop_with_backend(backend, msgctxt, msgid, msgid_plural) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpngettext_noop_with_backend(
+        unquote(backend),
+        :default,
+        unquote(msgctxt),
+        unquote(msgid),
+        unquote(msgid_plural)
+      )
+    end
+  end
+
+  @doc """
+  Same as `ngettext_noop/2`, but takes an explicit backend.
+  """
+  defmacro ngettext_noop_with_backend(backend, msgid, msgid_plural) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpngettext_noop_with_backend(
+        unquote(backend),
+        :default,
+        nil,
+        unquote(msgid),
+        unquote(msgid_plural)
+      )
+    end
+  end
+
+  @doc """
+  Same as `dpgettext/4`, but takes an explicit backend.
+  """
+  defmacro dpgettext_with_backend(backend, domain, msgctxt, msgid, bindings \\ Macro.escape(%{})) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+    domain = expand_domain(domain, __CALLER__)
+
+    quote do
+      msgid =
+        unquote(__MODULE__).dpgettext_noop_with_backend(
+          unquote(backend),
+          unquote(domain),
+          unquote(msgctxt),
+          unquote(msgid)
+        )
+
+      Gettext.dpgettext(
+        unquote(backend),
+        unquote(__MODULE__).__expand_runtime_domain__(unquote(backend), unquote(domain)),
+        unquote(msgctxt),
+        msgid,
+        unquote(bindings)
+      )
+    end
+  end
+
+  @doc """
+  Same as `dgettext/3`, but takes an explicit backend.
+  """
+  defmacro dgettext_with_backend(backend, domain, msgid, bindings \\ Macro.escape(%{})) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpgettext_with_backend(
+        unquote(backend),
+        unquote(domain),
+        nil,
+        unquote(msgid),
+        unquote(bindings)
+      )
+    end
+  end
+
+  @doc """
+  Same as `pgettext/3`, but takes an explicit backend.
+  """
+  defmacro pgettext_with_backend(backend, msgctxt, msgid, bindings \\ Macro.escape(%{})) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpgettext_with_backend(
+        unquote(backend),
+        :default,
+        unquote(msgctxt),
+        unquote(msgid),
+        unquote(bindings)
+      )
+    end
+  end
+
+  @doc """
+  Same as `gettext/2`, but takes an explicit backend.
+  """
+  defmacro gettext_with_backend(backend, msgid, bindings \\ Macro.escape(%{})) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpgettext_with_backend(
+        unquote(backend),
+        :default,
+        nil,
+        unquote(msgid),
+        unquote(bindings)
+      )
+    end
+  end
+
+  @doc """
+  Same as `dpngettext/6`, but takes an explicit backend.
+  """
+  defmacro dpngettext_with_backend(
+             backend,
+             domain,
+             msgctxt,
+             msgid,
+             msgid_plural,
+             n,
+             bindings \\ Macro.escape(%{})
+           ) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+    domain = expand_domain(domain, __CALLER__)
+
+    quote do
+      {msgid, msgid_plural} =
+        unquote(__MODULE__).dpngettext_noop_with_backend(
+          unquote(backend),
+          unquote(domain),
+          unquote(msgctxt),
+          unquote(msgid),
+          unquote(msgid_plural)
+        )
+
+      Gettext.dpngettext(
+        unquote(backend),
+        unquote(__MODULE__).__expand_runtime_domain__(unquote(backend), unquote(domain)),
+        unquote(msgctxt),
+        msgid,
+        msgid_plural,
+        unquote(n),
+        unquote(bindings)
+      )
+    end
+  end
+
+  @doc """
+  Same as `dngettext/5`, but takes an explicit backend.
+  """
+  defmacro dngettext_with_backend(
+             backend,
+             domain,
+             msgid,
+             msgid_plural,
+             n,
+             bindings \\ Macro.escape(%{})
+           ) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpngettext_with_backend(
+        unquote(backend),
+        unquote(domain),
+        nil,
+        unquote(msgid),
+        unquote(msgid_plural),
+        unquote(n),
+        unquote(bindings)
+      )
+    end
+  end
+
+  @doc """
+  Same as `ngettext/4`, but takes an explicit backend.
+  """
+  defmacro ngettext_with_backend(backend, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpngettext_with_backend(
+        unquote(backend),
+        :default,
+        nil,
+        unquote(msgid),
+        unquote(msgid_plural),
+        unquote(n),
+        unquote(bindings)
+      )
+    end
+  end
+
+  @doc """
+  Same as `pngettext/5`, but takes an explicit backend.
+  """
+  defmacro pngettext_with_backend(
+             backend,
+             msgctxt,
+             msgid,
+             msgid_plural,
+             n,
+             bindings \\ Macro.escape(%{})
+           ) do
+    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+
+    quote do
+      unquote(__MODULE__).dpngettext_with_backend(
+        unquote(backend),
+        :default,
+        unquote(msgctxt),
+        unquote(msgid),
+        unquote(msgid_plural),
+        unquote(n),
+        unquote(bindings)
+      )
+    end
+  end
+
+  ## Helpers
+
   defp expand_domain(:default, _env) do
     :default
   end

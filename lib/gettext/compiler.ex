@@ -359,6 +359,34 @@ defmodule Gettext.Compiler do
   end
 
   @doc """
+  Expands the given `term` to a compile-time atom in the given `env`.
+  """
+  @spec expand_backend(Macro.t(), Macro.Env.t()) :: module
+  def expand_backend(term, env) do
+    case Macro.expand(term, env) do
+      term when is_atom(term) and term not in [nil, false, true] ->
+        term
+
+      _other ->
+        raise ArgumentError, """
+        Gettext.Macros macros (that end with "_with_backend") expect the backend argument
+        to be an atom at compile-time, but the given term doesn't. This is what the macro
+        received:
+
+        #{inspect(term)}
+
+        Dynamic messages should be avoided as they limit Gettext's
+        ability to extract messages from your source code. If you are
+        sure you need dynamic lookup, you can use the functions in the Gettext
+        module:
+
+            string = "hello world"
+            Gettext.gettext(backend, string)
+        """
+    end
+  end
+
+  @doc """
   Appends the given comment to the list of extracted comments in the process dictionary.
   """
   @spec append_extracted_comment(binary) :: :ok

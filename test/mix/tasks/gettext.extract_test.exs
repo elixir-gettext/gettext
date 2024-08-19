@@ -165,7 +165,7 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     defmodule MyApp do
       use Gettext, backend: MyApp.Gettext
-      def foo(), do: gettext("hello")
+      def foo(), do: gettext("hello world")
     end
     """)
 
