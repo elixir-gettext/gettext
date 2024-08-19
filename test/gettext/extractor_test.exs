@@ -306,29 +306,28 @@ defmodule Gettext.ExtractorTest do
 
     code = """
     defmodule Gettext.ExtractorTest.MyGettext do
-      use Gettext, otp_app: :test_application
+      use Gettext.Backend, otp_app: :test_application
     end
 
     defmodule Gettext.ExtractorTest.MyOtherGettext do
-      use Gettext, otp_app: :test_application, priv: "messages"
+      use Gettext.Backend, otp_app: :test_application, priv: "messages"
     end
 
     defmodule Foo do
-      import Gettext.ExtractorTest.MyGettext
-      require Gettext.ExtractorTest.MyOtherGettext
+      require Gettext.Macros
 
       def bar do
-        gettext_comment("some comment")
-        gettext_comment("some other comment")
-        gettext_comment("repeated comment")
-        gettext("foo")
-        dngettext("errors", "one error", "%{count} errors", 2)
-        gettext_comment("one more comment")
-        gettext_comment("repeated comment")
-        gettext_comment("repeated comment")
-        gettext("foo")
-        Gettext.ExtractorTest.MyOtherGettext.dgettext("greetings", "hi")
-        pgettext("test", "context based message")
+        Gettext.Macros.gettext_comment("some comment")
+        Gettext.Macros.gettext_comment("some other comment")
+        Gettext.Macros.gettext_comment("repeated comment")
+        Gettext.Macros.gettext_with_backend(Gettext.ExtractorTest.MyGettext, "foo")
+        Gettext.Macros.dngettext_with_backend(Gettext.ExtractorTest.MyGettext, "errors", "one error", "%{count} errors", 2)
+        Gettext.Macros.gettext_comment("one more comment")
+        Gettext.Macros.gettext_comment("repeated comment")
+        Gettext.Macros.gettext_comment("repeated comment")
+        Gettext.Macros.gettext_with_backend(Gettext.ExtractorTest.MyGettext, "foo")
+        Gettext.Macros.dgettext_with_backend(Gettext.ExtractorTest.MyOtherGettext, "greetings", "hi")
+        Gettext.Macros.pgettext_with_backend(Gettext.ExtractorTest.MyGettext, "test", "context based message")
       end
     end
     """
@@ -345,13 +344,13 @@ defmodule Gettext.ExtractorTest do
        #. some other comment
        #. repeated comment
        #. one more comment
-       #: foo.ex:17
-       #: foo.ex:22
+       #: foo.ex:16
+       #: foo.ex:21
        #, elixir-autogen, elixir-format
        msgid "foo"
        msgstr ""
 
-       #: foo.ex:24
+       #: foo.ex:23
        #, elixir-autogen, elixir-format
        msgctxt "test"
        msgid "context based message"
@@ -362,7 +361,7 @@ defmodule Gettext.ExtractorTest do
        msgid ""
        msgstr ""
 
-       #: foo.ex:18
+       #: foo.ex:17
        #, elixir-autogen, elixir-format
        msgid "one error"
        msgid_plural "%{count} errors"
@@ -374,7 +373,7 @@ defmodule Gettext.ExtractorTest do
        msgid ""
        msgstr ""
 
-       #: foo.ex:23
+       #: foo.ex:22
        #, elixir-autogen, elixir-format
        msgid "hi"
        msgstr ""
@@ -410,20 +409,19 @@ defmodule Gettext.ExtractorTest do
 
     code = """
     defmodule Gettext.ExtractorConflictTest.MyGettext do
-      use Gettext, otp_app: :test_application
+      use Gettext.Backend, otp_app: :test_application
     end
 
     defmodule Gettext.ExtractorConflictTest.MyOtherGettext do
-      use Gettext, otp_app: :test_application
+      use Gettext.Backend, otp_app: :test_application
     end
 
     defmodule FooConflict do
-      import Gettext.ExtractorConflictTest.MyGettext
-      require Gettext.ExtractorConflictTest.MyOtherGettext
+      require Gettext.Macros
 
       def bar do
-        gettext("foo")
-        Gettext.ExtractorConflictTest.MyOtherGettext.gettext("foo")
+        Gettext.Macros.gettext_with_backend(Gettext.ExtractorConflictTest.MyGettext, "foo")
+        Gettext.Macros.gettext_with_backend(Gettext.ExtractorConflictTest.MyOtherGettext, "foo")
       end
     end
     """

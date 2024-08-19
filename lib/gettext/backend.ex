@@ -85,7 +85,7 @@ defmodule Gettext.Backend do
 
   For example, if something like this is called:
 
-      MyApp.Gettext.gettext("Hello %{name}, your favorite color is %{color}", name: "Jane", color: "blue")
+      gettext("Hello %{name}, your favorite color is %{color}", name: "Jane", color: "blue")
 
   and our `it/LC_MESSAGES/default.po` looks like this:
 
