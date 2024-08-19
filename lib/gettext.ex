@@ -598,6 +598,16 @@ defmodule Gettext do
   @type backend :: module
   @type bindings :: map() | Keyword.t()
 
+  @typedoc """
+  A Gettext domain.
+
+  See [*Domains*](#module-domains) in the module documentation for more information.
+  """
+  @typedoc since: "0.26.0"
+  @type domain() :: :default | binary()
+
+  defguardp is_domain(domain) when domain == :default or is_binary(domain)
+
   @doc false
   defmacro __using__(opts) do
     opts =
@@ -775,7 +785,7 @@ defmodule Gettext do
 
   """
   @doc section: :translation
-  @spec dpgettext(module, binary, binary | nil, binary, bindings) :: binary
+  @spec dpgettext(module, domain, binary | nil, binary, bindings) :: binary
   def dpgettext(backend, domain, msgctxt, msgid, bindings \\ %{})
 
   def dpgettext(backend, domain, msgctxt, msgid, bindings) when is_list(bindings) do
@@ -783,7 +793,8 @@ defmodule Gettext do
   end
 
   def dpgettext(backend, domain, msgctxt, msgid, bindings)
-      when is_atom(backend) and is_binary(domain) and is_binary(msgid) and is_map(bindings) do
+      when is_atom(backend) and is_domain(domain) and is_binary(msgid) and is_map(bindings) do
+    domain = domain_or_default(backend, domain)
     locale = get_locale(backend)
     result = backend.lgettext(locale, domain, msgctxt, msgid, bindings)
     handle_backend_result(result, backend, locale, domain, msgctxt, msgid)
@@ -820,7 +831,7 @@ defmodule Gettext do
 
   """
   @doc section: :translation
-  @spec dgettext(module, binary, binary, bindings) :: binary
+  @spec dgettext(module, domain, binary, bindings) :: binary
   def dgettext(backend, domain, msgid, bindings \\ %{}) do
     dpgettext(backend, domain, nil, msgid, bindings)
   end
@@ -900,7 +911,7 @@ defmodule Gettext do
 
   """
   @doc section: :translation
-  @spec dpngettext(module, binary, binary | nil, binary, binary, non_neg_integer, bindings) ::
+  @spec dpngettext(module, domain, binary | nil, binary, binary, non_neg_integer, bindings) ::
           binary
   def dpngettext(backend, domain, msgctxt, msgid, msgid_plural, n, bindings \\ %{})
 
@@ -910,8 +921,9 @@ defmodule Gettext do
   end
 
   def dpngettext(backend, domain, msgctxt, msgid, msgid_plural, n, bindings)
-      when is_atom(backend) and is_binary(domain) and is_binary(msgid) and is_binary(msgid_plural) and
+      when is_atom(backend) and is_domain(domain) and is_binary(msgid) and is_binary(msgid_plural) and
              is_integer(n) and n >= 0 and is_map(bindings) do
+    domain = domain_or_default(backend, domain)
     locale = get_locale(backend)
     result = backend.lngettext(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)
     handle_backend_result(result, backend, locale, domain, msgctxt, msgid)
@@ -943,7 +955,7 @@ defmodule Gettext do
 
   """
   @doc section: :translation
-  @spec dngettext(module, binary, binary, binary, non_neg_integer, bindings) :: binary
+  @spec dngettext(module, domain, binary, binary, non_neg_integer, bindings) :: binary
   def dngettext(backend, domain, msgid, msgid_plural, n, bindings \\ %{}),
     do: dpngettext(backend, domain, nil, msgid, msgid_plural, n, bindings)
 
@@ -1125,4 +1137,7 @@ defmodule Gettext do
 
     backend.handle_missing_bindings(exception, incomplete)
   end
+
+  defp domain_or_default(backend, :default), do: backend.__gettext__(:default_domain)
+  defp domain_or_default(_backend, domain) when is_binary(domain), do: domain
 end

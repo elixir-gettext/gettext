@@ -34,22 +34,7 @@ defmodule Gettext.Macros do
 
   @moduledoc since: "0.26.0"
 
-  alias Gettext.Compiler
   alias Gettext.Extractor
-
-  @doc false
-  def __expand_runtime_domain__(backend, :default), do: backend.__gettext__(:default_domain)
-  def __expand_runtime_domain__(_backend, domain) when is_binary(domain), do: domain
-
-  defp backend(%Macro.Env{} = env) do
-    if Module.open?(env.module) do
-      Module.get_attribute(env.module, :__gettext_backend__) ||
-        raise "expected to find non-nil @__gettext_backend__ attribute in #{inspect(env.module)}"
-    else
-      List.first(env.module.__info__(:attributes)[:__gettext_backend__]) ||
-        raise "expected to find non-nil @__gettext_backend__ attribute in #{inspect(env.module)}"
-    end
-  end
 
   @doc """
   Marks the given message for extraction and returns it unchanged.
@@ -394,8 +379,8 @@ defmodule Gettext.Macros do
 
   """
   defmacro gettext_comment(comment) do
-    comment = Gettext.Compiler.expand_to_binary(comment, "comment", __CALLER__)
-    Gettext.Compiler.append_extracted_comment(comment)
+    comment = expand_to_binary(comment, "comment", __CALLER__)
+    append_extracted_comment(comment)
     :ok
   end
 
@@ -606,10 +591,10 @@ defmodule Gettext.Macros do
   ## Helpers
 
   defp extract_singular_translation(env, backend, domain, msgctxt, msgid) do
-    backend = Compiler.expand_backend(backend, env)
+    backend = expand_backend(backend, env)
     domain = expand_domain(domain, env)
-    msgid = Compiler.expand_to_binary(msgid, "msgid", env)
-    msgctxt = Compiler.expand_to_binary(msgctxt, "msgctxt", env)
+    msgid = expand_to_binary(msgid, "msgid", env)
+    msgctxt = expand_to_binary(msgctxt, "msgctxt", env)
 
     if Extractor.extracting?() do
       Extractor.extract(
@@ -618,7 +603,7 @@ defmodule Gettext.Macros do
         domain,
         msgctxt,
         msgid,
-        Compiler.get_and_flush_extracted_comments()
+        get_and_flush_extracted_comments()
       )
     end
 
@@ -626,11 +611,11 @@ defmodule Gettext.Macros do
   end
 
   defp extract_plural_translation(env, backend, domain, msgctxt, msgid, msgid_plural) do
-    backend = Compiler.expand_backend(backend, env)
+    backend = expand_backend(backend, env)
     domain = expand_domain(domain, env)
-    msgid = Compiler.expand_to_binary(msgid, "msgid", env)
-    msgctxt = Compiler.expand_to_binary(msgctxt, "msgctxt", env)
-    msgid_plural = Compiler.expand_to_binary(msgid_plural, "msgid_plural", env)
+    msgid = expand_to_binary(msgid, "msgid", env)
+    msgctxt = expand_to_binary(msgctxt, "msgctxt", env)
+    msgid_plural = expand_to_binary(msgid_plural, "msgid_plural", env)
 
     if Extractor.extracting?() do
       Extractor.extract(
@@ -639,7 +624,7 @@ defmodule Gettext.Macros do
         domain,
         msgctxt,
         {msgid, msgid_plural},
-        Compiler.get_and_flush_extracted_comments()
+        get_and_flush_extracted_comments()
       )
     end
 
@@ -653,7 +638,7 @@ defmodule Gettext.Macros do
     quote do
       Gettext.dpgettext(
         unquote(backend),
-        unquote(__MODULE__).__expand_runtime_domain__(unquote(backend), unquote(domain)),
+        unquote(domain),
         unquote(msgctxt),
         unquote(msgid),
         unquote(bindings)
@@ -679,7 +664,7 @@ defmodule Gettext.Macros do
     quote do
       Gettext.dpngettext(
         unquote(backend),
-        unquote(__MODULE__).__expand_runtime_domain__(unquote(backend), unquote(domain)),
+        unquote(domain),
         unquote(msgctxt),
         unquote(msgid),
         unquote(msgid_plural),
@@ -689,11 +674,91 @@ defmodule Gettext.Macros do
     end
   end
 
-  defp expand_domain(:default, _env) do
-    :default
+  defp expand_domain(:default, _env), do: :default
+  defp expand_domain(domain, env), do: expand_to_binary(domain, "domain", env)
+
+  defp backend(%Macro.Env{} = env) do
+    if Module.open?(env.module) do
+      Module.get_attribute(env.module, :__gettext_backend__) ||
+        raise "expected to find non-nil @__gettext_backend__ attribute in #{inspect(env.module)}"
+    else
+      List.first(env.module.__info__(:attributes)[:__gettext_backend__]) ||
+        raise "expected to find non-nil @__gettext_backend__ attribute in #{inspect(env.module)}"
+    end
   end
 
-  defp expand_domain(domain, env) do
-    Gettext.Compiler.expand_to_binary(domain, "domain", env)
+  defp expand_to_binary(term, what, %Macro.Env{} = env)
+       when what in ~w(domain msgctxt msgid msgid_plural comment) do
+    gettext_module =
+      if Module.open?(env.module) do
+        Module.get_attribute(env.module, :__gettext_backend__)
+      else
+        List.first(env.module.__info__(:attributes)[:__gettext_backend__])
+      end
+
+    raiser = fn term ->
+      raise ArgumentError, """
+      Gettext macros expect message keys (msgid and msgid_plural),
+      domains, and comments to expand to strings at compile-time, but the given #{what}
+      doesn't. This is what the macro received:
+
+      #{inspect(term)}
+
+      Dynamic messages should be avoided as they limit Gettext's
+      ability to extract messages from your source code. If you are
+      sure you need dynamic lookup, you can use the functions in the Gettext
+      module:
+
+          string = "hello world"
+          Gettext.gettext(#{if(gettext_module, do: inspect(gettext_module), else: "backend")}, string)
+      """
+    end
+
+    # We support nil too in order to fall back to a nil context and always use the *p
+    # variants of the Gettext macros.
+    case Macro.expand(term, env) do
+      term when is_binary(term) or is_nil(term) ->
+        term
+
+      {:<<>>, _, pieces} = term ->
+        if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces), else: raiser.(term)
+
+      other ->
+        raiser.(other)
+    end
+  end
+
+  defp expand_backend(term, %Macro.Env{} = env) do
+    case Macro.expand(term, env) do
+      term when is_atom(term) and term not in [nil, false, true] ->
+        term
+
+      _other ->
+        raise ArgumentError, """
+        Gettext.Macros macros (that end with "_with_backend") expect the backend argument
+        to be an atom at compile-time, but the given term doesn't. This is what the macro
+        received:
+
+        #{inspect(term)}
+
+        Dynamic messages should be avoided as they limit Gettext's
+        ability to extract messages from your source code. If you are
+        sure you need dynamic lookup, you can use the functions in the Gettext
+        module:
+
+            string = "hello world"
+            Gettext.gettext(backend, string)
+        """
+    end
+  end
+
+  defp append_extracted_comment(comment) do
+    existing = Process.get(:gettext_comments, [])
+    Process.put(:gettext_comments, [" " <> comment | existing])
+    :ok
+  end
+
+  defp get_and_flush_extracted_comments() do
+    Enum.reverse(Process.delete(:gettext_comments) || [])
   end
 end
