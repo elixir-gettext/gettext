@@ -33,8 +33,11 @@ defmodule Gettext.Mixfile do
           "Locale Functions": &(&1[:section] == :locale),
 
           # Gettext.Macros
+          "Macros with Backend":
+            &(&1[:module] == Gettext.Macros and to_string(&1[:name]) =~ ~r/_with_backend$/),
           "Comment Macros": &(&1[:module] == Gettext.Macros and &1[:name] == :gettext_comment),
-          "No-op Macros": &(&1[:module] == Gettext.Macros and to_string(&1[:name]) =~ ~r/_noop$/),
+          "Extraction Macros":
+            &(&1[:module] == Gettext.Macros and to_string(&1[:name]) =~ ~r/_noop$/),
           "Translation Macros": &(&1[:module] == Gettext.Macros)
         ]
       ]

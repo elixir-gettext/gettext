@@ -7,21 +7,34 @@ defmodule Gettext.Macros do
   Macros enable users to use gettext and get **automatic extraction** of translations.
   See `Gettext` for more information.
 
-  This module is *imported* every time you call:
+  The macros in this module *that don't end with `_with_backend`* are imported
+  every time you call:
 
       use Gettext, backend: MyApp.Gettext
 
-  > #### Warning {: .error}
-  >
-  > You are not meant to use this module in any way other than with `use Gettext` as shown above,
-  > as its macros depend on internals that get set up when you call `use Gettext`.
+  ### Explicit backend
+
+  If you need to use the macros here with an explicit backend and you want extraction
+  to work, you can use the `_with_backend` versions of the macros in this module explicitly
+  instead.
+
+      defmodule MyApp.Gettext do
+        use Gettext, otp_app: :my_app
+      end
+
+      defmodule MyApp.Controller do
+        require Gettext.Macros
+
+        def index(conn, _params) do
+          Gettext.Macros.gettext_with_backend(MyApp.Gettext, "Hello, world!")
+        end
+      end
+
   """
 
   @moduledoc since: "0.26.0"
 
-  @doc false
-  def __expand_runtime_domain__(backend, :default), do: backend.__gettext__(:default_domain)
-  def __expand_runtime_domain__(_backend, domain) when is_binary(domain), do: domain
+  alias Gettext.Extractor
 
   @doc """
   Marks the given message for extraction and returns it unchanged.
@@ -37,24 +50,7 @@ defmodule Gettext.Macros do
 
   """
   defmacro dpgettext_noop(domain, msgctxt, msgid) do
-    domain = expand_domain(domain, __CALLER__)
-    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
-    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
-
-    if Gettext.Extractor.extracting?() do
-      backend = Module.get_attribute(__CALLER__.module, :__gettext_backend__)
-
-      Gettext.Extractor.extract(
-        __CALLER__,
-        backend,
-        domain,
-        msgctxt,
-        msgid,
-        Gettext.Compiler.get_and_flush_extracted_comments()
-      )
-    end
-
-    msgid
+    extract_singular_translation(__CALLER__, backend(__CALLER__), domain, msgctxt, msgid)
   end
 
   @doc """
@@ -71,9 +67,7 @@ defmodule Gettext.Macros do
 
   """
   defmacro dgettext_noop(domain, msgid) do
-    quote do
-      unquote(__MODULE__).dpgettext_noop(unquote(domain), nil, unquote(msgid))
-    end
+    extract_singular_translation(__CALLER__, backend(__CALLER__), domain, _msgctxt = nil, msgid)
   end
 
   @doc """
@@ -90,9 +84,13 @@ defmodule Gettext.Macros do
 
   """
   defmacro gettext_noop(msgid) do
-    quote do
-      unquote(__MODULE__).dpgettext_noop(:default, nil, unquote(msgid))
-    end
+    extract_singular_translation(
+      __CALLER__,
+      backend(__CALLER__),
+      _domain = :default,
+      _msgctxt = nil,
+      msgid
+    )
   end
 
   @doc """
@@ -109,9 +107,7 @@ defmodule Gettext.Macros do
 
   """
   defmacro pgettext_noop(msgid, context) do
-    quote do
-      unquote(__MODULE__).dpgettext_noop(:default, unquote(context), unquote(msgid))
-    end
+    extract_singular_translation(__CALLER__, backend(__CALLER__), :default, context, msgid)
   end
 
   @doc """
@@ -128,25 +124,14 @@ defmodule Gettext.Macros do
 
   """
   defmacro dpngettext_noop(domain, msgctxt, msgid, msgid_plural) do
-    domain = expand_domain(domain, __CALLER__)
-    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
-    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
-    msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __CALLER__)
-
-    if Gettext.Extractor.extracting?() do
-      backend = Module.get_attribute(__CALLER__.module, :__gettext_backend__)
-
-      Gettext.Extractor.extract(
-        __CALLER__,
-        backend,
-        domain,
-        msgctxt,
-        {msgid, msgid_plural},
-        Gettext.Compiler.get_and_flush_extracted_comments()
-      )
-    end
-
-    {msgid, msgid_plural}
+    extract_plural_translation(
+      __CALLER__,
+      backend(__CALLER__),
+      domain,
+      msgctxt,
+      msgid,
+      msgid_plural
+    )
   end
 
   @doc """
@@ -167,14 +152,14 @@ defmodule Gettext.Macros do
 
   """
   defmacro dngettext_noop(domain, msgid, msgid_plural) do
-    quote do
-      unquote(__MODULE__).dpngettext_noop(
-        unquote(domain),
-        nil,
-        unquote(msgid),
-        unquote(msgid_plural)
-      )
-    end
+    extract_plural_translation(
+      __CALLER__,
+      backend(__CALLER__),
+      domain,
+      _msgctxt = nil,
+      msgid,
+      msgid_plural
+    )
   end
 
   @doc """
@@ -191,14 +176,14 @@ defmodule Gettext.Macros do
 
   """
   defmacro pngettext_noop(msgctxt, msgid, msgid_plural) do
-    quote do
-      unquote(__MODULE__).dpngettext_noop(
-        :default,
-        unquote(msgctxt),
-        unquote(msgid),
-        unquote(msgid_plural)
-      )
-    end
+    extract_plural_translation(
+      __CALLER__,
+      backend(__CALLER__),
+      _domain = :default,
+      msgctxt,
+      msgid,
+      msgid_plural
+    )
   end
 
   @doc """
@@ -206,9 +191,14 @@ defmodule Gettext.Macros do
   per-backend configured default domain if provided.
   """
   defmacro ngettext_noop(msgid, msgid_plural) do
-    quote do
-      unquote(__MODULE__).dpngettext_noop(:default, nil, unquote(msgid), unquote(msgid_plural))
-    end
+    extract_plural_translation(
+      __CALLER__,
+      backend(__CALLER__),
+      _domain = :default,
+      _msgctxt = nil,
+      msgid,
+      msgid_plural
+    )
   end
 
   @doc """
@@ -219,20 +209,14 @@ defmodule Gettext.Macros do
   See also `Gettext.dpgettext/5`.
   """
   defmacro dpgettext(domain, msgctxt, msgid, bindings \\ Macro.escape(%{})) do
-    domain = expand_domain(domain, __CALLER__)
-
-    quote do
-      msgid =
-        unquote(__MODULE__).dpgettext_noop(unquote(domain), unquote(msgctxt), unquote(msgid))
-
-      Gettext.dpgettext(
-        @__gettext_backend__,
-        unquote(__MODULE__).__expand_runtime_domain__(@__gettext_backend__, unquote(domain)),
-        unquote(msgctxt),
-        msgid,
-        unquote(bindings)
-      )
-    end
+    singular_extract_and_translate(
+      __CALLER__,
+      backend(__CALLER__),
+      domain,
+      msgctxt,
+      msgid,
+      bindings
+    )
   end
 
   @doc """
@@ -243,9 +227,14 @@ defmodule Gettext.Macros do
   See also `Gettext.dgettext/4`.
   """
   defmacro dgettext(domain, msgid, bindings \\ Macro.escape(%{})) do
-    quote do
-      unquote(__MODULE__).dpgettext(unquote(domain), nil, unquote(msgid), unquote(bindings))
-    end
+    singular_extract_and_translate(
+      __CALLER__,
+      backend(__CALLER__),
+      domain,
+      _msgctxt = nil,
+      msgid,
+      bindings
+    )
   end
 
   @doc """
@@ -256,14 +245,14 @@ defmodule Gettext.Macros do
   See also `Gettext.pgettext/4`.
   """
   defmacro pgettext(msgctxt, msgid, bindings \\ Macro.escape(%{})) do
-    quote do
-      unquote(__MODULE__).dpgettext(
-        :default,
-        unquote(msgctxt),
-        unquote(msgid),
-        unquote(bindings)
-      )
-    end
+    singular_extract_and_translate(
+      __CALLER__,
+      backend(__CALLER__),
+      _domain = :default,
+      msgctxt,
+      msgid,
+      bindings
+    )
   end
 
   @doc """
@@ -273,9 +262,14 @@ defmodule Gettext.Macros do
   See also `Gettext.gettext/3`.
   """
   defmacro gettext(msgid, bindings \\ Macro.escape(%{})) do
-    quote do
-      unquote(__MODULE__).dpgettext(:default, nil, unquote(msgid), unquote(bindings))
-    end
+    singular_extract_and_translate(
+      __CALLER__,
+      backend(__CALLER__),
+      _domain = :default,
+      _msgctxt = nil,
+      msgid,
+      bindings
+    )
   end
 
   @doc """
@@ -288,27 +282,16 @@ defmodule Gettext.Macros do
   See also `Gettext.dpngettext/7`.
   """
   defmacro dpngettext(domain, msgctxt, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
-    domain = expand_domain(domain, __CALLER__)
-
-    quote do
-      {msgid, msgid_plural} =
-        unquote(__MODULE__).dpngettext_noop(
-          unquote(domain),
-          unquote(msgctxt),
-          unquote(msgid),
-          unquote(msgid_plural)
-        )
-
-      Gettext.dpngettext(
-        @__gettext_backend__,
-        unquote(__MODULE__).__expand_runtime_domain__(@__gettext_backend__, unquote(domain)),
-        unquote(msgctxt),
-        msgid,
-        msgid_plural,
-        unquote(n),
-        unquote(bindings)
-      )
-    end
+    plural_extract_and_translate(
+      __CALLER__,
+      backend(__CALLER__),
+      domain,
+      msgctxt,
+      msgid,
+      msgid_plural,
+      n,
+      bindings
+    )
   end
 
   @doc """
@@ -321,16 +304,16 @@ defmodule Gettext.Macros do
   See also `Gettext.dngettext/6`.
   """
   defmacro dngettext(domain, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
-    quote do
-      unquote(__MODULE__).dpngettext(
-        unquote(domain),
-        nil,
-        unquote(msgid),
-        unquote(msgid_plural),
-        unquote(n),
-        unquote(bindings)
-      )
-    end
+    plural_extract_and_translate(
+      __CALLER__,
+      backend(__CALLER__),
+      domain,
+      _msgctxt = nil,
+      msgid,
+      msgid_plural,
+      n,
+      bindings
+    )
   end
 
   @doc """
@@ -340,16 +323,16 @@ defmodule Gettext.Macros do
   See also `Gettext.ngettext/5`.
   """
   defmacro ngettext(msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
-    quote do
-      unquote(__MODULE__).dpngettext(
-        :default,
-        nil,
-        unquote(msgid),
-        unquote(msgid_plural),
-        unquote(n),
-        unquote(bindings)
-      )
-    end
+    plural_extract_and_translate(
+      __CALLER__,
+      backend(__CALLER__),
+      _domain = :default,
+      _msgctxt = nil,
+      msgid,
+      msgid_plural,
+      n,
+      bindings
+    )
   end
 
   @doc """
@@ -361,16 +344,16 @@ defmodule Gettext.Macros do
   See also `Gettext.pngettext/6`.
   """
   defmacro pngettext(msgctxt, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
-    quote do
-      unquote(__MODULE__).dpngettext(
-        :default,
-        unquote(msgctxt),
-        unquote(msgid),
-        unquote(msgid_plural),
-        unquote(n),
-        unquote(bindings)
-      )
-    end
+    plural_extract_and_translate(
+      __CALLER__,
+      backend(__CALLER__),
+      _domain = :default,
+      msgctxt,
+      msgid,
+      msgid_plural,
+      n,
+      bindings
+    )
   end
 
   @doc """
@@ -396,234 +379,127 @@ defmodule Gettext.Macros do
 
   """
   defmacro gettext_comment(comment) do
-    comment = Gettext.Compiler.expand_to_binary(comment, "comment", __CALLER__)
-    Gettext.Compiler.append_extracted_comment(comment)
+    comment = expand_to_binary(comment, "comment", __CALLER__)
+    append_extracted_comment(comment)
     :ok
   end
 
-  ## Macros that also take a backend.
+  ## Singular no-op macros (with backend).
 
   @doc """
   Same as `dpgettext_noop/3`, but takes an explicit backend.
   """
   defmacro dpgettext_noop_with_backend(backend, domain, msgctxt, msgid) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-    domain = expand_domain(domain, __CALLER__)
-    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
-    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
-
-    if Gettext.Extractor.extracting?() do
-      Gettext.Extractor.extract(
-        __CALLER__,
-        backend,
-        domain,
-        msgctxt,
-        msgid,
-        Gettext.Compiler.get_and_flush_extracted_comments()
-      )
-    end
-
-    msgid
+    extract_singular_translation(__CALLER__, backend, domain, msgctxt, msgid)
   end
 
   @doc """
   Same as `dgettext_noop/2`, but takes an explicit backend.
   """
   defmacro dgettext_noop_with_backend(backend, domain, msgid) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+    extract_singular_translation(__CALLER__, backend, domain, _msgctxt = nil, msgid)
+  end
 
-    quote do
-      unquote(__MODULE__).dpgettext_noop_with_backend(
-        unquote(backend),
-        unquote(domain),
-        nil,
-        unquote(msgid)
-      )
-    end
+  @doc """
+  Same as `pgettext_noop/2`, but takes an explicit backend.
+  """
+  defmacro pgettext_noop_with_backend(backend, msgctxt, msgid) do
+    extract_singular_translation(__CALLER__, backend, _domain = :default, msgctxt, msgid)
   end
 
   @doc """
   Same as `gettext_noop/1`, but takes an explicit backend.
   """
   defmacro gettext_noop_with_backend(backend, msgid) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpgettext_noop_with_backend(
-        unquote(backend),
-        :default,
-        nil,
-        unquote(msgid)
-      )
-    end
+    extract_singular_translation(__CALLER__, backend, _domain = :default, _msgctxt = nil, msgid)
   end
 
-  @doc """
-  Same as `pgettext_noop/2`, but takes an explicit backend.
-  """
-  defmacro pgettext_noop_with_backend(backend, msgid, context) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpgettext_noop_with_backend(
-        unquote(backend),
-        :default,
-        unquote(context),
-        unquote(msgid)
-      )
-    end
-  end
+  ## Plural no-op macros (with backend).
 
   @doc """
   Same as `dpngettext_noop/4`, but takes an explicit backend.
   """
   defmacro dpngettext_noop_with_backend(backend, domain, msgctxt, msgid, msgid_plural) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-    domain = expand_domain(domain, __CALLER__)
-    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
-    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
-    msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __CALLER__)
-
-    if Gettext.Extractor.extracting?() do
-      Gettext.Extractor.extract(
-        __CALLER__,
-        backend,
-        domain,
-        msgctxt,
-        {msgid, msgid_plural},
-        Gettext.Compiler.get_and_flush_extracted_comments()
-      )
-    end
-
-    {msgid, msgid_plural}
+    extract_plural_translation(__CALLER__, backend, domain, msgctxt, msgid, msgid_plural)
   end
 
   @doc """
   Same as `dngettext_noop/3`, but takes an explicit backend.
   """
   defmacro dngettext_noop_with_backend(backend, domain, msgid, msgid_plural) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpngettext_noop_with_backend(
-        unquote(backend),
-        unquote(domain),
-        nil,
-        unquote(msgid),
-        unquote(msgid_plural)
-      )
-    end
+    extract_plural_translation(__CALLER__, backend, domain, _msgctxt = nil, msgid, msgid_plural)
   end
 
   @doc """
   Same as `pngettext_noop/3`, but takes an explicit backend.
   """
   defmacro pngettext_noop_with_backend(backend, msgctxt, msgid, msgid_plural) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpngettext_noop_with_backend(
-        unquote(backend),
-        :default,
-        unquote(msgctxt),
-        unquote(msgid),
-        unquote(msgid_plural)
-      )
-    end
+    extract_plural_translation(
+      __CALLER__,
+      backend,
+      _domain = :default,
+      msgctxt,
+      msgid,
+      msgid_plural
+    )
   end
 
   @doc """
   Same as `ngettext_noop/2`, but takes an explicit backend.
   """
   defmacro ngettext_noop_with_backend(backend, msgid, msgid_plural) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpngettext_noop_with_backend(
-        unquote(backend),
-        :default,
-        nil,
-        unquote(msgid),
-        unquote(msgid_plural)
-      )
-    end
+    extract_plural_translation(
+      __CALLER__,
+      backend,
+      _domain = :default,
+      _msgctxt = nil,
+      msgid,
+      msgid_plural
+    )
   end
+
+  ## Singular macros (with backend).
 
   @doc """
   Same as `dpgettext/4`, but takes an explicit backend.
   """
   defmacro dpgettext_with_backend(backend, domain, msgctxt, msgid, bindings \\ Macro.escape(%{})) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-    domain = expand_domain(domain, __CALLER__)
-
-    quote do
-      msgid =
-        unquote(__MODULE__).dpgettext_noop_with_backend(
-          unquote(backend),
-          unquote(domain),
-          unquote(msgctxt),
-          unquote(msgid)
-        )
-
-      Gettext.dpgettext(
-        unquote(backend),
-        unquote(__MODULE__).__expand_runtime_domain__(unquote(backend), unquote(domain)),
-        unquote(msgctxt),
-        msgid,
-        unquote(bindings)
-      )
-    end
+    singular_extract_and_translate(__CALLER__, backend, domain, msgctxt, msgid, bindings)
   end
 
   @doc """
   Same as `dgettext/3`, but takes an explicit backend.
   """
   defmacro dgettext_with_backend(backend, domain, msgid, bindings \\ Macro.escape(%{})) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpgettext_with_backend(
-        unquote(backend),
-        unquote(domain),
-        nil,
-        unquote(msgid),
-        unquote(bindings)
-      )
-    end
+    singular_extract_and_translate(__CALLER__, backend, domain, _msgctxt = nil, msgid, bindings)
   end
 
   @doc """
   Same as `pgettext/3`, but takes an explicit backend.
   """
   defmacro pgettext_with_backend(backend, msgctxt, msgid, bindings \\ Macro.escape(%{})) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpgettext_with_backend(
-        unquote(backend),
-        :default,
-        unquote(msgctxt),
-        unquote(msgid),
-        unquote(bindings)
-      )
-    end
+    singular_extract_and_translate(
+      __CALLER__,
+      backend,
+      _domain = :default,
+      msgctxt,
+      msgid,
+      bindings
+    )
   end
 
   @doc """
   Same as `gettext/2`, but takes an explicit backend.
   """
   defmacro gettext_with_backend(backend, msgid, bindings \\ Macro.escape(%{})) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpgettext_with_backend(
-        unquote(backend),
-        :default,
-        nil,
-        unquote(msgid),
-        unquote(bindings)
-      )
-    end
+    singular_extract_and_translate(
+      __CALLER__,
+      backend,
+      _domain = :default,
+      _msgctxt = nil,
+      msgid,
+      bindings
+    )
   end
 
   @doc """
@@ -638,29 +514,16 @@ defmodule Gettext.Macros do
              n,
              bindings \\ Macro.escape(%{})
            ) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-    domain = expand_domain(domain, __CALLER__)
-
-    quote do
-      {msgid, msgid_plural} =
-        unquote(__MODULE__).dpngettext_noop_with_backend(
-          unquote(backend),
-          unquote(domain),
-          unquote(msgctxt),
-          unquote(msgid),
-          unquote(msgid_plural)
-        )
-
-      Gettext.dpngettext(
-        unquote(backend),
-        unquote(__MODULE__).__expand_runtime_domain__(unquote(backend), unquote(domain)),
-        unquote(msgctxt),
-        msgid,
-        msgid_plural,
-        unquote(n),
-        unquote(bindings)
-      )
-    end
+    plural_extract_and_translate(
+      __CALLER__,
+      backend,
+      domain,
+      msgctxt,
+      msgid,
+      msgid_plural,
+      n,
+      bindings
+    )
   end
 
   @doc """
@@ -674,38 +537,16 @@ defmodule Gettext.Macros do
              n,
              bindings \\ Macro.escape(%{})
            ) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpngettext_with_backend(
-        unquote(backend),
-        unquote(domain),
-        nil,
-        unquote(msgid),
-        unquote(msgid_plural),
-        unquote(n),
-        unquote(bindings)
-      )
-    end
-  end
-
-  @doc """
-  Same as `ngettext/4`, but takes an explicit backend.
-  """
-  defmacro ngettext_with_backend(backend, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
-
-    quote do
-      unquote(__MODULE__).dpngettext_with_backend(
-        unquote(backend),
-        :default,
-        nil,
-        unquote(msgid),
-        unquote(msgid_plural),
-        unquote(n),
-        unquote(bindings)
-      )
-    end
+    plural_extract_and_translate(
+      __CALLER__,
+      backend,
+      domain,
+      _msgctxt = nil,
+      msgid,
+      msgid_plural,
+      n,
+      bindings
+    )
   end
 
   @doc """
@@ -719,12 +560,111 @@ defmodule Gettext.Macros do
              n,
              bindings \\ Macro.escape(%{})
            ) do
-    backend = Gettext.Compiler.expand_backend(backend, __CALLER__)
+    plural_extract_and_translate(
+      __CALLER__,
+      backend,
+      _domain = :default,
+      msgctxt,
+      msgid,
+      msgid_plural,
+      n,
+      bindings
+    )
+  end
+
+  @doc """
+  Same as `ngettext/4`, but takes an explicit backend.
+  """
+  defmacro ngettext_with_backend(backend, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+    plural_extract_and_translate(
+      __CALLER__,
+      backend,
+      _domain = :default,
+      _msgctxt = nil,
+      msgid,
+      msgid_plural,
+      n,
+      bindings
+    )
+  end
+
+  ## Helpers
+
+  defp extract_singular_translation(env, backend, domain, msgctxt, msgid) do
+    backend = expand_backend(backend, env)
+    domain = expand_domain(domain, env)
+    msgid = expand_to_binary(msgid, "msgid", env)
+    msgctxt = expand_to_binary(msgctxt, "msgctxt", env)
+
+    if Extractor.extracting?() do
+      Extractor.extract(
+        env,
+        backend,
+        domain,
+        msgctxt,
+        msgid,
+        get_and_flush_extracted_comments()
+      )
+    end
+
+    msgid
+  end
+
+  defp extract_plural_translation(env, backend, domain, msgctxt, msgid, msgid_plural) do
+    backend = expand_backend(backend, env)
+    domain = expand_domain(domain, env)
+    msgid = expand_to_binary(msgid, "msgid", env)
+    msgctxt = expand_to_binary(msgctxt, "msgctxt", env)
+    msgid_plural = expand_to_binary(msgid_plural, "msgid_plural", env)
+
+    if Extractor.extracting?() do
+      Extractor.extract(
+        env,
+        backend,
+        domain,
+        msgctxt,
+        {msgid, msgid_plural},
+        get_and_flush_extracted_comments()
+      )
+    end
+
+    {msgid, msgid_plural}
+  end
+
+  defp singular_extract_and_translate(env, backend, domain, msgctxt, msgid, bindings) do
+    domain = expand_domain(domain, env)
+    msgid = extract_singular_translation(env, backend, domain, msgctxt, msgid)
 
     quote do
-      unquote(__MODULE__).dpngettext_with_backend(
+      Gettext.dpgettext(
         unquote(backend),
-        :default,
+        unquote(domain),
+        unquote(msgctxt),
+        unquote(msgid),
+        unquote(bindings)
+      )
+    end
+  end
+
+  defp plural_extract_and_translate(
+         env,
+         backend,
+         domain,
+         msgctxt,
+         msgid,
+         msgid_plural,
+         n,
+         bindings
+       ) do
+    domain = expand_domain(domain, env)
+
+    {msgid, msgid_plural} =
+      extract_plural_translation(env, backend, domain, msgctxt, msgid, msgid_plural)
+
+    quote do
+      Gettext.dpngettext(
+        unquote(backend),
+        unquote(domain),
         unquote(msgctxt),
         unquote(msgid),
         unquote(msgid_plural),
@@ -734,13 +674,91 @@ defmodule Gettext.Macros do
     end
   end
 
-  ## Helpers
+  defp expand_domain(:default, _env), do: :default
+  defp expand_domain(domain, env), do: expand_to_binary(domain, "domain", env)
 
-  defp expand_domain(:default, _env) do
-    :default
+  defp backend(%Macro.Env{} = env) do
+    if Module.open?(env.module) do
+      Module.get_attribute(env.module, :__gettext_backend__) ||
+        raise "expected to find non-nil @__gettext_backend__ attribute in #{inspect(env.module)}"
+    else
+      List.first(env.module.__info__(:attributes)[:__gettext_backend__]) ||
+        raise "expected to find non-nil @__gettext_backend__ attribute in #{inspect(env.module)}"
+    end
   end
 
-  defp expand_domain(domain, env) do
-    Gettext.Compiler.expand_to_binary(domain, "domain", env)
+  defp expand_to_binary(term, what, %Macro.Env{} = env)
+       when what in ~w(domain msgctxt msgid msgid_plural comment) do
+    gettext_module =
+      if Module.open?(env.module) do
+        Module.get_attribute(env.module, :__gettext_backend__)
+      else
+        List.first(env.module.__info__(:attributes)[:__gettext_backend__])
+      end
+
+    raiser = fn term ->
+      raise ArgumentError, """
+      Gettext macros expect message keys (msgid and msgid_plural),
+      domains, and comments to expand to strings at compile-time, but the given #{what}
+      doesn't. This is what the macro received:
+
+      #{inspect(term)}
+
+      Dynamic messages should be avoided as they limit Gettext's
+      ability to extract messages from your source code. If you are
+      sure you need dynamic lookup, you can use the functions in the Gettext
+      module:
+
+          string = "hello world"
+          Gettext.gettext(#{if(gettext_module, do: inspect(gettext_module), else: "backend")}, string)
+      """
+    end
+
+    # We support nil too in order to fall back to a nil context and always use the *p
+    # variants of the Gettext macros.
+    case Macro.expand(term, env) do
+      term when is_binary(term) or is_nil(term) ->
+        term
+
+      {:<<>>, _, pieces} = term ->
+        if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces), else: raiser.(term)
+
+      other ->
+        raiser.(other)
+    end
+  end
+
+  defp expand_backend(term, %Macro.Env{} = env) do
+    case Macro.expand(term, env) do
+      term when is_atom(term) and term not in [nil, false, true] ->
+        term
+
+      _other ->
+        raise ArgumentError, """
+        Gettext.Macros macros (that end with "_with_backend") expect the backend argument
+        to be an atom at compile-time, but the given term doesn't. This is what the macro
+        received:
+
+        #{inspect(term)}
+
+        Dynamic messages should be avoided as they limit Gettext's
+        ability to extract messages from your source code. If you are
+        sure you need dynamic lookup, you can use the functions in the Gettext
+        module:
+
+            string = "hello world"
+            Gettext.gettext(backend, string)
+        """
+    end
+  end
+
+  defp append_extracted_comment(comment) do
+    existing = Process.get(:gettext_comments, [])
+    Process.put(:gettext_comments, [" " <> comment | existing])
+    :ok
+  end
+
+  defp get_and_flush_extracted_comments() do
+    Enum.reverse(Process.delete(:gettext_comments) || [])
   end
 end
