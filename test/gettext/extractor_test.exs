@@ -417,6 +417,8 @@ defmodule Gettext.ExtractorTest do
     end
 
     defmodule FooConflict do
+      require Gettext.Macros
+
       def bar do
         Gettext.Macros.gettext_with_backend(Gettext.ExtractorConflictTest.MyGettext, "foo")
         Gettext.Macros.gettext_with_backend(Gettext.ExtractorConflictTest.MyOtherGettext, "foo")
