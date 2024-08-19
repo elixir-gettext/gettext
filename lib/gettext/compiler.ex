@@ -61,8 +61,6 @@ defmodule Gettext.Compiler do
         Gettext.ExtractorAgent.add_backend(__MODULE__)
       end
 
-      unquote(macros())
-
       # These are the two functions we generate inside the backend.
 
       @impl Gettext.Backend
@@ -99,12 +97,12 @@ defmodule Gettext.Compiler do
     end)
   end
 
-  defp macros() do
+  def generate_macros(_env) do
     quote unquote: false do
       defmacro dpgettext_noop(domain, msgctxt, msgid) do
-        domain = Gettext.Compiler.expand_to_binary(domain, "domain", __MODULE__, __CALLER__)
-        msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
-        msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __MODULE__, __CALLER__)
+        domain = Gettext.Compiler.expand_to_binary(domain, "domain", __CALLER__)
+        msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
+        msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
 
         if Gettext.Extractor.extracting?() do
           Gettext.Extractor.extract(
@@ -143,12 +141,10 @@ defmodule Gettext.Compiler do
       end
 
       defmacro dpngettext_noop(domain, msgctxt, msgid, msgid_plural) do
-        domain = Gettext.Compiler.expand_to_binary(domain, "domain", __MODULE__, __CALLER__)
-        msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
-        msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __MODULE__, __CALLER__)
-
-        msgid_plural =
-          Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __MODULE__, __CALLER__)
+        domain = Gettext.Compiler.expand_to_binary(domain, "domain", __CALLER__)
+        msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
+        msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
+        msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __CALLER__)
 
         if Gettext.Extractor.extracting?() do
           Gettext.Extractor.extract(
@@ -309,7 +305,7 @@ defmodule Gettext.Compiler do
       end
 
       defmacro gettext_comment(comment) do
-        comment = Gettext.Compiler.expand_to_binary(comment, "comment", __MODULE__, __CALLER__)
+        comment = Gettext.Compiler.expand_to_binary(comment, "comment", __CALLER__)
         Gettext.Compiler.append_extracted_comment(comment)
         :ok
       end
@@ -320,9 +316,16 @@ defmodule Gettext.Compiler do
   Expands the given `msgid` in the given `env`, raising if it doesn't expand to
   a binary.
   """
-  @spec expand_to_binary(binary, binary, module, Macro.Env.t()) :: binary | no_return
-  def expand_to_binary(term, what, gettext_module, env)
+  @spec expand_to_binary(binary, binary, Macro.Env.t()) :: binary | no_return
+  def expand_to_binary(term, what, env)
       when what in ~w(domain msgctxt msgid msgid_plural comment) do
+    gettext_module =
+      if Module.open?(env.module) do
+        Module.get_attribute(env.module, :__gettext_backend__)
+      else
+        List.first(env.module.__info__(:attributes)[:__gettext_backend__])
+      end
+
     raiser = fn term ->
       raise ArgumentError, """
       Gettext macros expect message keys (msgid and msgid_plural),
@@ -337,7 +340,7 @@ defmodule Gettext.Compiler do
       module:
 
           string = "hello world"
-          Gettext.gettext(#{inspect(gettext_module)}, string)
+          Gettext.gettext(#{if(gettext_module, do: inspect(gettext_module), else: "backend")}, string)
       """
     end
 

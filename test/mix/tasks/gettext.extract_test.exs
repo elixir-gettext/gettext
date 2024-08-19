@@ -21,8 +21,8 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     end
 
     defmodule MyApp do
-      require MyApp.Gettext
-      def foo(), do: MyApp.Gettext.gettext("hello")
+      use Gettext, backend: MyApp.Gettext
+      def foo(), do: gettext("hello")
     end
     """)
 
@@ -44,8 +44,8 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/other.ex", """
     defmodule MyApp.Other do
-      require MyApp.Gettext
-      def foo(), do: MyApp.Gettext.dgettext("my_domain", "other")
+      use Gettext, backend: MyApp.Gettext
+      def foo(), do: dgettext("my_domain", "other")
     end
     """)
 
@@ -73,19 +73,19 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
-    use Gettext.Backend, otp_app: #{inspect(test)}
+      use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
     defmodule MyApp do
-    require MyApp.Gettext
-    def foo(), do: MyApp.Gettext.gettext("hello")
+      use Gettext, backend: MyApp.Gettext
+      def foo(), do: gettext("hello")
     end
     """)
 
     write_file(context, "lib/other.ex", """
     defmodule MyApp.Other do
-      require MyApp.Gettext
-      def foo(), do: MyApp.Gettext.dgettext("my_domain", "other")
+      use Gettext, backend: MyApp.Gettext
+      def foo(), do: dgettext("my_domain", "other")
     end
     """)
 
@@ -116,8 +116,8 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     end
 
     defmodule MyApp do
-      require MyApp.Gettext
-      def foo(), do: MyApp.Gettext.gettext("hello")
+      use Gettext, backend: MyApp.Gettext
+      def foo(), do: gettext("hello")
     end
     """)
 
@@ -138,19 +138,19 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
-    use Gettext.Backend, otp_app: #{inspect(test)}
+      use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
     defmodule MyApp do
-    require MyApp.Gettext
-    def foo(), do: MyApp.Gettext.gettext("hello")
+      use Gettext, backend: MyApp.Gettext
+      def foo(), do: gettext("hello")
     end
     """)
 
     write_file(context, "lib/other.ex", """
     defmodule MyApp.Other do
-      require MyApp.Gettext
-      def foo(), do: MyApp.Gettext.dgettext("my_domain", "other")
+      use Gettext, backend: MyApp.Gettext
+      def foo(), do: dgettext("my_domain", "other")
     end
     """)
 
@@ -160,12 +160,12 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
-    use Gettext.Backend, otp_app: #{inspect(test)}
+      use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
     defmodule MyApp do
-    require MyApp.Gettext
-    def foo(), do: MyApp.Gettext.gettext("new text")
+      use Gettext, backend: MyApp.Gettext
+      def foo(), do: gettext("hello")
     end
     """)
 

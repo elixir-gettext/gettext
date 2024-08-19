@@ -38,13 +38,15 @@ defmodule Gettext.Macros do
   """
   defmacro dpgettext_noop(domain, msgctxt, msgid) do
     domain = expand_domain(domain, __CALLER__)
-    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
-    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __MODULE__, __CALLER__)
+    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
+    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
 
     if Gettext.Extractor.extracting?() do
+      backend = Module.get_attribute(__CALLER__.module, :__gettext_backend__)
+
       Gettext.Extractor.extract(
         __CALLER__,
-        __MODULE__,
+        backend,
         domain,
         msgctxt,
         msgid,
@@ -127,16 +129,16 @@ defmodule Gettext.Macros do
   """
   defmacro dpngettext_noop(domain, msgctxt, msgid, msgid_plural) do
     domain = expand_domain(domain, __CALLER__)
-    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
-    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __MODULE__, __CALLER__)
-
-    msgid_plural =
-      Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __MODULE__, __CALLER__)
+    msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __CALLER__)
+    msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __CALLER__)
+    msgid_plural = Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __CALLER__)
 
     if Gettext.Extractor.extracting?() do
+      backend = Module.get_attribute(__CALLER__.module, :__gettext_backend__)
+
       Gettext.Extractor.extract(
         __CALLER__,
-        __MODULE__,
+        backend,
         domain,
         msgctxt,
         {msgid, msgid_plural},
@@ -394,7 +396,7 @@ defmodule Gettext.Macros do
 
   """
   defmacro gettext_comment(comment) do
-    comment = Gettext.Compiler.expand_to_binary(comment, "comment", __MODULE__, __CALLER__)
+    comment = Gettext.Compiler.expand_to_binary(comment, "comment", __CALLER__)
     Gettext.Compiler.append_extracted_comment(comment)
     :ok
   end
@@ -404,6 +406,6 @@ defmodule Gettext.Macros do
   end
 
   defp expand_domain(domain, env) do
-    Gettext.Compiler.expand_to_binary(domain, "domain", __MODULE__, env)
+    Gettext.Compiler.expand_to_binary(domain, "domain", env)
   end
 end

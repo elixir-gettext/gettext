@@ -276,7 +276,7 @@ defmodule Gettext do
   *at compile time*:
 
       msgid = "Hello world"
-      MyApp.Gettext.gettext(msgid)
+      gettext(msgid)
       #=> ** (ArgumentError) msgid must be a string literal
 
   Using compile-time strings isn't always possible. For this reason,
@@ -610,29 +610,34 @@ defmodule Gettext do
     case Keyword.keyword?(opts) && Keyword.fetch(opts, :backend) do
       {:ok, backend} ->
         quote do
+          Module.register_attribute(__MODULE__, :__gettext_backend__, persist: true)
           @__gettext_backend__ unquote(backend)
           import Gettext.Macros
         end
 
       _other ->
         # TODO: remove this once we stop supporting the old way of defining backends.
-        IO.warn("""
-        defining a Gettext backend by calling
+        IO.warn(
+          """
+          defining a Gettext backend by calling
 
-            use Gettext, otp_app: ..., ...
+              use Gettext, otp_app: ..., ...
 
-        is deprecated. To define a backend, call:
+          is deprecated. To define a backend, call:
 
-            use Gettext.Backend, otp_app: :my_app
+              use Gettext.Backend, otp_app: :my_app
 
-        Then, to use the backend, call this in your module:
+          Then, to use the backend, call this in your module:
 
-            use Gettext, backend: MyApp.Gettext
+              use Gettext, backend: MyApp.Gettext
 
-        """)
+          """,
+          Macro.Env.stacktrace(__CALLER__)
+        )
 
         quote do
           use Gettext.Backend, unquote(opts)
+          @before_compile {Gettext.Compiler, :generate_macros}
         end
     end
   end
@@ -986,15 +991,15 @@ defmodule Gettext do
 
       Gettext.put_locale("fr")
 
-      MyApp.Gettext.gettext("Hello world")
+      gettext("Hello world")
       #=> "Bonjour monde"
 
       Gettext.with_locale("it", fn ->
-        MyApp.Gettext.gettext("Hello world")
+        gettext("Hello world")
       end)
       #=> "Ciao mondo"
 
-      MyApp.Gettext.gettext("Hello world")
+      gettext("Hello world")
       #=> "Bonjour monde"
 
   """
@@ -1030,15 +1035,15 @@ defmodule Gettext do
 
       Gettext.put_locale(MyApp.Gettext, "fr")
 
-      MyApp.Gettext.gettext("Hello world")
+      gettext("Hello world")
       #=> "Bonjour monde"
 
       Gettext.with_locale(MyApp.Gettext, "it", fn ->
-        MyApp.Gettext.gettext("Hello world")
+        gettext("Hello world")
       end)
       #=> "Ciao mondo"
 
-      MyApp.Gettext.gettext("Hello world")
+      gettext("Hello world")
       #=> "Bonjour monde"
 
   """

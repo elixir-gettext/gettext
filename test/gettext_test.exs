@@ -180,10 +180,23 @@ defmodule GettextTest do
   end
 
   test "a custom default_domain can be set for a backend" do
-    alias TranslatorWithDefaultDomain, as: T
+    Code.eval_quoted(
+      quote do
+        defmodule DefaultDomainTest do
+          use Gettext, backend: GettextTest.TranslatorWithDefaultDomain
+
+          def test("Invalid email address"), do: gettext("Invalid email address")
+          def test("Hello world"), do: gettext("Hello world")
+        end
+      end
+    )
+
     Gettext.put_locale("it")
-    assert T.gettext("Invalid email address") == "Indirizzo email non valido"
-    assert T.gettext("Hello world") == "Hello world"
+
+    assert apply(DefaultDomainTest, :test, ["Invalid email address"]) ==
+             "Indirizzo email non valido"
+
+    assert apply(DefaultDomainTest, :test, ["Hello world"]) == "Hello world"
   end
 
   test "allowed_locales ignores other locales as strings" do
@@ -393,7 +406,7 @@ defmodule GettextTest do
 
   test "MissingBindingsError log messages" do
     assert capture_log(fn ->
-             Translator.pgettext("test", "Hello %{name}, missing message!", %{})
+             Gettext.pgettext(Translator, "test", "Hello %{name}, missing message!", %{})
            end) =~
              "missing Gettext bindings: [:name] (backend GettextTest.Translator," <>
                " locale \"en\", domain \"default\", msgctxt \"test\", msgid \"Hello " <>
@@ -466,249 +479,6 @@ defmodule GettextTest do
              {:default, "Hello Jane"}
 
     assert_receive {"pl", "foo", ^msgctxt, ^msgid, ^msgid_plural, 4, ^bindings}
-  end
-
-  test "dgettext/3: binary msgid at compile-time" do
-    Gettext.put_locale(Translator, "it")
-
-    assert Translator.dgettext("errors", "Invalid email address") == "Indirizzo email non valido"
-    keys = %{name: "Jim"}
-    assert Translator.dgettext("interpolations", "Hello %{name}", keys) == "Ciao Jim"
-
-    log =
-      capture_log(fn ->
-        assert Translator.dgettext("interpolations", "Hello %{name}") == "Ciao %{name}"
-      end)
-
-    assert log =~ ~s/[error] missing Gettext bindings: [:name]/
-  end
-
-  # Macros.
-
-  @gettext_msgid "Hello world"
-
-  test "gettext/2: binary-ish msgid at compile-time" do
-    Gettext.put_locale(Translator, "it")
-    assert Translator.gettext("Hello world") == "Ciao mondo"
-    assert Translator.gettext(@gettext_msgid) == "Ciao mondo"
-    assert Translator.gettext(~s(Hello world)) == "Ciao mondo"
-  end
-
-  test "pgettext/3: test with context based messages" do
-    Gettext.put_locale(Translator, "it")
-    assert Translator.pgettext("test", @gettext_msgid) == "Ciao mondo"
-    assert Translator.pgettext("test", ~s(Hello world)) == "Ciao mondo"
-    assert Translator.pgettext("test", "Hello world", %{}) == "Ciao mondo"
-    assert Translator.pgettext("test", "Hello %{name}", %{name: "Marco"}) == "Ciao Marco"
-    # Missing message
-    assert Translator.pgettext("test", "Hello missing", %{}) == "Hello missing"
-  end
-
-  test "pgettext/3, pngettext/4: dynamic context raises" do
-    code =
-      quote do
-        require Translator
-        context = "test"
-        Translator.pgettext(context, "Hello world")
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:context"
-    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
-
-    code =
-      quote do
-        require Translator
-        context = "test"
-        Translator.pngettext(context, "Hello world", "Hello world", 5)
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:context"
-    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
-  end
-
-  test "dpgettext/4, dpngettext/5: dynamic context or dynamic domain raises" do
-    code =
-      quote do
-        require Translator
-        context = "test"
-        Translator.dpgettext("default", context, "Hello world")
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:context"
-    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
-
-    code =
-      quote do
-        require Translator
-        domain = "test"
-        Translator.dpgettext(domain, "test", "Hello world")
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:domain"
-    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
-
-    code =
-      quote do
-        require Translator
-        context = "test"
-        Translator.dpngettext("default", context, "Hello world", "Hello world", n)
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:context"
-    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
-
-    code =
-      quote do
-        require Translator
-        domain = "test"
-        Translator.dpngettext(domain, "test", "Hello world", "Hello World", n)
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:domain"
-    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
-  end
-
-  test "dpgettext/4: context and domain based messages" do
-    Gettext.put_locale(Translator, "it")
-    assert Translator.dpgettext("default", "test", "Hello world", %{}) == "Ciao mondo"
-  end
-
-  test "dgettext/3 and dngettext/2: non-binary things at compile-time" do
-    code =
-      quote do
-        require Translator
-        msgid = "Invalid email address"
-        Translator.dgettext("errors", msgid)
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:msgid"
-    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
-
-    code =
-      quote do
-        require Translator
-        msgid_plural = ~s(foo #{1 + 1} bar)
-        Translator.dngettext("default", "foo", msgid_plural, 1)
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:msgid_plural"
-    assert message =~ "Gettext.gettext(GettextTest.Translator, string)"
-
-    code =
-      quote do
-        require Translator
-        domain = "dynamic_domain"
-        Translator.dgettext(domain, "hello")
-      end
-
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code) end
-    message = ArgumentError.message(error)
-    assert message =~ "Gettext macros expect message keys"
-    assert message =~ "{:domain"
-  end
-
-  test "dngettext/5" do
-    Gettext.put_locale(Translator, "it")
-
-    assert Translator.dngettext(
-             "interpolations",
-             "You have one message, %{name}",
-             "You have %{count} messages, %{name}",
-             1,
-             %{name: "James"}
-           ) == "Hai un messaggio, James"
-
-    assert Translator.dngettext(
-             "interpolations",
-             "You have one message, %{name}",
-             "You have %{count} messages, %{name}",
-             2,
-             %{name: "James"}
-           ) == "Hai 2 messaggi, James"
-
-    assert Translator.dngettext(
-             "interpolations",
-             "Month",
-             "%{count} months",
-             2
-           ) == "2 mesi"
-  end
-
-  @ngettext_msgid "One new email"
-  @ngettext_msgid_plural "%{count} new emails"
-
-  test "ngettext/4" do
-    Gettext.put_locale(Translator, "it")
-    assert Translator.ngettext("One new email", "%{count} new emails", 1) == "Una nuova email"
-    assert Translator.ngettext("One new email", "%{count} new emails", 2) == "2 nuove email"
-
-    assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 1) == "Una nuova email"
-    assert Translator.ngettext(@ngettext_msgid, @ngettext_msgid_plural, 2) == "2 nuove email"
-  end
-
-  test "pngettext/4" do
-    Gettext.put_locale(Translator, "it")
-
-    assert Translator.pngettext("test", "One new email", "%{count} new emails", 1) ==
-             "Una nuova test email"
-
-    assert Translator.pngettext("test", "One new email", "%{count} new emails", 2) ==
-             "2 nuove test email"
-
-    assert Translator.pngettext("test", @ngettext_msgid, @ngettext_msgid_plural, 1) ==
-             "Una nuova test email"
-
-    assert Translator.pngettext("test", @ngettext_msgid, @ngettext_msgid_plural, 2) ==
-             "2 nuove test email"
-  end
-
-  test "the d?n?gettext macros support a kw list for interpolation" do
-    Gettext.put_locale(Translator, "it")
-    assert Translator.gettext("%{msg}", msg: "foo") == "foo"
-  end
-
-  test "(d)(p)gettext_noop" do
-    assert Translator.dpgettext_noop("errors", "test", "Oops") == "Oops"
-    assert Translator.dgettext_noop("errors", "Oops") == "Oops"
-    assert Translator.gettext_noop("Hello %{name}!") == "Hello %{name}!"
-  end
-
-  test "(d)(p)ngettext_noop" do
-    assert Translator.dpngettext_noop("errors", "test", "One error", "%{count} errors") ==
-             {"One error", "%{count} errors"}
-
-    assert Translator.dngettext_noop("errors", "One error", "%{count} errors") ==
-             {"One error", "%{count} errors"}
-
-    assert Translator.ngettext_noop("One message", "%{count} messages") ==
-             {"One message", "%{count} messages"}
-
-    assert Translator.pngettext_noop("test", "One message", "%{count} messages") ==
-             {"One message", "%{count} messages"}
   end
 
   # Actual Gettext functions (not the ones generated in the modules that `use
@@ -857,7 +627,7 @@ defmodule GettextTest do
   test "a warning is issued in l(n)gettext when the domain contains slashes" do
     log =
       capture_log(fn ->
-        assert Translator.dgettext("sub/dir/domain", "hello") == "hello"
+        assert Gettext.dgettext(Translator, "sub/dir/domain", "hello") == "hello"
       end)
 
     assert log =~ ~s(Slashes in domains are not supported: "sub/dir/domain")
@@ -948,9 +718,8 @@ defmodule GettextTest do
   end
 
   test "uses custom interpolator" do
-    import GettextTest.TranslatorWithDuckInterpolator, only: [gettext: 1]
-
-    assert "quack foo %{} quack" = gettext("foo")
+    assert Gettext.gettext(GettextTest.TranslatorWithDuckInterpolator, "foo") ==
+             "quack foo %{} quack"
   end
 
   test "use Gettext for defining backends is deprecated" do
