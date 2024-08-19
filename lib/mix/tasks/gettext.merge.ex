@@ -129,10 +129,7 @@ defmodule Mix.Tasks.Gettext.Merge do
     fuzzy_threshold: :float,
     plural_forms_header: :string,
     on_obsolete: :string,
-    store_previous_message_on_fuzzy_match: :boolean,
-
-    # TODO: remove in v0.24.0
-    plural_forms: :integer
+    store_previous_message_on_fuzzy_match: :boolean
   ]
 
   @impl true
@@ -295,7 +292,6 @@ defmodule Mix.Tasks.Gettext.Merge do
       |> Keyword.take([
         :fuzzy,
         :fuzzy_threshold,
-        :plural_forms,
         :plural_forms_header,
         :on_obsolete,
         :store_previous_message_on_fuzzy_match

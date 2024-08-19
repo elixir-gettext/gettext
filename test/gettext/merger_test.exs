@@ -496,35 +496,6 @@ defmodule Gettext.MergerTest do
       assert stderr =~ ~s(Plural-Forms headers in the form "nplurals=<int>")
     end
 
-    # TODO: remove in v0.24.0
-    test "plural forms can be specified as an option, but is deprecated" do
-      old_po = %Messages{messages: []}
-
-      new_pot = %Messages{
-        messages: [
-          %Message.Singular{msgid: "a"},
-          %Message.Plural{msgid: "b", msgid_plural: "bs"}
-        ]
-      }
-
-      opts = [plural_forms: 1] ++ @opts
-
-      stderr =
-        capture_io(:stderr, fn ->
-          assert {%Messages{messages: [message, plural_message]}, _stats} =
-                   Merger.merge(old_po, new_pot, "en", opts, @gettext_config)
-
-          assert message.msgid == "a"
-
-          assert plural_message.msgid == "b"
-          assert plural_message.msgid_plural == "bs"
-          assert plural_message.msgstr == %{0 => [""]}
-        end)
-
-      assert stderr =~ "warning"
-      assert stderr =~ "The --plural-forms and :plural_forms options are deprecated"
-    end
-
     test "custom flags defined by :custom_flag_to_keep config are kept" do
       old_po = %Messages{
         messages: [

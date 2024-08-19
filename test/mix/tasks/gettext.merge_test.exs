@@ -37,54 +37,6 @@ defmodule Mix.Tasks.Gettext.MergeTest do
   end
 
   @tag :tmp_dir
-  test "passing :plural_forms alongside :plural_forms_header raises an error", %{tmp_dir: tmp_dir} do
-    write_file(Path.join(tmp_dir, "foo.pot"), """
-    msgid "hello"
-    msgstr ""
-    """)
-
-    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), "")
-
-    assert_raise ArgumentError, ~r/cannot be used together/, fn ->
-      run([
-        Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"),
-        Path.join(tmp_dir, "foo.pot"),
-        "--plural-forms",
-        "3",
-        "--plural-forms-header",
-        "nplurals=1;plural=n>1;"
-      ])
-    end
-  end
-
-  # TODO: remove in v0.24.0
-  @tag :tmp_dir
-  test ":plural_forms is deprecated", %{tmp_dir: tmp_dir} do
-    pot_contents = """
-    msgid "hello"
-    msgstr ""
-    """
-
-    write_file(Path.join(tmp_dir, "foo.pot"), pot_contents)
-    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), "")
-
-    warning =
-      capture_io(:stderr, fn ->
-        capture_io(:stdio, fn ->
-          run([
-            Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"),
-            Path.join(tmp_dir, "foo.pot"),
-            "--plural-forms",
-            "3"
-          ])
-        end)
-      end)
-
-    assert warning =~ "warning"
-    assert warning =~ "The --plural-forms and :plural_forms options are deprecated"
-  end
-
-  @tag :tmp_dir
   test "merging an existing PO file with a new POT file", %{tmp_dir: tmp_dir} do
     pot_contents = """
     msgid "hello"

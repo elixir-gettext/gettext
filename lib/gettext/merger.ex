@@ -54,10 +54,7 @@ defmodule Gettext.Merger do
           {Messages.t(), map()}
   def merge(%Messages{} = old, %Messages{} = new, locale, opts, gettext_config)
       when is_binary(locale) and is_list(opts) do
-    opts =
-      opts
-      |> handle_deprecated_plural_forms()
-      |> put_plural_forms_opt(old, locale)
+    opts = put_plural_forms_opt(opts, old, locale)
 
     stats = %{new: 0, exact_matches: 0, fuzzy_matches: 0, removed: 0, marked_as_obsolete: 0}
 
@@ -71,32 +68,6 @@ defmodule Gettext.Merger do
     }
 
     {po, stats}
-  end
-
-  # TODO: remove in v0.24.0
-  defp handle_deprecated_plural_forms(opts) do
-    plural_forms = Keyword.get(opts, :plural_forms)
-
-    cond do
-      is_nil(plural_forms) ->
-        opts
-
-      Keyword.has_key?(opts, :plural_forms_header) ->
-        raise ArgumentError, """
-        --plural-forms (or :plural_forms) and --plural-forms-header (or :plural_forms_header) \
-        cannot be used together\
-        """
-
-      true ->
-        IO.warn("""
-        The --plural-forms and :plural_forms options are deprecated. If your files \
-        have a Plural-Forms header, Gettext will use that to determin the number of plural \
-        forms for the locale. Otherwise, you can pass a Plural-Forms header via the \
-        --plural-forms-header or :plural_forms_header option.\
-        """)
-
-        Keyword.put(opts, :plural_forms_header, "nplurals=#{plural_forms}")
-    end
   end
 
   defp merge_messages(old, new, opts, gettext_config, stats) do
