@@ -22,18 +22,18 @@ Documentation for `Gettext` is [available on Hex][docs-gettext].
 
 ## Usage
 
-To use Gettext, define a Gettext module:
+To use Gettext, define a **Gettext backend**:
 
 ```elixir
 defmodule MyApp.Gettext do
-  use Gettext, otp_app: :my_app
+  use Gettext.Backend, otp_app: :my_app
 end
 ```
 
-and invoke the Gettext API, which consists of the `*gettext` macros:
+and invoke the Gettext API, which consists of the `*gettext` macros that get imported if you `use Gettext`:
 
 ```elixir
-import MyApp.Gettext
+use Gettext, backend: MyApp.Gettext
 
 # Simple message
 gettext("Here is one string to translate")
