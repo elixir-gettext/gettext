@@ -32,4 +32,49 @@ defmodule GettextTest.CustomCompiledPlural do
   end
 end
 
+defmodule GettextTest.Backend do
+  use Gettext.Backend,
+    otp_app: :test_application,
+    priv: "test/fixtures/single_messages"
+
+  def handle_missing_translation(locale, domain, msgctxt, msgid, bindings) do
+    send(self(), {locale, domain, msgctxt, msgid, bindings})
+    super(locale, domain, msgctxt, msgid, bindings)
+  end
+
+  def handle_missing_plural_translation(
+        locale,
+        domain,
+        msgctxt,
+        msgid,
+        msgid_plural,
+        n,
+        bindings
+      ) do
+    send(self(), {locale, domain, msgctxt, msgid, msgid_plural, n, bindings})
+    super(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)
+  end
+end
+
+defmodule GettextTest.BackendWithAllowedLocalesString do
+  use Gettext.Backend,
+    otp_app: :test_application,
+    priv: "test/fixtures/multi_messages",
+    allowed_locales: ["es"]
+end
+
+defmodule GettextTest.BackendWithAllowedLocalesAtom do
+  use Gettext.Backend,
+    otp_app: :test_application,
+    priv: "test/fixtures/multi_messages",
+    allowed_locales: [:es]
+end
+
+defmodule GettextTest.BackendWithDefaultDomain do
+  use Gettext.Backend,
+    otp_app: :test_application,
+    priv: "test/fixtures/single_messages",
+    default_domain: "errors"
+end
+
 ExUnit.start()
