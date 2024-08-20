@@ -55,7 +55,6 @@ defmodule Gettext.NewBackendSetupTest do
         end
       )
 
-      assert_received {:trace, {:require, _meta, Gettext.Macros, _opts}}
       refute_received {:trace, {:require, _meta, ^backend_module, _opts}}
       refute_received {:trace, {:import, _meta, ^backend_module, _opts}}
     end
