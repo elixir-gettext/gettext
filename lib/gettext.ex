@@ -619,10 +619,19 @@ defmodule Gettext do
 
     case Keyword.keyword?(opts) && Keyword.fetch(opts, :backend) do
       {:ok, backend} ->
-        quote do
-          Module.register_attribute(__MODULE__, :__gettext_backend__, persist: true)
-          @__gettext_backend__ unquote(backend)
-          import Gettext.Macros
+        case Macro.expand(backend, __CALLER__) do
+          backend when is_atom(backend) and backend not in [nil, false, true] ->
+            # We need to store the module backend at expansion time because of extraction
+            Module.put_attribute(__CALLER__.module, :__gettext_backend__, backend)
+
+            quote do
+              import Gettext.Macros
+            end
+
+          _ ->
+            raise ArgumentError,
+                  "the :backend option on \"use Gettext\" expects the backend " <>
+                    "to be a literal atom/alias/module, got: #{Macro.to_string(backend)}"
         end
 
       _other ->

@@ -678,25 +678,20 @@ defmodule Gettext.Macros do
   defp expand_domain(domain, env), do: expand_to_binary(domain, "domain", env)
 
   defp backend(%Macro.Env{} = env) do
-    if Module.open?(env.module) do
-      Module.get_attribute(env.module, :__gettext_backend__) ||
-        raise "expected to find non-nil @__gettext_backend__ attribute in #{inspect(env.module)}"
-    else
-      List.first(env.module.__info__(:attributes)[:__gettext_backend__]) ||
-        raise "expected to find non-nil @__gettext_backend__ attribute in #{inspect(env.module)}"
-    end
+    Module.get_attribute(env.module, :__gettext_backend__) ||
+      raise """
+      in order to use Gettext.Macros, you must:
+
+          use Gettext, backend: ...
+
+      """
   end
 
   defp expand_to_binary(term, what, %Macro.Env{} = env)
        when what in ~w(domain msgctxt msgid msgid_plural comment) do
-    gettext_module =
-      if Module.open?(env.module) do
-        Module.get_attribute(env.module, :__gettext_backend__)
-      else
-        List.first(env.module.__info__(:attributes)[:__gettext_backend__])
-      end
-
     raiser = fn term ->
+      gettext_module = Module.get_attribute(env.module, :__gettext_backend__)
+
       raise ArgumentError, """
       Gettext macros expect message keys (msgid and msgid_plural),
       domains, and comments to expand to strings at compile-time, but the given #{what}

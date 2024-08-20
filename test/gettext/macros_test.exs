@@ -55,25 +55,29 @@ defmodule Gettext.MacrosTest do
   end
 
   test "pgettext/3, pngettext/4: dynamic context raises" do
-    code =
-      quote do
-        context = "test"
-        pgettext(context, "Hello world")
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          context = "test"
+          pgettext(context, "Hello world")
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:context"
     assert message =~ "Gettext.gettext(Gettext.MacrosTest.Translator, string)"
 
-    code =
-      quote do
-        context = "test"
-        pngettext(context, "Hello world", "Hello world", 5)
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          context = "test"
+          pngettext(context, "Hello world", "Hello world", 5)
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:context"
@@ -81,49 +85,57 @@ defmodule Gettext.MacrosTest do
   end
 
   test "dpgettext/4, dpngettext/5: dynamic context or dynamic domain raises" do
-    code =
-      quote do
-        context = "test"
-        dpgettext("default", context, "Hello world")
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          context = "test"
+          dpgettext("default", context, "Hello world")
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:context"
     assert message =~ "Gettext.gettext(Gettext.MacrosTest.Translator, string)"
 
-    code =
-      quote do
-        domain = "test"
-        dpgettext(domain, "test", "Hello world")
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          domain = "test"
+          dpgettext(domain, "test", "Hello world")
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:domain"
     assert message =~ "Gettext.gettext(Gettext.MacrosTest.Translator, string)"
 
-    code =
-      quote do
-        context = "test"
-        dpngettext("default", context, "Hello world", "Hello world", n)
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          context = "test"
+          dpngettext("default", context, "Hello world", "Hello world", n)
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:context"
     assert message =~ "Gettext.gettext(Gettext.MacrosTest.Translator, string)"
 
-    code =
-      quote do
-        domain = "test"
-        dpngettext(domain, "test", "Hello world", "Hello World", n)
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          context = "test"
+          dpngettext(domain, "test", "Hello world", "Hello World", n)
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:domain"
@@ -136,37 +148,46 @@ defmodule Gettext.MacrosTest do
   end
 
   test "dgettext/3 and dngettext/2: non-binary things at compile-time" do
-    code =
-      quote do
-        msgid = "Invalid email address"
-        dgettext("errors", msgid)
+
+
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          context = "test"
+          dgettext("errors", msgid)
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:msgid"
     assert message =~ "Gettext.gettext(Gettext.MacrosTest.Translator, string)"
 
-    code =
-      quote do
-        msgid_plural = ~s(foo #{1 + 1} bar)
-        dngettext("default", "foo", msgid_plural, 1)
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          msgid_plural = ~s(foo #{1 + 1} bar)
+          dngettext("default", "foo", msgid_plural, 1)
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:msgid_plural"
     assert message =~ "Gettext.gettext(Gettext.MacrosTest.Translator, string)"
 
-    code =
-      quote do
-        domain = "dynamic_domain"
-        dgettext(domain, "hello")
+
+    error =
+      assert_raise ArgumentError, fn ->
+        defmodule Sample do
+          use Gettext, backend: Gettext.MacrosTest.Translator
+          domain = "dynamic_domain"
+          dgettext(domain, "hello")
+        end
       end
 
-    error = assert_raise ArgumentError, fn -> Code.eval_quoted(code, [], __ENV__) end
     message = ArgumentError.message(error)
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:domain"
