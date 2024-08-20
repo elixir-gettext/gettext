@@ -622,34 +622,7 @@ defmodule Gettext do
         quote do
           Module.register_attribute(__MODULE__, :__gettext_backend__, persist: true)
           @__gettext_backend__ unquote(backend)
-          import Gettext.Macros,
-            only: [
-              dpgettext_noop: 3,
-              dgettext_noop: 2,
-              pgettext_noop: 2,
-              gettext_noop: 1,
-              dpngettext_noop: 4,
-              dngettext_noop: 3,
-              pngettext_noop: 3,
-              ngettext_noop: 2,
-              dpgettext: 3,
-              dpgettext: 4,
-              dgettext: 2,
-              dgettext: 3,
-              pgettext: 2,
-              pgettext: 3,
-              gettext: 1,
-              gettext: 2,
-              dpngettext: 5,
-              dpngettext: 6,
-              dngettext: 4,
-              dngettext: 5,
-              pngettext: 4,
-              pngettext: 5,
-              ngettext: 3,
-              ngettext: 4,
-              gettext_comment: 1
-            ]
+          import Gettext.Macros
         end
 
       _other ->
