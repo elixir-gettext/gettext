@@ -97,48 +97,79 @@ defmodule Gettext.Compiler do
     end)
   end
 
-  # TODO: remove once we deprecate "use Gettext" for generating backends.
-  def generate_macros(_env) do
-    quote unquote: false do
-      require Gettext.Macros
+  ## BEGIN of deprecated code
+  ## TODO: Remove this block once "use Gettext" is removed
 
+  defmacro generate_macros(_env) do
+    quote unquote: false do
       defmacro dpgettext_noop(domain, msgctxt, msgid) do
-        Gettext.Macros.dpgettext_noop_with_backend(__MODULE__, domain, msgctxt, msgid)
+        domain = Gettext.Compiler.expand_to_binary(domain, "domain", __MODULE__, __CALLER__)
+        msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
+        msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __MODULE__, __CALLER__)
+
+        if Gettext.Extractor.extracting?() do
+          Gettext.Extractor.extract(
+            __CALLER__,
+            __MODULE__,
+            domain,
+            msgctxt,
+            msgid,
+            Gettext.Compiler.get_and_flush_extracted_comments()
+          )
+        end
+
+        msgid
       end
 
       defmacro dgettext_noop(domain, msgid) do
         quote do
-          Gettext.Macros.dgettext_noop_with_backend(__MODULE__, unquote(domain), unquote(msgid))
+          unquote(__MODULE__).dpgettext_noop(unquote(domain), nil, unquote(msgid))
         end
       end
 
       defmacro gettext_noop(msgid) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          Gettext.Macros.gettext_noop_with_backend(__MODULE__, unquote(msgid))
+          unquote(__MODULE__).dpgettext_noop(unquote(domain), nil, unquote(msgid))
         end
       end
 
       defmacro pgettext_noop(msgid, context) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          Gettext.Macros.pgettext_noop_with_backend(__MODULE__, context, unquote(msgid))
+          unquote(__MODULE__).dpgettext_noop(unquote(domain), unquote(context), unquote(msgid))
         end
       end
 
       defmacro dpngettext_noop(domain, msgctxt, msgid, msgid_plural) do
-        Gettext.Macros.dpgettext_noop_with_backend(
-          __MODULE__,
-          domain,
-          msgctxt,
-          msgid,
-          msgid_plural
-        )
+        domain = Gettext.Compiler.expand_to_binary(domain, "domain", __MODULE__, __CALLER__)
+        msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
+        msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __MODULE__, __CALLER__)
+
+        msgid_plural =
+          Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __MODULE__, __CALLER__)
+
+        if Gettext.Extractor.extracting?() do
+          Gettext.Extractor.extract(
+            __CALLER__,
+            __MODULE__,
+            domain,
+            msgctxt,
+            {msgid, msgid_plural},
+            Gettext.Compiler.get_and_flush_extracted_comments()
+          )
+        end
+
+        {msgid, msgid_plural}
       end
 
       defmacro dngettext_noop(domain, msgid, msgid_plural) do
         quote do
-          Gettext.Macros.dngettext_noop_with_backend(
-            __MODULE__,
+          unquote(__MODULE__).dpngettext_noop(
             unquote(domain),
+            nil,
             unquote(msgid),
             unquote(msgid_plural)
           )
@@ -146,10 +177,12 @@ defmodule Gettext.Compiler do
       end
 
       defmacro pngettext_noop(msgctxt, msgid, msgid_plural) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          Gettext.Macros.pngettext_noop_with_backend(
-            __MODULE__,
-            msgctxt,
+          unquote(__MODULE__).dpngettext_noop(
+            unquote(domain),
+            unquote(msgctxt),
             unquote(msgid),
             unquote(msgid_plural)
           )
@@ -157,9 +190,12 @@ defmodule Gettext.Compiler do
       end
 
       defmacro ngettext_noop(msgid, msgid_plural) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          Gettext.Macros.ngettext_noop_with_backend(
-            __MODULE__,
+          unquote(__MODULE__).dpngettext_noop(
+            unquote(domain),
+            nil,
             unquote(msgid),
             unquote(msgid_plural)
           )
@@ -168,11 +204,14 @@ defmodule Gettext.Compiler do
 
       defmacro dpgettext(domain, msgctxt, msgid, bindings \\ Macro.escape(%{})) do
         quote do
-          Gettext.Macros.dpgettext_with_backend(
-            __MODULE__,
+          msgid =
+            unquote(__MODULE__).dpgettext_noop(unquote(domain), unquote(msgctxt), unquote(msgid))
+
+          Gettext.dpgettext(
+            unquote(__MODULE__),
             unquote(domain),
             unquote(msgctxt),
-            unquote(msgid),
+            msgid,
             unquote(bindings)
           )
         end
@@ -180,19 +219,16 @@ defmodule Gettext.Compiler do
 
       defmacro dgettext(domain, msgid, bindings \\ Macro.escape(%{})) do
         quote do
-          Gettext.Macros.dgettext_with_backend(
-            __MODULE__,
-            unquote(domain),
-            unquote(msgid),
-            unquote(bindings)
-          )
+          unquote(__MODULE__).dpgettext(unquote(domain), nil, unquote(msgid), unquote(bindings))
         end
       end
 
       defmacro pgettext(msgctxt, msgid, bindings \\ Macro.escape(%{})) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          Gettext.Macros.pgettext_with_backend(
-            __MODULE__,
+          unquote(__MODULE__).dpgettext(
+            unquote(domain),
             unquote(msgctxt),
             unquote(msgid),
             unquote(bindings)
@@ -201,19 +237,29 @@ defmodule Gettext.Compiler do
       end
 
       defmacro gettext(msgid, bindings \\ Macro.escape(%{})) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          Gettext.Macros.gettext_with_backend(__MODULE__, unquote(msgid), unquote(bindings))
+          unquote(__MODULE__).dpgettext(unquote(domain), nil, unquote(msgid), unquote(bindings))
         end
       end
 
       defmacro dpngettext(domain, msgctxt, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
         quote do
-          Gettext.Macros.dpngettext_with_backend(
-            __MODULE__,
+          {msgid, msgid_plural} =
+            unquote(__MODULE__).dpngettext_noop(
+              unquote(domain),
+              unquote(msgctxt),
+              unquote(msgid),
+              unquote(msgid_plural)
+            )
+
+          Gettext.dpngettext(
+            unquote(__MODULE__),
             unquote(domain),
             unquote(msgctxt),
-            unquote(msgid),
-            unquote(msgid_plural),
+            msgid,
+            msgid_plural,
             unquote(n),
             unquote(bindings)
           )
@@ -222,9 +268,9 @@ defmodule Gettext.Compiler do
 
       defmacro dngettext(domain, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
         quote do
-          Gettext.Macros.dngettext_with_backend(
-            __MODULE__,
+          unquote(__MODULE__).dpngettext(
             unquote(domain),
+            nil,
             unquote(msgid),
             unquote(msgid_plural),
             unquote(n),
@@ -234,9 +280,12 @@ defmodule Gettext.Compiler do
       end
 
       defmacro ngettext(msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          Gettext.Macros.ngettext_with_backend(
-            __MODULE__,
+          unquote(__MODULE__).dpngettext(
+            unquote(domain),
+            nil,
             unquote(msgid),
             unquote(msgid_plural),
             unquote(n),
@@ -246,9 +295,11 @@ defmodule Gettext.Compiler do
       end
 
       defmacro pngettext(msgctxt, msgid, msgid_plural, n, bindings \\ Macro.escape(%{})) do
+        domain = __gettext__(:default_domain)
+
         quote do
-          Gettext.Macros.pngettext_with_backend(
-            __MODULE__,
+          unquote(__MODULE__).dpngettext(
+            unquote(domain),
             unquote(msgctxt),
             unquote(msgid),
             unquote(msgid_plural),
@@ -259,10 +310,62 @@ defmodule Gettext.Compiler do
       end
 
       defmacro gettext_comment(comment) do
-        Gettext.Macros.gettext_comment(comment)
+        comment = Gettext.Compiler.expand_to_binary(comment, "comment", __MODULE__, __CALLER__)
+        Gettext.Compiler.append_extracted_comment(comment)
+        :ok
       end
     end
   end
+
+  @doc false
+  # TODO: remove me
+  def expand_to_binary(term, what, gettext_module, env)
+      when what in ~w(domain msgctxt msgid msgid_plural comment) do
+    raiser = fn term ->
+      raise ArgumentError, """
+      Gettext macros expect message keys (msgid and msgid_plural),
+      domains, and comments to expand to strings at compile-time, but the given #{what}
+      doesn't. This is what the macro received:
+
+      #{inspect(term)}
+
+      Dynamic messages should be avoided as they limit Gettext's
+      ability to extract messages from your source code. If you are
+      sure you need dynamic lookup, you can use the functions in the Gettext
+      module:
+
+          string = "hello world"
+          Gettext.gettext(#{inspect(gettext_module)}, string)
+      """
+    end
+
+    # We support nil too in order to fall back to a nil context and always use the *p
+    # variants of the Gettext macros.
+    case Macro.expand(term, env) do
+      term when is_binary(term) or is_nil(term) ->
+        term
+
+      {:<<>>, _, pieces} = term ->
+        if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces), else: raiser.(term)
+
+      other ->
+        raiser.(other)
+    end
+  end
+
+  @doc false
+  def append_extracted_comment(comment) do
+    existing = Process.get(:gettext_comments, [])
+    Process.put(:gettext_comments, [" " <> comment | existing])
+    :ok
+  end
+
+  @doc false
+  def get_and_flush_extracted_comments() do
+    Enum.reverse(Process.delete(:gettext_comments) || [])
+  end
+
+  ## END of deprecated block
 
   @doc """
   Logs a warning via `Logger.error/1` if `domain` contains slashes.
