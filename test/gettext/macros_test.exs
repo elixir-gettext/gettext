@@ -148,8 +148,6 @@ defmodule Gettext.MacrosTest do
   end
 
   test "dgettext/3 and dngettext/2: non-binary things at compile-time" do
-
-
     error =
       assert_raise ArgumentError, fn ->
         defmodule Sample do
@@ -177,7 +175,6 @@ defmodule Gettext.MacrosTest do
     assert message =~ "Gettext macros expect message keys"
     assert message =~ "{:msgid_plural"
     assert message =~ "Gettext.gettext(Gettext.MacrosTest.Translator, string)"
-
 
     error =
       assert_raise ArgumentError, fn ->
