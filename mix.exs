@@ -27,6 +27,7 @@ defmodule Gettext.Mixfile do
         source_ref: "v#{@version}",
         main: "Gettext",
         source_url: @repo_url,
+        extras: ["CHANGELOG.md"],
         groups_for_docs: [
           # Gettext
           "Translation Functions": &(&1[:section] == :translation),
@@ -56,7 +57,10 @@ defmodule Gettext.Mixfile do
     [
       maintainers: ["Andrea Leopardi", "Jonatan Männchen", "José Valim"],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => @repo_url},
+      links: %{
+        "GitHub" => @repo_url,
+        "Changelog" => @repo_url <> "/blob/main/CHANGELOG.md"
+      },
       files: ~w(lib mix.exs *.md)
     ]
   end
