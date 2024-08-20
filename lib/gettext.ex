@@ -640,16 +640,15 @@ defmodule Gettext do
           """
           defining a Gettext backend by calling
 
-              use Gettext, otp_app: ..., ...
+              use Gettext, otp_app: ...
 
           is deprecated. To define a backend, call:
 
               use Gettext.Backend, otp_app: :my_app
 
-          Then, to use the backend, call this in your module:
+          Then, instead of importing your backend, call this in your module:
 
               use Gettext, backend: MyApp.Gettext
-
           """,
           Macro.Env.stacktrace(__CALLER__)
         )
