@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.26.1
+
+  * Address backwards incompatible changes in previous release
+
 ## v0.26.0
 
 This release changes the way you use Gettext. We're not crazy: it does so because doing so makes it a lot faster to compile projects that use Gettext.
