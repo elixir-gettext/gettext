@@ -1,9 +1,7 @@
+# https://github.com/elixir-gettext/gettext/issues/330
 defmodule Gettext.NewBackendSetupTest do
-  # https://github.com/elixir-gettext/gettext/issues/330
-  use ExUnit.Case, async: true
-
-  import ExUnit.CaptureIO
-  import GettextTest.MixProjectHelpers
+  # Has to be async: false since it changes Elixir compiler options.
+  use ExUnit.Case, async: false
 
   @moduletag :tmp_dir
 
@@ -34,29 +32,37 @@ defmodule Gettext.NewBackendSetupTest do
   end
 
   describe "compile-time dependencies" do
-    @tag :skip
-    test "are not created for modules that use the backend",
-         %{test: test, tmp_dir: tmp_dir} = context do
-      create_test_mix_file(context)
+    test "are not created for modules that use the backend", %{test: test} do
+      top_level_module = :"Elixir.Gettext_#{test}"
+      backend_module = Module.concat(top_level_module, Gettext)
 
-      write_file(context, "lib/my_app.ex", """
-      defmodule MyApp.Gettext do
-        use Gettext.Backend, otp_app: #{inspect(test)}
-      end
+      Code.eval_quoted(
+        quote do
+          defmodule unquote(backend_module) do
+            use Gettext.Backend, otp_app: unquote(test)
+          end
+        end
+      )
 
-      defmodule MyApp do
-        use Gettext, backend: MyApp.Gettext
-      end
-      """)
+      old_compiler_opts = Code.compiler_options(tracers: [__MODULE__])
+      on_exit(fn -> Code.compiler_options(old_compiler_opts) end)
 
-      output =
-        in_project(test, tmp_dir, fn _module ->
-          capture_io(fn -> Mix.Task.run("compile") end)
-          capture_io(fn -> Mix.Task.run("xref", ["trace", "lib/my_app.ex"]) end)
-        end)
+      Code.compile_quoted(
+        quote do
+          defmodule unquote(top_level_module) do
+            use Gettext, backend: unquote(backend_module)
+          end
+        end
+      )
 
-      assert output =~ ~r"lib/my_app\.ex:\d+: alias MyApp\.Gettext \(runtime\)\n"
-      refute output =~ ~r"lib/my_app\.ex:\d+: alias MyApp\.Gettext \(compile\)\n"
+      assert_received {:trace, {:require, _meta, Gettext.Macros, _opts}}
+      refute_received {:trace, {:require, _meta, ^backend_module, _opts}}
+      refute_received {:trace, {:import, _meta, ^backend_module, _opts}}
     end
+  end
+
+  def trace(event, _env) do
+    send(self(), {:trace, event})
+    :ok
   end
 end
