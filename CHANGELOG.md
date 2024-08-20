@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.26.0
+
+This release changes the way you use Gettext. We're not crazy: it does so because doing so makes it a lot faster to compile projects that use Gettext.
+The changes *you* have to make to your code are minimal, and the old behavior is deprecated so that you will be guided on how to update.
+
+The reason for this change is that it removes compile-time dependencies from modules that used to `import` a Gettext backend. In applications such as Phoenix applications, where every view and controller `import`s the Gettext backend, this change means a lot less compilation when you make translation changes!
+
+Here's the new API. Now, instead of defining a Gettext backend (`use Gettext`) and then `import`ing that to use its macros, you need to:
+
+  1. Define a Gettext backend with `use Gettext.Backend`
+  1. Import and use its macros with `use Gettext, backend: MyApp.Gettext`.
+
+### Before and After
+
+Before this release, code using Gettext used to look something like this:
+
+```elixir
+defmodule MyApp.Gettext do
+  use Gettext, otp_app: :my_app
+end
+
+defmodule MyAppWeb.Controller do
+  import MyApp.Gettext
+end
+```
+
+This creates a compile-time dependency for every module that `import`s the Gettext backend.
+
+With this release, the above turns into:
+
+```elixir
+defmodule MyApp.Gettext do
+  use Gettext.Backend, otp_app: :my_app
+end
+
+defmodule MyAppWeb.Controller do
+  use Gettext, backend: MyApp.Gettext
+end
+```
+
+We are also updating [Phoenix](https://github.com/phoenixframework/phoenix) generators to use the new API.
+
+If you update Gettext and still use `use Gettext, otp_app: :my_app` to define a backend, Gettext will emit a warning now.
+
+### Detailed Changelog
+
+This is a detailed list of the new things introduced in this release:
+
+  * Add `Gettext.Macros`, which contains all the macros you know and love (`*gettext`). It also contains `*gettext_with_backend` variants to explicitly pass a backend at compile time and keep extraction working.
+  * Document `lgettext/5` and `lngettext/7` callbacks in `Gettext.Backend`. These get generated in every Gettext backend.
+  * Add the `Gettext.domain/0` type.
+
 ## v0.25.0
 
   * Run merging for `mix gettext.extract`'s POT files even if they are unchanged.
