@@ -5,20 +5,23 @@ defmodule Gettext.Compiler do
 
   alias Expo.Message
   alias Expo.Messages
+  alias Expo.MO
   alias Expo.PO
   alias Gettext.Plural
 
   @default_priv "priv/gettext"
+  @default_type :po
   @default_domain "default"
   @po_wildcard "*/LC_MESSAGES/*.po"
+  @mo_wildcard "*/LC_MESSAGES/*.mo"
 
   @doc false
-  def __hash__(priv) do
-    hash(po_files_in_priv(priv))
+  def __hash__(priv, type) do
+    hash(files_in_priv(priv, type))
   end
 
-  defp hash(all_po_files) do
-    all_po_files |> Enum.sort() |> :erlang.md5()
+  defp hash(all_files) do
+    all_files |> Enum.sort() |> :erlang.md5()
   end
 
   @doc false
@@ -26,10 +29,11 @@ defmodule Gettext.Compiler do
     opts = Module.get_attribute(env.module, :gettext_opts)
     otp_app = Keyword.fetch!(opts, :otp_app)
     priv = Keyword.get(opts, :priv, @default_priv)
-    all_po_files = po_files_in_priv(priv)
-    hash_po_files = hash(all_po_files)
-    known_po_files = known_po_files(all_po_files, opts)
-    known_locales = Enum.map(known_po_files, & &1[:locale]) |> Enum.uniq()
+    type = Keyword.get(opts, :type, @default_type)
+    all_files = files_in_priv(priv, type)
+    hash_files = hash(all_files)
+    known_files = known_files(all_files, opts)
+    known_locales = Enum.map(known_files, & &1[:locale]) |> Enum.uniq()
 
     default_locale =
       opts[:default_locale] || quote(do: Application.fetch_env!(:gettext, :default_locale))
@@ -41,11 +45,11 @@ defmodule Gettext.Compiler do
     quote do
       @behaviour Gettext.Backend
 
-      unquote(external_resources(known_po_files))
+      unquote(external_resources(known_files))
 
       @doc false
       def __mix_recompile__? do
-        unquote(hash_po_files) != Gettext.Compiler.__hash__(unquote(priv))
+        unquote(hash_files) != Gettext.Compiler.__hash__(unquote(priv), unquote(type))
       end
 
       # Info about the Gettext backend.
@@ -69,7 +73,7 @@ defmodule Gettext.Compiler do
       @impl Gettext.Backend
       def lngettext(locale, domain, msgctxt \\ nil, msgid, msgid_plural, n, bindings)
 
-      unquote(compile_po_files(env, known_po_files, opts))
+      unquote(compile_files(env, known_files, type, opts))
 
       # Catch-all clauses.
       def lgettext(locale, domain, msgctxt, msgid, bindings),
@@ -388,7 +392,7 @@ defmodule Gettext.Compiler do
 
   # Compiles all the `.po` files in the given directory (`dir`) into `lgettext/4`
   # and `lngettext/6` function clauses.
-  defp compile_po_files(env, known_po_files, opts) do
+  defp compile_files(env, known_files, type, opts) do
     plural_mod =
       Keyword.get(opts, :plural_forms) ||
         Application.get_env(:gettext, :plural_forms, Gettext.Plural)
@@ -407,24 +411,24 @@ defmodule Gettext.Compiler do
     case List.wrap(opts[:split_module_by]) do
       [] ->
         Enum.map(
-          known_po_files,
-          &compile_unified_po_file(env, &1, plural_mod, opts[:interpolation])
+          known_files,
+          &compile_unified_file(env, &1, type, plural_mod, opts[:interpolation])
         )
 
       split ->
-        grouped = Enum.group_by(known_po_files, &split_module_name(env, &1, split))
+        grouped = Enum.group_by(known_files, &split_module_name(env, &1, split))
 
         case Keyword.get(opts, :split_module_compilation, :parallel) do
           :serial ->
             Enum.map(grouped, fn {module, files} ->
-              compile_split_po_files(env, module, files, plural_mod, opts[:interpolation])
+              compile_split_files(env, module, files, type, plural_mod, opts[:interpolation])
             end)
 
           :parallel ->
             grouped
             |> Enum.map(fn {module, files} ->
               Kernel.ParallelCompiler.async(fn ->
-                compile_split_po_files(env, module, files, plural_mod, opts[:interpolation])
+                compile_split_files(env, module, files, type, plural_mod, opts[:interpolation])
               end)
             end)
             |> Enum.map(fn task ->
@@ -442,9 +446,9 @@ defmodule Gettext.Compiler do
     )
   end
 
-  defp compile_unified_po_file(env, po_file, plural_mod, interpolation_module) do
+  defp compile_unified_file(env, file, type, plural_mod, interpolation_module) do
     {locale, domain, singular_fun, plural_fun, quoted} =
-      compile_po_file(:defp, po_file, env, plural_mod, interpolation_module)
+      compile_file(:defp, file, type, env, plural_mod, interpolation_module)
 
     quote do
       unquote(quoted)
@@ -459,21 +463,21 @@ defmodule Gettext.Compiler do
     end
   end
 
-  defp compile_split_po_files(env, module, files, plural_mod, interpolation_module) do
+  defp compile_split_files(env, module, files, type, plural_mod, interpolation_module) do
     {current, split} =
       Enum.reduce(
         files,
         {[], []},
-        &compile_split_po_file(env, module, plural_mod, &1, interpolation_module, &2)
+        &compile_split_file(env, module, plural_mod, &1, type, interpolation_module, &2)
       )
 
     create_split_module(env, module, split)
     current
   end
 
-  defp compile_split_po_file(env, module, plural_mod, po_file, interpolation_module, {acc1, acc2}) do
+  defp compile_split_file(env, module, plural_mod, file, type, interpolation_module, {acc1, acc2}) do
     {locale, domain, singular_fun, plural_fun, split_module_quoted} =
-      compile_po_file(:def, po_file, env, plural_mod, interpolation_module)
+      compile_file(:def, file, type, env, plural_mod, interpolation_module)
 
     current_module_quoted =
       quote do
@@ -497,9 +501,19 @@ defmodule Gettext.Compiler do
 
   # Compiles a .po file into a list of lgettext/5 (for messages) and
   # lngettext/7 (for plural messages) clauses.
-  defp compile_po_file(kind, po_file, env, plural_mod, interpolation_module) do
+  defp compile_file(kind, po_file, type, env, plural_mod, interpolation_module) do
     %{locale: locale, domain: domain, path: path} = po_file
-    %Messages{messages: messages, file: file} = messages_struct = PO.parse_file!(path)
+
+    %Messages{messages: messages, file: file} =
+      messages_struct =
+      case type do
+        :po ->
+          PO.parse_file!(path)
+
+        :mo ->
+          check_mo_file_updated!(path)
+          MO.parse_file!(path)
+      end
 
     plural_forms_fun = :"#{locale}_#{domain}_plural"
 
@@ -555,6 +569,20 @@ defmodule Gettext.Compiler do
       end
 
     {locale, domain, singular_fun, plural_fun, quoted}
+  end
+
+  defp check_mo_file_updated!(mo_path) do
+    po_path = Path.rootname(mo_path, ".mo") <> ".po"
+
+    with {:ok, %File.Stat{mtime: po_mtime}} <- File.stat(po_path),
+         {:ok, %File.Stat{mtime: mo_mtime}} <- File.stat(mo_path) do
+      if po_mtime > mo_mtime do
+        raise """
+        The .mo file at #{mo_path} is older than the .po file at #{po_path}.
+        Please recompile the .mo file.
+        """
+      end
+    end
   end
 
   defp nplurals(locale, messages_struct, plural_mod) do
@@ -732,17 +760,22 @@ defmodule Gettext.Compiler do
     {:__block__, [], contents}
   end
 
-  defp po_files_in_priv(priv) do
+  defp files_in_priv(priv, type) do
     priv
-    |> Path.join(@po_wildcard)
+    |> Path.join(
+      case type do
+        :po -> @po_wildcard
+        :mo -> @mo_wildcard
+      end
+    )
     |> Path.wildcard()
   end
 
   # Returns the known the PO files in `messages_dir` with their locale and domain
   # If allowed_locales is configured, it removes all the PO files that do not belong
   # to those locales
-  defp known_po_files(all_po_files, opts) do
-    all_po_files
+  defp known_files(all_files, opts) do
+    all_files
     |> Enum.map(fn path ->
       {locale, domain} = locale_and_domain_from_path(path)
       %{locale: locale, path: path, domain: domain}
@@ -750,12 +783,12 @@ defmodule Gettext.Compiler do
     |> maybe_restrict_locales(opts[:allowed_locales])
   end
 
-  defp maybe_restrict_locales(po_files, nil) do
-    po_files
+  defp maybe_restrict_locales(files, nil) do
+    files
   end
 
-  defp maybe_restrict_locales(po_files, allowed_locales) when is_list(allowed_locales) do
+  defp maybe_restrict_locales(files, allowed_locales) when is_list(allowed_locales) do
     allowed_locales = MapSet.new(Enum.map(allowed_locales, &to_string/1))
-    Enum.filter(po_files, &MapSet.member?(allowed_locales, &1[:locale]))
+    Enum.filter(files, &MapSet.member?(allowed_locales, &1[:locale]))
   end
 end
