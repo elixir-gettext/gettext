@@ -499,7 +499,9 @@ defmodule Gettext.Compiler do
   # lngettext/7 (for plural messages) clauses.
   defp compile_po_file(kind, po_file, env, plural_mod, interpolation_module) do
     %{locale: locale, domain: domain, path: path} = po_file
-    %Messages{messages: messages, file: file} = messages_struct = PO.parse_file!(path)
+
+    %Messages{messages: messages, file: file} =
+      messages_struct = PO.parse_file!(path, strip_meta: true)
 
     plural_forms_fun = :"#{locale}_#{domain}_plural"
 
