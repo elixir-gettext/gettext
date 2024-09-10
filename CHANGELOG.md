@@ -48,7 +48,7 @@ We are also updating [Phoenix](https://github.com/phoenixframework/phoenix) gene
 
 If you update Gettext and still use `use Gettext, otp_app: :my_app` to define a backend, Gettext will emit a warning now.
 
-### Migration using igniter
+### Migration with Igniter
 
 If your project is using [`igniter`](https://hex.pm/packages/igniter), you can run
 [`mix igniter.update_gettext`](https://hexdocs.pm/igniter/Mix.Tasks.Igniter.UpdateGettext.html)
