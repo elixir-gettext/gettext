@@ -52,7 +52,7 @@ If you update Gettext and still use `use Gettext, otp_app: :my_app` to define a 
 
 If your project is using [`igniter`](https://hex.pm/packages/igniter), you can run
 [`mix igniter.update_gettext`](https://hexdocs.pm/igniter/Mix.Tasks.Igniter.UpdateGettext.html)
-to automatically migrate to the new conventions.
+to automatically migrate to the new API.
 
 ### Detailed Changelog
 
