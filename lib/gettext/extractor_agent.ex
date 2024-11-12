@@ -3,6 +3,8 @@ defmodule Gettext.ExtractorAgent do
 
   use Agent
 
+  require Logger
+
   alias Expo.Message
 
   @name __MODULE__
@@ -75,12 +77,45 @@ defmodule Gettext.ExtractorAgent do
     end)
   end
 
-  defp merge_messages(message_1, message_2) do
+  defp merge_messages(%Message.Singular{} = message_1, %Message.Plural{} = message_2) do
+    # Flipping the arguments to make sure that the pluaral message (more information) is used as the base message
+    merge_messages(message_2, message_1)
+  end
+
+  defp merge_messages(%Message.Plural{} = message_1, %Message.Plural{} = message_2) do
+    # Make sure message choice is deterministic
+    [message_1, message_2] =
+      Enum.sort_by([message_1, message_2], &IO.iodata_to_binary(&1.msgid_plural))
+
+    if IO.iodata_to_binary(message_1.msgid_plural) != IO.iodata_to_binary(message_2.msgid_plural) do
+      Logger.warning("""
+      Plural message for '#{IO.iodata_to_binary(message_1.msgid)}' is not matching:
+      Using '#{IO.iodata_to_binary(message_2.msgid_plural)}' instead of '#{IO.iodata_to_binary(message_1.msgid_plural)}'.
+      References: #{dump_references(message_1.references ++ message_2.references)}\
+      """)
+    end
+
+    merge_messages_after_checks(message_1, message_2)
+  end
+
+  defp merge_messages(message_1, message_2), do: merge_messages_after_checks(message_1, message_2)
+
+  defp merge_messages_after_checks(message_1, message_2) do
     message_1
     |> Map.put(:references, message_1.references ++ message_2.references)
     |> Map.put(
       :extracted_comments,
       Enum.uniq(message_1.extracted_comments ++ message_2.extracted_comments)
     )
+  end
+
+  defp dump_references(references) do
+    references
+    |> List.flatten()
+    |> Enum.map(fn
+      {file, line} -> [file, ":", Integer.to_string(line)]
+      file -> file
+    end)
+    |> Enum.intersperse(", ")
   end
 end
