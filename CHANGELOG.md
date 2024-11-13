@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.27.0
+
+* Introduces warning if plural messages are defined with the same singular
+  message and conflicting plural messages.
+* Improves performance by striping not required metadata when compiling the
+  Gettext backend.
+
 ## v0.26.1
 
   * Address backwards incompatible changes in previous release
