@@ -1,6 +1,8 @@
 defmodule Gettext.ExtractorTest do
   use ExUnit.Case
 
+  import ExUnit.CaptureLog
+
   alias Expo.Message
   alias Expo.Messages
   alias Gettext.Extractor
@@ -322,6 +324,8 @@ defmodule Gettext.ExtractorTest do
         Gettext.Macros.gettext_comment("repeated comment")
         Gettext.Macros.gettext_with_backend(Gettext.ExtractorTest.MyGettext, "foo")
         Gettext.Macros.dngettext_with_backend(Gettext.ExtractorTest.MyGettext, "errors", "one error", "%{count} errors", 2)
+        Gettext.Macros.dngettext_with_backend(Gettext.ExtractorTest.MyGettext, "errors", "one error", "%{count} errors", 2)
+        Gettext.Macros.dgettext_with_backend(Gettext.ExtractorTest.MyGettext, "errors", "one error")
         Gettext.Macros.gettext_comment("one more comment")
         Gettext.Macros.gettext_comment("repeated comment")
         Gettext.Macros.gettext_comment("repeated comment")
@@ -345,12 +349,12 @@ defmodule Gettext.ExtractorTest do
        #. repeated comment
        #. one more comment
        #: foo.ex:16
-       #: foo.ex:21
+       #: foo.ex:23
        #, elixir-autogen, elixir-format
        msgid "foo"
        msgstr ""
 
-       #: foo.ex:23
+       #: foo.ex:25
        #, elixir-autogen, elixir-format
        msgctxt "test"
        msgid "context based message"
@@ -362,6 +366,8 @@ defmodule Gettext.ExtractorTest do
        msgstr ""
 
        #: foo.ex:17
+       #: foo.ex:18
+       #: foo.ex:19
        #, elixir-autogen, elixir-format
        msgid "one error"
        msgid_plural "%{count} errors"
@@ -373,7 +379,7 @@ defmodule Gettext.ExtractorTest do
        msgid ""
        msgstr ""
 
-       #: foo.ex:22
+       #: foo.ex:24
        #, elixir-autogen, elixir-format
        msgid "hi"
        msgstr ""
@@ -431,6 +437,38 @@ defmodule Gettext.ExtractorTest do
              Extractor.pot_files(:test_application, [])
            end) =~
              "the Gettext backend Gettext.ExtractorConflictTest.MyGettext has the same :priv directory as Gettext.ExtractorConflictTest.MyOtherGettext"
+  after
+    Extractor.disable()
+  end
+
+  test "warns on conflicting plural messages" do
+    refute Extractor.extracting?()
+    Extractor.enable()
+    assert Extractor.extracting?()
+
+    code = """
+    defmodule Gettext.ExtractorTest.ConflictingPlural.Gettext do
+      use Gettext.Backend, otp_app: :test_conflicting_plural
+    end
+
+    defmodule Gettext.ExtractorTest.ConflictingPlural.Foo do
+      require Gettext.Macros
+
+      def bar do
+        Gettext.Macros.dngettext_with_backend(Gettext.ExtractorTest.ConflictingPlural.Gettext, "errors", "one error", "%{count} errors", 2)
+        Gettext.Macros.dngettext_with_backend(Gettext.ExtractorTest.ConflictingPlural.Gettext, "errors", "one error", "multiple errors", 2)
+      end
+    end
+    """
+
+    assert capture_log(fn ->
+             Code.compile_string(code, Path.join(File.cwd!(), "foo.ex"))
+           end) =~
+             """
+             Plural message for 'one error' is not matching:
+             Using 'multiple errors' instead of '%{count} errors'.
+             References: foo.ex:9, foo.ex:10
+             """
   after
     Extractor.disable()
   end
