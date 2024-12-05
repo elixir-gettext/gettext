@@ -30,7 +30,7 @@ defmodule Gettext do
   means they only contain message IDs, and not actual translated strings. POT files have
   entries like this:
 
-      #: lib/myapp_web/live/hello_live.html.heex:2
+      #: lib/my_app_web/live/hello_live.html.heex:2
       #, elixir-autogen, elixir-format
       msgid "Hello world"
       msgstr ""
@@ -40,7 +40,7 @@ defmodule Gettext do
   Entries in PO files contain translations for their specific locale. For example,
   in a PO file for Italian, the entry above would look like this:
 
-      #: lib/myapp_web/live/hello_live.html.heex:2
+      #: lib/my_app_web/live/hello_live.html.heex:2
       #, elixir-autogen, elixir-format
       msgid "Hello world"
       msgstr "Ciao mondo"
