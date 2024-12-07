@@ -48,7 +48,7 @@ dgettext("errors", "Here is an error message to translate")
 
 Messages in Gettext are stored in Portable Object files (`.po`). Such files must be placed at `priv/gettext/LOCALE/LC_MESSAGES/DOMAIN.po`, where `LOCALE` is the locale and `DOMAIN` is the domain (the default domain is called `default`).
 
-For example, the message to `pt_BR` of the first two `*gettext` calls in the snippet above must be placed in the `priv/gettext/pt_BR/LC_MESSAGES/default.po` file with contents:
+For example, the messages for `pt_BR` from the first two `*gettext` calls in the snippet above must be placed in the `priv/gettext/pt_BR/LC_MESSAGES/default.po` file with the following contents:
 
 ```pot
 msgid "Here is one string to translate"
@@ -60,7 +60,7 @@ msgstr[0] "Aqui está o texto para traduzir"
 msgstr[1] "Aqui estão os textos para traduzir"
 ```
 
-`.po` are text-based files and can be edited directly by translators. Some may even use existing tools for managing them, such as [Poedit][poedit] or [poeditor.com][poeditor.com].
+`.po` files are text-based and can be edited directly by translators. Some may even use existing tools for managing them, such as [Poedit][poedit] or [poeditor.com][poeditor.com].
 
 Finally, because messages are based on strings, your source code does not lose readability as you still see literal strings, like `gettext("here is an example")`, instead of paths like `translate("some.path.convention")`.
 

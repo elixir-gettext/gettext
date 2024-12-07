@@ -636,19 +636,25 @@ defmodule Gettext do
 
       _other ->
         # TODO: remove this once we stop supporting the old way of defining backends.
+        otp_app = Keyword.get(opts, :otp_app, :my_app)
+
         IO.warn(
           """
-          defining a Gettext backend by calling
+          Defining a Gettext backend by calling:
 
-              use Gettext, otp_app: ...
+              use Gettext, otp_app: #{inspect(otp_app)}
 
           is deprecated. To define a backend, call:
 
-              use Gettext.Backend, otp_app: :my_app
+              use Gettext.Backend, otp_app: #{inspect(otp_app)}
 
-          Then, instead of importing your backend, call this in your module:
+          Then, replace importing your backend:
 
-              use Gettext, backend: MyApp.Gettext
+              import #{inspect(__CALLER__.module)}
+
+          with calling this in your module:
+
+              use Gettext, backend: #{inspect(__CALLER__.module)}
           """,
           Macro.Env.stacktrace(__CALLER__)
         )
