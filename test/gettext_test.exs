@@ -280,7 +280,7 @@ defmodule GettextTest do
       end)
 
     expected_message = """
-    \e[33mwarning:\e[0m Defining a Gettext backend by calling:
+    Defining a Gettext backend by calling:
 
         use Gettext, otp_app: :my_app
 
