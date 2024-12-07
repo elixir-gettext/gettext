@@ -302,5 +302,4 @@ defmodule GettextTest do
 
     assert stderr =~ expected_message
   end
-
 end

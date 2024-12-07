@@ -637,6 +637,7 @@ defmodule Gettext do
       _other ->
         # TODO: remove this once we stop supporting the old way of defining backends.
         otp_app = Keyword.get(opts, :otp_app, :my_app)
+
         IO.warn(
           """
           Defining a Gettext backend by calling:
