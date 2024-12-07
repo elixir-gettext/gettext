@@ -279,7 +279,28 @@ defmodule GettextTest do
         )
       end)
 
-    assert stderr =~ "defining a Gettext backend by calling"
-    assert stderr =~ "is deprecated"
+    expected_message = """
+    \e[33mwarning:\e[0m Defining a Gettext backend by calling:
+
+        use Gettext, otp_app: :my_app
+
+    is deprecated. To define a backend, call:
+
+        use Gettext.Backend, otp_app: :my_app
+
+    Then, replace importing your backend:
+
+        import DeprecatedWayOfDefiningBackend
+
+    with calling this in your module:
+
+        use Gettext, backend: DeprecatedWayOfDefiningBackend
+
+      nofile:1: DeprecatedWayOfDefiningBackend (module)
+
+    """
+
+    assert stderr =~ expected_message
   end
+
 end

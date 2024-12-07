@@ -641,7 +641,7 @@ defmodule Gettext do
           """
           Defining a Gettext backend by calling:
 
-              use Gettext, otp_app: ...
+              use Gettext, otp_app: #{inspect(otp_app)}
 
           is deprecated. To define a backend, call:
 
@@ -651,7 +651,7 @@ defmodule Gettext do
 
               import #{inspect(__CALLER__.module)}
 
-           by calling this in your module instead:
+          with calling this in your module:
 
               use Gettext, backend: #{inspect(__CALLER__.module)}
           """,
