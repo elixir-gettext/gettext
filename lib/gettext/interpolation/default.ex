@@ -190,7 +190,7 @@ defmodule Gettext.Interpolation.Default do
         end
 
       {_keys, _message_type} ->
-        quote do
+        quote generated: true do
           case unquote(bindings) do
             unquote(match_clause) ->
               {:ok, unquote(compile_string)}
