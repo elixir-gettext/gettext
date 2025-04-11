@@ -15,12 +15,13 @@ defmodule Gettext.MacrosTest do
   @backend Gettext.MacrosTest.Translator
   @gettext_msgid "Hello world"
 
-  describe "gettext/2" do
+  describe "gettext/1" do
     test "supports binary-ish msgid at compile-time" do
       Gettext.put_locale(@backend, "it")
       assert gettext("Hello world") == "Ciao mondo"
       assert gettext(@gettext_msgid) == "Ciao mondo"
       assert gettext(~s(Hello world)) == "Ciao mondo"
+      assert gettext("Hello " <> "world") == "Ciao mondo"
     end
   end
 
