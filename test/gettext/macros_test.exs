@@ -22,6 +22,8 @@ defmodule Gettext.MacrosTest do
       assert gettext(@gettext_msgid) == "Ciao mondo"
       assert gettext(~s(Hello world)) == "Ciao mondo"
       assert gettext("Hello " <> "world") == "Ciao mondo"
+      assert gettext("Hello " <> ~s(world)) == "Ciao mondo"
+      assert gettext(~S(Hello ) <> ~s(world)) == "Ciao mondo"
     end
   end
 
