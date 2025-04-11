@@ -709,14 +709,28 @@ defmodule Gettext.Macros do
       """
     end
 
-    # We support nil too in order to fall back to a nil context and always use the *p
-    # variants of the Gettext macros.
+    do_expand_to_binary(term, env, raiser)
+  end
+
+  defp do_expand_to_binary({:<>, _, pieces}, env, raiser) do
+    Enum.map_join(pieces, &do_expand_to_binary(&1, env, raiser))
+  end
+
+  defp do_expand_to_binary({:<<>>, _, pieces}, env, raiser) do
+    Enum.map_join(pieces, &do_expand_to_binary(&1, env, raiser))
+  end
+
+  # We support nil too in order to fall back to a nil context and always use the *p
+  # variants of the Gettext macros.
+  defp do_expand_to_binary(term, _env, _raiser)
+       when is_binary(term) or is_nil(term) do
+    term
+  end
+
+  defp do_expand_to_binary(term, env, raiser) do
     case Macro.expand(term, env) do
       term when is_binary(term) or is_nil(term) ->
         term
-
-      {:<<>>, _, pieces} = term ->
-        if Enum.all?(pieces, &is_binary/1), do: Enum.join(pieces), else: raiser.(term)
 
       other ->
         raiser.(other)
