@@ -23,12 +23,12 @@ jobs:
             lint: true
             coverage: true
 
-          - os: ubuntu-20.04
-            erlang: "24.1"
+          - os: ubuntu-22.04
+            erlang: "24.2"
             elixir: "1.13"
 
-          - os: ubuntu-20.04
-            erlang: "23.3"
+          - os: ubuntu-22.04
+            erlang: "24.2"
             elixir: "1.12"
     env:
       MIX_ENV: test
