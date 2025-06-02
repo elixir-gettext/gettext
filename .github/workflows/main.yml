@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test (Elixir ${{ matrix.elixir }} | Erlang/OTP ${{ matrix.erlang }})
@@ -20,22 +23,22 @@ jobs:
             lint: true
             coverage: true
 
-          - os: ubuntu-20.04
-            erlang: "24.1"
+          - os: ubuntu-22.04
+            erlang: "24.2"
             elixir: "1.13"
 
-          - os: ubuntu-20.04
-            erlang: "23.3"
+          - os: ubuntu-22.04
+            erlang: "24.2"
             elixir: "1.12"
     env:
       MIX_ENV: test
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install OTP and Elixir
-        uses: erlef/setup-beam@v1
+        uses: erlef/setup-beam@8aa8a857c6be0daae6e97272bb299d5b942675a4 # v1.19.0
         with:
           otp-version: ${{ matrix.erlang }}
           elixir-version: ${{ matrix.elixir }}
