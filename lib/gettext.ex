@@ -772,6 +772,29 @@ defmodule Gettext do
     do: raise(ArgumentError, "put_locale/2 only accepts binary locales, got: #{inspect(locale)}")
 
   @doc """
+  Similar to `put_locale/2`, but it checks if the passed locale exists in the known_locales or not.
+  If yes it sets the locale for the current process and the given `backend`.
+  Else it falls back to the default locale for the backend.
+  ## Examples
+
+      Gettext.known_locales(MyApp.Gettext)
+      #=> ["en", "ja"]
+      Gettext.put_locale(MyApp.Gettext, "pt_BR")
+      #=> nil
+      Gettext.get_locale(MyApp.Gettext)
+      #=> "en"
+
+  """
+  @doc section: :locale_protected
+  @spec put_locale_protected(backend, locale) :: locale | nil
+  def put_locale_protected(backend, locale)
+      when is_binary(locale),
+      do: put_locale_with_fallback(backend, locale)
+
+  def put_locale_protected(_backend, locale),
+    do: raise(ArgumentError, "put_locale/2 only accepts binary locales, got: #{inspect(locale)}")
+
+  @doc """
   Returns the message of the given string with a given context in the given domain.
 
   The string is translated by the `backend` module.
@@ -1154,4 +1177,16 @@ defmodule Gettext do
 
   defp domain_or_default(backend, :default), do: backend.__gettext__(:default_domain)
   defp domain_or_default(_backend, domain) when is_binary(domain), do: domain
+
+  @spec put_locale_with_fallback(backend, locale) :: binary() | nil
+  defp put_locale_with_fallback(backend, locale) do
+    allowed_locales = known_locales(backend)
+    is_not_allowed_locale = locale not in allowed_locales
+
+    if is_not_allowed_locale do
+      Process.put(backend, "en")
+    else
+      Process.put(backend, locale)
+    end
+  end
 end
