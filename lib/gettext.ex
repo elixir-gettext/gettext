@@ -785,6 +785,17 @@ defmodule Gettext do
     do: raise(ArgumentError, "put_locale/2 only accepts binary locales, got: #{inspect(locale)}")
 
   @doc """
+  Similar to `put_locale/2`, but it raises an error if the passed locale doesn't exist in the known_locales.
+  """
+  @doc section: :locale
+  @spec put_locale!(backend, locale) :: locale | nil
+  def put_locale!(backend, locale) when is_binary(locale),
+    do: put_locale_with_fallback(backend, locale)
+
+  def put_locale!(_backend, locale),
+    do: raise(ArgumentError, "put_locale/2 only accepts binary locales, got: #{inspect(locale)}")
+
+  @doc """
   Returns the message of the given string with a given context in the given domain.
 
   The string is translated by the `backend` module.
@@ -1167,4 +1178,18 @@ defmodule Gettext do
 
   defp domain_or_default(backend, :default), do: backend.__gettext__(:default_domain)
   defp domain_or_default(_backend, domain) when is_binary(domain), do: domain
+
+  @spec put_locale_with_fallback(backend, locale) :: binary() | nil
+  defp put_locale_with_fallback(backend, locale) do
+    allowed_locales = known_locales(backend)
+    is_allowed_locale = locale in allowed_locales
+
+    case is_allowed_locale do
+      true ->
+        put_locale(backend, locale)
+
+      false ->
+        raise(ArgumentError, "put_locale!/2 only support known locales, got: #{inspect(locale)}")
+    end
+  end
 end
