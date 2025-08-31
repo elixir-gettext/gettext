@@ -763,6 +763,19 @@ defmodule Gettext do
       Gettext.get_locale(MyApp.Gettext)
       #=> "pt_BR"
 
+  The current process's locale will change even if the passed `locale` is not
+  supported. If you think this can cause an issue consider using `known_locales/1`
+  to handle unsupported locales.
+
+  ## Example
+
+      # Handle unsupported locales based on your requirements
+      defp handle_locale(locale, true, backend), do: {:ok, Process.put(backend, locale)}
+      defp handle_locale(_locale, false, backend), do: {:error, :unsupported_locale}
+
+      # In your main function
+      is_in_allowed_locale = locale in known_locales(backend)
+      handle_locale(locale, is_in_allowed_locale, backend)
   """
   @doc section: :locale
   @spec put_locale(backend, locale) :: locale | nil
