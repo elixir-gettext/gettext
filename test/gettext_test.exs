@@ -78,6 +78,17 @@ defmodule GettextTest do
     end
   end
 
+  describe "put_locale!/2" do
+    test "raises an error when unsupported locale is passed as argument" do
+      msg = "put_locale!/2 only support known locales, got: \"kr\""
+      assert Gettext.known_locales(Backend) == ["it", "ja"]
+
+      assert_raise ArgumentError, msg, fn ->
+        Gettext.put_locale!(Backend, "kr")
+      end
+    end
+  end
+
   describe "with_locale/3" do
     test "doesn't raise if no locale was set (defaulting to 'en')" do
       Process.delete(Backend)
