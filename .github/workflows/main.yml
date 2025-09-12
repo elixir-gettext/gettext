@@ -25,11 +25,7 @@ jobs:
 
           - os: ubuntu-22.04
             erlang: "24.2"
-            elixir: "1.13"
-
-          - os: ubuntu-22.04
-            erlang: "24.2"
-            elixir: "1.12"
+            elixir: "1.14"
     env:
       MIX_ENV: test
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,7 +55,7 @@ jobs:
         if: ${{ matrix.lint }}
 
       - name: Run tests
-        run: mix test --trace
+        run: mix test
         if: ${{ !matrix.coverage }}
 
       - name: Run tests with code coverage
