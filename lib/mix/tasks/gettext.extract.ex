@@ -112,17 +112,10 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp force_compile do
-    Mix.Tasks.Compile.Elixir.clean()
-    Enum.each(Mix.Tasks.Compile.Elixir.manifests(), &File.rm/1)
-
-    # If "compile" was never called, the reenabling is a no-op and
-    # "compile.elixir" is a no-op as well (because it wasn't reenabled after
-    # running "compile"). If "compile" was already called, then running
-    # "compile" is a no-op and running "compile.elixir" will work because we
-    # manually reenabled it.
-    Mix.Task.reenable("compile.elixir")
+    project = Mix.Project.config()
+    dest = Mix.Project.app_path(project)
+    File.rm_rf(dest)
     Mix.Task.run("compile")
-    Mix.Task.run("compile.elixir", ["--force"])
   end
 
   defp run_merge(pot_files, argv) do
