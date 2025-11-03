@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.1
+
+  * Remove unnecessary cleaning of Elixir manifests
+
 ## v1.0.0
 
 This is the first 1.0 release of Gettext, a silly 10 years (and 6 months) after we started working on it. There are *very few changes* from the latest 0.26 release, and none of them are breaking.
