@@ -591,7 +591,6 @@ defmodule Gettext do
 
   """
 
-  require Gettext.Macros
   alias Gettext.MissingBindingsError
 
   @type locale :: binary
