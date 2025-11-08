@@ -112,8 +112,13 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp force_compile do
-    Mix.Tasks.Compile.Elixir.clean()
-    Enum.each(Mix.Tasks.Compile.Elixir.manifests(), &File.rm/1)
+    # For old Elixir versions, we have to clean the manifest,
+    # otherwise we are forced to compile all dependencies.
+    # Elixir v1.19.3 supports the --force-elixir option below.
+    if not Version.match?(System.version(), ">= 1.19.3") do
+      Mix.Tasks.Compile.Elixir.clean()
+      Enum.each(Mix.Tasks.Compile.Elixir.manifests(), &File.rm/1)
+    end
 
     # If "compile" was never called, the reenabling is a no-op and
     # "compile.elixir" is a no-op as well (because it wasn't reenabled after
@@ -121,7 +126,7 @@ defmodule Mix.Tasks.Gettext.Extract do
     # "compile" is a no-op and running "compile.elixir" will work because we
     # manually reenabled it.
     Mix.Task.reenable("compile.elixir")
-    Mix.Task.run("compile")
+    Mix.Task.run("compile", ["--force-elixir"])
     Mix.Task.run("compile.elixir", ["--force"])
   end
 
