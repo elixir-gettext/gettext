@@ -41,7 +41,8 @@ defmodule Gettext.Mixfile do
             &(&1[:module] == Gettext.Macros and to_string(&1[:name]) =~ ~r/_noop$/),
           "Translation Macros": &(&1[:module] == Gettext.Macros)
         ]
-      ]
+      ],
+      dialyzer: [list_unused_filters: true, plt_add_apps: [:mix]]
     ]
   end
 
@@ -74,6 +75,7 @@ defmodule Gettext.Mixfile do
 
       # Dev and test dependencies
       {:castore, "~> 1.0", only: :test},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:jason, "~> 1.0", only: :test},
       {:ex_doc, "~> 0.19", only: :dev},
       {:excoveralls, "~> 0.18.0", only: :test}
