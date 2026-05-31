@@ -10,11 +10,10 @@ defmodule Gettext.Mixfile do
     [
       app: :gettext,
       version: @version,
-      elixir: "~> 1.14",
+      elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       deps: deps(),
-      preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.github": :test],
       test_coverage: [tool: ExCoveralls],
 
       # Hex
@@ -43,6 +42,10 @@ defmodule Gettext.Mixfile do
         ]
       ]
     ]
+  end
+
+  def cli do
+    [coveralls: :test, "coveralls.html": :test, "coveralls.github": :test]
   end
 
   def application do

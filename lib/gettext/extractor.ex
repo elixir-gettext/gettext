@@ -388,11 +388,6 @@ defmodule Gettext.Extractor do
     end
   end
 
-  defp ensure_empty_msgstr!(%Message.Plural{} = message) do
-    raise Error,
-          "plural message with msgid '#{IO.iodata_to_binary(message.msgid)}' has a non-empty msgstr"
-  end
-
   defp blank?(str) when not is_nil(str), do: IO.iodata_length(str) == 0
   defp blank?(_), do: true
 
