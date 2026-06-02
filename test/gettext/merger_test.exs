@@ -67,8 +67,7 @@ defmodule Gettext.MergerTest do
                   %Message.Singular{msgid: "obs_auto", obsolete: true},
                   %Message.Singular{msgid: "obs_manual", obsolete: true}
                 ]
-              },
-              stats} =
+              }, stats} =
                Merger.merge(
                  old_po,
                  new_pot,
