@@ -805,9 +805,6 @@ defmodule Gettext do
   @spec put_locale!(backend, locale) :: locale | nil
   def put_locale!(backend, locale) when is_binary(locale) do
     cond do
-      not is_binary(locale) ->
-        raise ArgumentError, "put_locale/2 only accepts binary locales, got: #{inspect(locale)}"
-
       locale in known_locales(backend) ->
         put_locale(backend, locale)
 

@@ -422,13 +422,8 @@ defmodule Gettext.Compiler do
 
           :parallel ->
             grouped
-            |> Enum.map(fn {module, files} ->
-              Kernel.ParallelCompiler.async(fn ->
-                compile_split_po_files(env, module, files, plural_mod, opts[:interpolation])
-              end)
-            end)
-            |> Enum.map(fn task ->
-              Task.await(task, :infinity)
+            |> Kernel.ParallelCompiler.pmap(fn {module, files} ->
+              compile_split_po_files(env, module, files, plural_mod, opts[:interpolation])
             end)
         end
     end
