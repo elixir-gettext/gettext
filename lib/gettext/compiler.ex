@@ -38,6 +38,8 @@ defmodule Gettext.Compiler do
 
     interpolation = opts[:interpolation] || Gettext.Interpolation.Default
 
+    Gettext.Extractor.persist_backend_marker(env)
+
     quote do
       @behaviour Gettext.Backend
 
