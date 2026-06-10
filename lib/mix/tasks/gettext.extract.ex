@@ -177,10 +177,16 @@ defmodule Mix.Tasks.Gettext.Extract do
   end
 
   defp incremental_compile do
-    # Same reenabling dance as force_compile/0, but without forcing: if
-    # "compile" already ran in this VM, reenabling "compile.elixir" lets us
-    # still pick up source changes incrementally.
+    # A plain incremental compile, with one wrinkle: "compile" and the
+    # compilers it runs may already have been invoked in this VM (for
+    # example, through a task alias), in which case running them again would
+    # be a no-op unless they are reenabled first. The trailing explicit
+    # "compile.elixir" run is a no-op when "compile" just ran it, and covers
+    # the case where a custom "compile" alias does not.
+    Mix.Task.reenable("compile")
+    Mix.Task.reenable("compile.all")
     Mix.Task.reenable("compile.elixir")
+    Mix.Task.reenable("compile.app")
     Mix.Task.run("compile", [])
     Mix.Task.run("compile.elixir", [])
   end
