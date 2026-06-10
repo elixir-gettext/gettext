@@ -156,7 +156,7 @@ defmodule Gettext.Extractor do
         ) :: :ok
   def persist_message(%Macro.Env{module: module} = env, backend, domain, msgctxt, id, comments)
       when not is_nil(module) do
-    unless Module.has_attribute?(module, @persisted_messages_attribute) do
+    if not Module.has_attribute?(module, @persisted_messages_attribute) do
       Module.register_attribute(module, @persisted_messages_attribute,
         accumulate: true,
         persist: true
@@ -191,7 +191,10 @@ defmodule Gettext.Extractor do
   @spec persist_backend_marker(Macro.Env.t()) :: :ok
   def persist_backend_marker(%Macro.Env{} = env) do
     if persisting_to_attributes?(env) do
-      Module.register_attribute(env.module, @persisted_backend_attribute, persist: true)
+      if not Module.has_attribute?(env.module, @persisted_backend_attribute) do
+        Module.register_attribute(env.module, @persisted_backend_attribute, persist: true)
+      end
+
       Module.put_attribute(env.module, @persisted_backend_attribute, true)
     end
 
@@ -227,30 +230,37 @@ defmodule Gettext.Extractor do
         end
 
         entries = attributes[@persisted_messages_attribute] || []
+        messages = Enum.count(entries, &fill_message_from_entry/1)
 
-        Enum.each(entries, fn entry ->
-          id =
-            case entry do
-              %{msgid_plural: nil, msgid: msgid} -> msgid
-              %{msgid_plural: msgid_plural, msgid: msgid} -> {msgid, msgid_plural}
-            end
-
-          extract(
-            {entry.file, entry.line},
-            entry.backend,
-            entry.domain,
-            entry.msgctxt,
-            id,
-            entry.comments
-          )
-        end)
-
-        {if(backend?, do: 1, else: 0), length(entries)}
+        {if(backend?, do: 1, else: 0), messages}
 
       {:error, :beam_lib, _reason} ->
         {0, 0}
     end
   end
+
+  # Entries are validated structurally so that a malformed attribute (for
+  # example, one written by an unrelated module that happens to use the same
+  # attribute name) is skipped instead of crashing the whole scan.
+  defp fill_message_from_entry(%{
+         backend: backend,
+         domain: domain,
+         msgctxt: msgctxt,
+         msgid: msgid,
+         msgid_plural: msgid_plural,
+         file: file,
+         line: line,
+         comments: comments
+       })
+       when is_atom(backend) and is_binary(msgid) and
+              (is_binary(msgid_plural) or is_nil(msgid_plural)) and
+              is_binary(file) and is_integer(line) and is_list(comments) do
+    id = if msgid_plural, do: {msgid, msgid_plural}, else: msgid
+    extract({file, line}, backend, domain, msgctxt, id, comments)
+    true
+  end
+
+  defp fill_message_from_entry(_malformed), do: false
 
   @doc """
   Returns a list of POT files based on the results of the extraction.
