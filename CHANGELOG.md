@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+  * Parallelize per-locale merging in `mix gettext.merge`.
+
 ## v1.0.2
 
   * Only skip manifest removal on Elixir v1.19.3+

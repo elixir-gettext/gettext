@@ -191,9 +191,17 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp merge_all_locale_dirs(pot_dir, opts, gettext_config) do
-    for locale <- File.ls!(pot_dir), File.dir?(Path.join(pot_dir, locale)) do
-      merge_dirs(locale_dir(pot_dir, locale), pot_dir, locale, opts, gettext_config)
-    end
+    pot_dir
+    |> File.ls!()
+    |> Enum.filter(&File.dir?(Path.join(pot_dir, &1)))
+    |> Task.async_stream(
+      fn locale ->
+        merge_dirs(locale_dir(pot_dir, locale), pot_dir, locale, opts, gettext_config)
+      end,
+      ordered: false,
+      timeout: :infinity
+    )
+    |> Stream.run()
   end
 
   def locale_dir(pot_dir, locale) do
