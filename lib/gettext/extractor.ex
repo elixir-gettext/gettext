@@ -21,6 +21,9 @@ defmodule Gettext.Extractor do
 
   @extracted_messages_flag "elixir-autogen"
 
+  @persisted_messages_attribute :__gettext_messages__
+  @persisted_backend_attribute :__gettext_backend_module__
+
   @new_pot_comment String.split(
                      """
                      # This file is a PO Template file.
@@ -69,14 +72,20 @@ defmodule Gettext.Extractor do
   Note that this function doesn't perform any operation on the filesystem.
   """
   @spec extract(
-          Macro.Env.t(),
+          Macro.Env.t() | {file :: String.t(), line :: pos_integer},
           backend :: module,
           domain :: binary | :default,
           msgctxt :: binary,
           id :: binary | {binary, binary},
           extracted_comments :: [binary]
         ) :: :ok
+  def extract(caller_or_location, backend, domain, msgctxt, id, extracted_comments)
+
   def extract(%Macro.Env{} = caller, backend, domain, msgctxt, id, extracted_comments) do
+    extract({caller.file, caller.line}, backend, domain, msgctxt, id, extracted_comments)
+  end
+
+  def extract({file, line}, backend, domain, msgctxt, id, extracted_comments) do
     format_flag = backend.__gettext__(:interpolation).message_format()
 
     domain =
@@ -89,13 +98,158 @@ defmodule Gettext.Extractor do
       create_message_struct(
         id,
         msgctxt,
-        caller.file,
-        caller.line,
+        file,
+        line,
         extracted_comments,
         format_flag
       )
 
     ExtractorAgent.add_message(backend, domain, message)
+  end
+
+  @doc """
+  Tells whether gettext macros should persist the messages they extract as
+  module attributes in the module that is currently being compiled.
+
+  This is true when there is a module being compiled (`env.module` is not
+  `nil`) and the current Mix environment is included in the
+  `:extraction_environments` gettext configuration (defaults to `[:dev]`).
+  Outside of Mix (for example, when modules are compiled at runtime in a
+  release) this is always false.
+  """
+  @spec persisting_to_attributes?(Macro.Env.t()) :: boolean
+  def persisting_to_attributes?(%Macro.Env{module: nil}), do: false
+  def persisting_to_attributes?(%Macro.Env{}), do: extraction_environment?()
+
+  defp extraction_environment? do
+    cond do
+      not Code.ensure_loaded?(Mix) ->
+        false
+
+      is_nil(Mix.Project.get()) ->
+        false
+
+      true ->
+        gettext_config = Mix.Project.config()[:gettext] || []
+
+        extraction_environments =
+          gettext_config[:extraction_environments] ||
+            Application.get_env(:gettext, :extraction_environments) ||
+            [:dev]
+
+        Mix.env() in extraction_environments
+    end
+  end
+
+  @doc """
+  Persists a message in a module attribute of the module currently being
+  compiled, so that it can be read back from the compiled BEAM file by
+  `fill_from_compiled_beams/1` without recompiling the module.
+  """
+  @spec persist_message(
+          Macro.Env.t(),
+          backend :: module,
+          domain :: binary | :default,
+          msgctxt :: binary,
+          id :: binary | {binary, binary},
+          extracted_comments :: [binary]
+        ) :: :ok
+  def persist_message(%Macro.Env{module: module} = env, backend, domain, msgctxt, id, comments)
+      when not is_nil(module) do
+    unless Module.has_attribute?(module, @persisted_messages_attribute) do
+      Module.register_attribute(module, @persisted_messages_attribute,
+        accumulate: true,
+        persist: true
+      )
+    end
+
+    {msgid, msgid_plural} =
+      case id do
+        {msgid, msgid_plural} -> {msgid, msgid_plural}
+        msgid when is_binary(msgid) -> {msgid, nil}
+      end
+
+    Module.put_attribute(module, @persisted_messages_attribute, %{
+      backend: backend,
+      domain: domain,
+      msgctxt: msgctxt,
+      msgid: msgid,
+      msgid_plural: msgid_plural,
+      file: env.file,
+      line: env.line,
+      comments: comments
+    })
+
+    :ok
+  end
+
+  @doc """
+  Persists a marker attribute in the Gettext backend module currently being
+  compiled, so that `fill_from_compiled_beams/1` can find all backends
+  without recompiling.
+  """
+  @spec persist_backend_marker(Macro.Env.t()) :: :ok
+  def persist_backend_marker(%Macro.Env{} = env) do
+    if persisting_to_attributes?(env) do
+      Module.register_attribute(env.module, @persisted_backend_attribute, persist: true)
+      Module.put_attribute(env.module, @persisted_backend_attribute, true)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Reads messages and backends persisted as module attributes from all the
+  BEAM files in `compile_path` and stores them in the extractor agent, as if
+  they had just been extracted during compilation.
+
+  Returns `{backends_found, messages_found}`.
+  """
+  @spec fill_from_compiled_beams(Path.t()) ::
+          {backends_found :: non_neg_integer, messages_found :: non_neg_integer}
+  def fill_from_compiled_beams(compile_path) do
+    compile_path
+    |> Path.join("*.beam")
+    |> Path.wildcard()
+    |> Enum.reduce({0, 0}, fn beam_path, {backends_acc, messages_acc} ->
+      {backends, messages} = fill_from_beam(beam_path)
+      {backends_acc + backends, messages_acc + messages}
+    end)
+  end
+
+  defp fill_from_beam(beam_path) do
+    case :beam_lib.chunks(String.to_charlist(beam_path), [:attributes]) do
+      {:ok, {module, [attributes: attributes]}} ->
+        backend? = attributes[@persisted_backend_attribute] == [true]
+
+        if backend? do
+          ExtractorAgent.add_backend(module)
+        end
+
+        entries = attributes[@persisted_messages_attribute] || []
+
+        Enum.each(entries, fn entry ->
+          id =
+            case entry do
+              %{msgid_plural: nil, msgid: msgid} -> msgid
+              %{msgid_plural: msgid_plural, msgid: msgid} -> {msgid, msgid_plural}
+            end
+
+          extract(
+            {entry.file, entry.line},
+            entry.backend,
+            entry.domain,
+            entry.msgctxt,
+            id,
+            entry.comments
+          )
+        end)
+
+        {if(backend?, do: 1, else: 0), length(entries)}
+
+      {:error, :beam_lib, _reason} ->
+        {0, 0}
+    end
   end
 
   @doc """
