@@ -57,34 +57,14 @@ defmodule Mix.Tasks.Gettext.Extract do
 
   ## Extraction Without Recompiling (Experimental)
 
-  By default, this task extracts messages by **force-recompiling** the whole
-  project, because extraction happens during the expansion of the Gettext
-  macros. As an experimental alternative, the `--from-attributes` flag reads
-  messages back from the compiled BEAM files instead:
-
-  ```bash
-  mix gettext.extract --from-attributes
-  ```
-
-  For this to work, messages must have been persisted as module attributes
-  during normal compilation. This happens automatically when the backend has
-  automatic extraction enabled in the application environment, which you
-  typically set in `config/dev.exs` so it stays off in `:prod`:
-
-      # config/dev.exs
-      config :gettext, MyApp.Gettext, automatic_extraction: true
-
-  With this flag, the task only runs a normal **incremental** compilation
-  (changed files are recompiled and get fresh attributes; unchanged BEAM
-  files already carry theirs), then scans the compiled BEAM files. Since the
-  attributes are only persisted when `automatic_extraction` is enabled (so not
-  in `:prod`), release artifacts are unaffected.
-
-  `--from-attributes` can be combined with `--merge` and `--check-up-to-date`.
+  This task always **force-recompiles** the whole project, because extraction
+  happens during the expansion of the Gettext macros. If you would rather
+  generate the POT files without a force-recompile, see `mix gettext.generate`,
+  which reads the messages back from the compiled BEAM files instead.
 
   """
 
-  @switches [merge: :boolean, check_up_to_date: :boolean, from_attributes: :boolean]
+  @switches [merge: :boolean, check_up_to_date: :boolean]
 
   @impl true
   def run(args) do
@@ -92,8 +72,15 @@ defmodule Mix.Tasks.Gettext.Extract do
     _ = Mix.Project.get!()
     mix_config = Mix.Project.config()
     {opts, _} = OptionParser.parse!(args, switches: @switches)
-    pot_files = extract(mix_config[:app], mix_config[:gettext] || [], opts)
+    pot_files = extract(mix_config[:app], mix_config[:gettext] || [])
+    process(pot_files, opts, args)
+  end
 
+  # Shared by `mix gettext.extract` and `mix gettext.generate`:
+  # both compute `pot_files` (their only difference) and then write, check, or
+  # merge them in exactly the same way.
+  @doc false
+  def process(pot_files, opts, args) do
     if opts[:check_up_to_date] do
       run_up_to_date_check(pot_files)
     else
@@ -130,62 +117,12 @@ defmodule Mix.Tasks.Gettext.Extract do
     end
   end
 
-  defp extract(app, gettext_config, opts) do
-    if opts[:from_attributes] do
-      extract_from_attributes(app, gettext_config)
-    else
-      extract_via_recompilation(app, gettext_config)
-    end
-  end
-
-  defp extract_via_recompilation(app, gettext_config) do
+  defp extract(app, gettext_config) do
     Gettext.Extractor.enable()
     force_compile()
     Gettext.Extractor.pot_files(app, gettext_config)
   after
     Gettext.Extractor.disable()
-  end
-
-  defp extract_from_attributes(app, gettext_config) do
-    incremental_compile()
-
-    {backends, messages} =
-      Gettext.Extractor.fill_from_compiled_beams(Mix.Project.compile_path())
-
-    if backends == 0 and messages == 0 do
-      Mix.raise("""
-      mix gettext.extract --from-attributes found no persisted Gettext messages \
-      or backends in #{Path.relative_to_cwd(Mix.Project.compile_path())}.
-
-      Messages are persisted to module attributes during normal compilation only \
-      when the backend has automatic extraction enabled in the application \
-      environment, for example in config/dev.exs:
-
-          config :gettext, MyApp.Gettext, automatic_extraction: true
-
-      If you just enabled this or updated Gettext, force a recompile so that \
-      up-to-date modules get their attributes written:
-
-          mix compile --force
-      """)
-    end
-
-    Gettext.Extractor.pot_files(app, gettext_config)
-  end
-
-  defp incremental_compile do
-    # A plain incremental compile, with one wrinkle: "compile" and the
-    # compilers it runs may already have been invoked in this VM (for
-    # example, through a task alias), in which case running them again would
-    # be a no-op unless they are reenabled first. The trailing explicit
-    # "compile.elixir" run is a no-op when "compile" just ran it, and covers
-    # the case where a custom "compile" alias does not.
-    Mix.Task.reenable("compile")
-    Mix.Task.reenable("compile.all")
-    Mix.Task.reenable("compile.elixir")
-    Mix.Task.reenable("compile.app")
-    Mix.Task.run("compile", [])
-    Mix.Task.run("compile.elixir", [])
   end
 
   defp force_compile do
