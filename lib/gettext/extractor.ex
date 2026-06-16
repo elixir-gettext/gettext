@@ -462,7 +462,7 @@ defmodule Gettext.Extractor do
 
   defp read_contents_and_parse(path) do
     contents = File.read!(path)
-    {contents, PO.parse_file!(path, file: path)}
+    {contents, PO.parse_string!(contents, file: path)}
   end
 
   # This function "tags" a {path, _} tuple in order to distinguish POT files
