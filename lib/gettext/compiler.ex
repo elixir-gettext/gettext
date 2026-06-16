@@ -498,8 +498,9 @@ defmodule Gettext.Compiler do
 
     plural_forms_fun = :"#{locale}_#{domain}_plural"
 
-    plural_forms = compile_plural_forms(locale, messages_struct, plural_mod, plural_forms_fun)
-    nplurals = nplurals(locale, messages_struct, plural_mod)
+    plural_info = Plural.plural_info(locale, messages_struct, plural_mod)
+    plural_forms = compile_plural_forms(plural_info, plural_mod, plural_forms_fun)
+    nplurals = nplurals(plural_info, plural_mod)
 
     singular_fun = :"#{locale}_#{domain}_lgettext"
     plural_fun = :"#{locale}_#{domain}_lngettext"
@@ -552,17 +553,14 @@ defmodule Gettext.Compiler do
     {locale, domain, singular_fun, plural_fun, quoted}
   end
 
-  defp nplurals(locale, messages_struct, plural_mod) do
-    plural_mod.nplurals(Plural.plural_info(locale, messages_struct, plural_mod))
+  defp nplurals(plural_info, plural_mod) do
+    plural_mod.nplurals(plural_info)
   end
 
-  defp compile_plural_forms(locale, messages_struct, plural_mod, plural_fun) do
+  defp compile_plural_forms(plural_info, plural_mod, plural_fun) do
     quote do
       defp unquote(plural_fun)(n) do
-        unquote(plural_mod).plural(
-          unquote(Macro.escape(Plural.plural_info(locale, messages_struct, plural_mod))),
-          n
-        )
+        unquote(plural_mod).plural(unquote(Macro.escape(plural_info)), n)
       end
     end
   end
