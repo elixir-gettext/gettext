@@ -112,33 +112,24 @@ defmodule Gettext.Extractor do
   module attributes in the module that is currently being compiled.
 
   This is true when there is a module being compiled (`env.module` is not
-  `nil`) and the current Mix environment is included in the
-  `:extraction_environments` gettext configuration (defaults to `[:dev]`).
-  Outside of Mix (for example, when modules are compiled at runtime in a
-  release) this is always false.
+  `nil`) and the `backend` has automatic extraction enabled, that is, when the
+  application environment holds:
+
+      config :gettext, MyApp.Gettext, automatic_extraction: true
+
+  This is read from the application environment (not `Mix`), so it is `false`
+  by default and outside of Mix (for example, when modules are compiled at
+  runtime in a release).
   """
-  @spec persisting_to_attributes?(Macro.Env.t()) :: boolean
-  def persisting_to_attributes?(%Macro.Env{module: nil}), do: false
-  def persisting_to_attributes?(%Macro.Env{}), do: extraction_environment?()
+  @spec persisting_to_attributes?(Macro.Env.t(), backend :: module) :: boolean
+  def persisting_to_attributes?(%Macro.Env{module: nil}, _backend), do: false
+  def persisting_to_attributes?(%Macro.Env{}, backend), do: automatic_extraction?(backend)
 
-  defp extraction_environment? do
-    cond do
-      not Code.ensure_loaded?(Mix) ->
-        false
-
-      is_nil(Mix.Project.get()) ->
-        false
-
-      true ->
-        gettext_config = Mix.Project.config()[:gettext] || []
-
-        extraction_environments =
-          gettext_config[:extraction_environments] ||
-            Application.get_env(:gettext, :extraction_environments) ||
-            [:dev]
-
-        Mix.env() in extraction_environments
-    end
+  # Tells whether the given backend has automatic extraction enabled in the
+  # application environment (read from the :gettext app, not Mix).
+  defp automatic_extraction?(backend) when is_atom(backend) do
+    Application.get_env(:gettext, backend, [])
+    |> Keyword.get(:automatic_extraction, false) == true
   end
 
   @doc """
@@ -188,14 +179,11 @@ defmodule Gettext.Extractor do
   compiled, so that `fill_from_compiled_beams/1` can find all backends
   without recompiling.
   """
-  @spec persist_backend_marker(Macro.Env.t()) :: :ok
-  def persist_backend_marker(%Macro.Env{} = env) do
-    if persisting_to_attributes?(env) do
-      if not Module.has_attribute?(env.module, @persisted_backend_attribute) do
-        Module.register_attribute(env.module, @persisted_backend_attribute, persist: true)
-      end
-
-      Module.put_attribute(env.module, @persisted_backend_attribute, true)
+  @spec persist_backend_marker(backend :: module) :: :ok
+  def persist_backend_marker(backend) when is_atom(backend) do
+    if automatic_extraction?(backend) do
+      Module.register_attribute(backend, @persisted_backend_attribute, persist: true)
+      Module.put_attribute(backend, @persisted_backend_attribute, true)
     end
 
     :ok

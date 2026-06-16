@@ -38,8 +38,6 @@ defmodule Gettext.Compiler do
 
     interpolation = opts[:interpolation] || Gettext.Interpolation.Default
 
-    Gettext.Extractor.persist_backend_marker(env)
-
     quote do
       @behaviour Gettext.Backend
 
@@ -62,6 +60,8 @@ defmodule Gettext.Compiler do
       if Gettext.Extractor.extracting?() do
         Gettext.ExtractorAgent.add_backend(__MODULE__)
       end
+
+      Gettext.Extractor.persist_backend_marker(__MODULE__)
 
       # These are the two functions we generate inside the backend.
 

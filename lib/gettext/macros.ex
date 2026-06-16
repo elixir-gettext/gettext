@@ -618,7 +618,7 @@ defmodule Gettext.Macros do
     # agent is not running, such as when compiling a dependency that uses
     # Gettext while the :gettext application is not started.
     extracting? = Extractor.extracting?()
-    persisting? = Extractor.persisting_to_attributes?(env)
+    persisting? = Extractor.persisting_to_attributes?(env, backend)
 
     if extracting? || persisting? do
       comments = get_and_flush_extracted_comments()
