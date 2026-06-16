@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
+defmodule Mix.Tasks.Gettext.GenerateTest do
   # async: false (default) is required: these tests mutate global Mix task
   # invocation state, the code path, and Code.compiler_options/1.
   use ExUnit.Case
@@ -124,7 +124,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     # POT files written by the recompilation path unchanged.
     output =
       capture_io(fn ->
-        in_project(test, tmp_dir, fn _module -> run(["--from-attributes"]) end)
+        in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
       end)
 
     refute output =~ "Extracted"
@@ -137,7 +137,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
     output =
       capture_io(fn ->
-        in_project(test, tmp_dir, fn _module -> run(["--from-attributes"]) end)
+        in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
       end)
 
     assert output =~ "Extracted priv/gettext/default.pot"
@@ -184,7 +184,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     """)
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run(["--from-attributes"]) end)
+      in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
     end)
 
     pot = read_file(context, "priv/gettext/default.pot")
@@ -215,7 +215,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     """)
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run(["--from-attributes"]) end)
+      in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
     end)
 
     default_pot = read_file(context, "priv/gettext/default.pot")
@@ -248,7 +248,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     """)
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run(["--from-attributes"]) end)
+      in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
     end)
 
     pot = read_file(context, "priv/gettext/default.pot")
@@ -267,7 +267,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     write_file(context, "priv/gettext/it/LC_MESSAGES/default.po", "")
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run(["--from-attributes", "--merge"]) end)
+      in_project(test, tmp_dir, fn _module -> run_from_attributes(["--merge"]) end)
     end)
 
     po = read_file(context, "priv/gettext/it/LC_MESSAGES/default.po")
@@ -291,7 +291,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     """)
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run(["--from-attributes"]) end)
+      in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
     end)
 
     assert read_file(context, "priv/custom_gettext/default.pot") =~
@@ -307,11 +307,11 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
     capture_io(fn ->
       in_project(test, tmp_dir, fn _module ->
-        run(["--from-attributes"])
+        run_from_attributes()
       end)
 
       in_project(test, tmp_dir, fn _module ->
-        run(["--from-attributes", "--check-up-to-date"])
+        run_from_attributes(["--check-up-to-date"])
       end)
     end)
 
@@ -325,7 +325,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     capture_io(fn ->
       assert_raise Mix.Error, expected_error, fn ->
         in_project(test, tmp_dir, fn _module ->
-          run(["--from-attributes", "--check-up-to-date"])
+          run_from_attributes(["--check-up-to-date"])
         end)
       end
     end)
@@ -344,7 +344,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     capture_io(fn ->
       assert_raise Mix.Error, ~r/found no persisted Gettext messages/, fn ->
         in_project(test, tmp_dir, fn _module ->
-          run(["--from-attributes"])
+          run_from_attributes()
         end)
       end
     end)
@@ -415,7 +415,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
       in_project(test, tmp_dir, fn _module ->
         # Mix.Task.run (not a direct module call) so that @recursive true
         # recurses into each umbrella app.
-        Mix.Task.run("gettext.extract", ["--from-attributes"])
+        Mix.Task.run("gettext.generate", [])
       end)
     end)
 
@@ -439,5 +439,16 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   defp run(args) do
     Mix.Tasks.Gettext.Extract.run(args)
+  end
+
+  defp run_from_attributes(args \\ []) do
+    # Reenable compile so each invocation picks up source changes, mirroring a
+    # fresh `mix` invocation (the task itself does a plain compile, not a
+    # force-recompile).
+    for task <- ~w(compile compile.all compile.elixir compile.app) do
+      Mix.Task.reenable(task)
+    end
+
+    Mix.Tasks.Gettext.Generate.run(args)
   end
 end
