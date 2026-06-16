@@ -7,10 +7,11 @@
   * Drastically improve performance of extraction in cases with many translations (tens of thousands or more).
 
   * Add experimental `--from-attributes` flag to `mix gettext.extract`: messages
-    are persisted as module attributes during normal compilation (in the
-    environments listed in the `:extraction_environments` gettext configuration,
-    `[:dev]` by default) and read back from the compiled BEAM files, so
-    extraction no longer needs to force-recompile the project.
+    are persisted as module attributes during normal compilation (for backends
+    with `automatic_extraction: true` in the application environment, for example
+    `config :gettext, MyApp.Gettext, automatic_extraction: true` in
+    `config/dev.exs`) and read back from the compiled BEAM files, so extraction
+    no longer needs to force-recompile the project.
 
 ## v1.0.2
 

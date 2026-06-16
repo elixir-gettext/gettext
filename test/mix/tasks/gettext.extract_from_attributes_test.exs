@@ -64,6 +64,12 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
       %{messages: %{}, backends: [], extracting?: false}
     end)
 
+    # The --from-attributes path only persists attributes for backends with
+    # automatic_extraction enabled in the application environment. Enable it
+    # for the fixture backend by default; the "disabled" test below clears it.
+    Application.put_env(:gettext, MyApp.Gettext, automatic_extraction: true)
+    on_exit(fn -> Application.delete_env(:gettext, MyApp.Gettext) end)
+
     :ok
   end
 
@@ -95,7 +101,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   test "extracts the same POT files as the recompilation path",
        %{test: test, tmp_dir: tmp_dir} = context do
-    create_test_mix_file(context, extraction_environments: [:test])
+    create_test_mix_file(context)
     write_fixture(context)
 
     # Reference output: the existing force-recompile path.
@@ -150,7 +156,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   test "persists messages injected by macros into the consuming module",
        %{test: test, tmp_dir: tmp_dir} = context do
-    create_test_mix_file(context, extraction_environments: [:test])
+    create_test_mix_file(context)
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
@@ -188,7 +194,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   test "extracts messages from the _with_backend macros",
        %{test: test, tmp_dir: tmp_dir} = context do
-    create_test_mix_file(context, extraction_environments: [:test])
+    create_test_mix_file(context)
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
@@ -221,7 +227,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   test "merges references when two modules use the same msgid",
        %{test: test, tmp_dir: tmp_dir} = context do
-    create_test_mix_file(context, extraction_environments: [:test])
+    create_test_mix_file(context)
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
@@ -255,7 +261,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   test "--from-attributes combined with --merge updates PO files",
        %{test: test, tmp_dir: tmp_dir} = context do
-    create_test_mix_file(context, extraction_environments: [:test])
+    create_test_mix_file(context)
     write_fixture(context)
 
     write_file(context, "priv/gettext/it/LC_MESSAGES/default.po", "")
@@ -271,7 +277,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   test "respects a custom :priv option on the backend",
        %{test: test, tmp_dir: tmp_dir} = context do
-    create_test_mix_file(context, extraction_environments: [:test])
+    create_test_mix_file(context)
 
     write_file(context, "lib/my_app.ex", """
     defmodule MyApp.Gettext do
@@ -296,7 +302,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   test "--check-up-to-date passes when fresh and fails after a source change",
        %{test: test, tmp_dir: tmp_dir} = context do
-    create_test_mix_file(context, extraction_environments: [:test])
+    create_test_mix_file(context)
     write_fixture(context)
 
     capture_io(fn ->
@@ -325,10 +331,11 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
     end)
   end
 
-  test "no attributes are persisted outside extraction environments",
+  test "no attributes are persisted when automatic_extraction is disabled",
        %{test: test, tmp_dir: tmp_dir} = context do
-    # Default :extraction_environments is [:dev]; tests run in :test, so
-    # nothing must be persisted, mirroring a :prod release compile.
+    # With automatic_extraction off (the default), nothing must be persisted,
+    # mirroring a :prod release compile.
+    Application.delete_env(:gettext, MyApp.Gettext)
     create_test_mix_file(context)
     write_fixture(context)
 
@@ -357,6 +364,11 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
 
   test "extracts each app of an umbrella project",
        %{test: test, tmp_dir: tmp_dir} = context do
+    for backend <- [AppOne.Gettext, AppTwo.Gettext] do
+      Application.put_env(:gettext, backend, automatic_extraction: true)
+      on_exit(fn -> Application.delete_env(:gettext, backend) end)
+    end
+
     write_file(context, "mix.exs", """
     defmodule UmbrellaFixture.MixProject do
       use Mix.Project
@@ -377,8 +389,7 @@ defmodule Mix.Tasks.Gettext.ExtractFromAttributesTest do
         def project() do
           [
             app: :#{app},
-            version: "0.1.0",
-            gettext: [extraction_environments: [:test]]
+            version: "0.1.0"
           ]
         end
 

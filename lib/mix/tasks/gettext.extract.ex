@@ -67,22 +67,18 @@ defmodule Mix.Tasks.Gettext.Extract do
   ```
 
   For this to work, messages must have been persisted as module attributes
-  during normal compilation. This happens automatically when the current Mix
-  environment is included in the `:extraction_environments` Gettext
-  configuration in your `mix.exs`, which defaults to `[:dev]`:
+  during normal compilation. This happens automatically when the backend has
+  automatic extraction enabled in the application environment, which you
+  typically set in `config/dev.exs` so it stays off in `:prod`:
 
-      def project do
-        [
-          # ...
-          gettext: [extraction_environments: [:dev]]
-        ]
-      end
+      # config/dev.exs
+      config :gettext, MyApp.Gettext, automatic_extraction: true
 
   With this flag, the task only runs a normal **incremental** compilation
   (changed files are recompiled and get fresh attributes; unchanged BEAM
-  files already carry theirs), then scans the compiled BEAM files. Since
-  environments outside `:extraction_environments` (such as `:prod`) never
-  persist these attributes, release artifacts are unaffected.
+  files already carry theirs), then scans the compiled BEAM files. Since the
+  attributes are only persisted when `automatic_extraction` is enabled (so not
+  in `:prod`), release artifacts are unaffected.
 
   `--from-attributes` can be combined with `--merge` and `--check-up-to-date`.
 
@@ -162,12 +158,13 @@ defmodule Mix.Tasks.Gettext.Extract do
       or backends in #{Path.relative_to_cwd(Mix.Project.compile_path())}.
 
       Messages are persisted to module attributes during normal compilation only \
-      when the current Mix environment is included in the :extraction_environments \
-      Gettext configuration (which defaults to [:dev]). The current environment \
-      is #{inspect(Mix.env())}.
+      when the backend has automatic extraction enabled in the application \
+      environment, for example in config/dev.exs:
 
-      If you just updated Gettext or changed this configuration, force a recompile \
-      so that up-to-date modules get their attributes written:
+          config :gettext, MyApp.Gettext, automatic_extraction: true
+
+      If you just enabled this or updated Gettext, force a recompile so that \
+      up-to-date modules get their attributes written:
 
           mix compile --force
       """)
