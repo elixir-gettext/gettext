@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+  * Call `c:Gettext.Plural.init/1` once per PO file at compile time instead of twice.
   * Reduce the compile time of backends that use the default interpolation module by storing translations without interpolation in a literal map instead of generating one function clause each.
   * Add experimental `mix gettext.generate` task: messages are persisted as module attributes during normal compilation (for backends with `automatic_extraction: true` in the application environment, for example `config :gettext, MyApp.Gettext, automatic_extraction: true` in `config/dev.exs`) and read back from the compiled BEAM files, so extraction no longer needs to force-recompile the project.
 
