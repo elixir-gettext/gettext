@@ -55,6 +55,13 @@ defmodule Mix.Tasks.Gettext.Extract do
   mix gettext.extract --merge --no-fuzzy
   ```
 
+  ## Extraction Without Recompiling (Experimental)
+
+  This task always **force-recompiles** the whole project, because extraction
+  happens during the expansion of the Gettext macros. If you would rather
+  generate the POT files without a force-recompile, see `mix gettext.generate`,
+  which reads the messages back from the compiled BEAM files instead.
+
   """
 
   @switches [merge: :boolean, check_up_to_date: :boolean]
@@ -66,7 +73,14 @@ defmodule Mix.Tasks.Gettext.Extract do
     mix_config = Mix.Project.config()
     {opts, _} = OptionParser.parse!(args, switches: @switches)
     pot_files = extract(mix_config[:app], mix_config[:gettext] || [])
+    process(pot_files, opts, args)
+  end
 
+  # Shared by `mix gettext.extract` and `mix gettext.generate`:
+  # both compute `pot_files` (their only difference) and then write, check, or
+  # merge them in exactly the same way.
+  @doc false
+  def process(pot_files, opts, args) do
     if opts[:check_up_to_date] do
       run_up_to_date_check(pot_files)
     else

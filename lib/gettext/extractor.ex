@@ -21,6 +21,9 @@ defmodule Gettext.Extractor do
 
   @extracted_messages_flag "elixir-autogen"
 
+  @persisted_messages_attribute :__gettext_messages__
+  @persisted_backend_attribute :__gettext_backend_module__
+
   @new_pot_comment String.split(
                      """
                      # This file is a PO Template file.
@@ -69,14 +72,20 @@ defmodule Gettext.Extractor do
   Note that this function doesn't perform any operation on the filesystem.
   """
   @spec extract(
-          Macro.Env.t(),
+          Macro.Env.t() | {file :: String.t(), line :: pos_integer},
           backend :: module,
           domain :: binary | :default,
           msgctxt :: binary,
           id :: binary | {binary, binary},
           extracted_comments :: [binary]
         ) :: :ok
+  def extract(caller_or_location, backend, domain, msgctxt, id, extracted_comments)
+
   def extract(%Macro.Env{} = caller, backend, domain, msgctxt, id, extracted_comments) do
+    extract({caller.file, caller.line}, backend, domain, msgctxt, id, extracted_comments)
+  end
+
+  def extract({file, line}, backend, domain, msgctxt, id, extracted_comments) do
     format_flag = backend.__gettext__(:interpolation).message_format()
 
     domain =
@@ -89,14 +98,157 @@ defmodule Gettext.Extractor do
       create_message_struct(
         id,
         msgctxt,
-        caller.file,
-        caller.line,
+        file,
+        line,
         extracted_comments,
         format_flag
       )
 
     ExtractorAgent.add_message(backend, domain, message)
   end
+
+  @doc """
+  Tells whether gettext macros should persist the messages they extract as
+  module attributes in the module that is currently being compiled.
+
+  This is true when there is a module being compiled (`env.module` is not
+  `nil`) and the `backend` has automatic extraction enabled, that is, when the
+  application environment holds:
+
+      config :gettext, MyApp.Gettext, automatic_extraction: true
+
+  This is read from the application environment (not `Mix`), so it is `false`
+  by default and outside of Mix (for example, when modules are compiled at
+  runtime in a release).
+  """
+  @spec persisting_to_attributes?(Macro.Env.t(), backend :: module) :: boolean
+  def persisting_to_attributes?(%Macro.Env{module: nil}, _backend), do: false
+  def persisting_to_attributes?(%Macro.Env{}, backend), do: automatic_extraction?(backend)
+
+  # Tells whether the given backend has automatic extraction enabled in the
+  # application environment (read from the :gettext app, not Mix).
+  defp automatic_extraction?(backend) when is_atom(backend) do
+    Application.get_env(:gettext, backend, [])
+    |> Keyword.get(:automatic_extraction, false) == true
+  end
+
+  @doc """
+  Persists a message in a module attribute of the module currently being
+  compiled, so that it can be read back from the compiled BEAM file by
+  `fill_from_compiled_beams/1` without recompiling the module.
+  """
+  @spec persist_message(
+          Macro.Env.t(),
+          backend :: module,
+          domain :: binary | :default,
+          msgctxt :: binary,
+          id :: binary | {binary, binary},
+          extracted_comments :: [binary]
+        ) :: :ok
+  def persist_message(%Macro.Env{module: module} = env, backend, domain, msgctxt, id, comments)
+      when not is_nil(module) do
+    if not Module.has_attribute?(module, @persisted_messages_attribute) do
+      Module.register_attribute(module, @persisted_messages_attribute,
+        accumulate: true,
+        persist: true
+      )
+    end
+
+    {msgid, msgid_plural} =
+      case id do
+        {msgid, msgid_plural} -> {msgid, msgid_plural}
+        msgid when is_binary(msgid) -> {msgid, nil}
+      end
+
+    Module.put_attribute(module, @persisted_messages_attribute, %{
+      backend: backend,
+      domain: domain,
+      msgctxt: msgctxt,
+      msgid: msgid,
+      msgid_plural: msgid_plural,
+      file: env.file,
+      line: env.line,
+      comments: comments
+    })
+
+    :ok
+  end
+
+  @doc """
+  Persists a marker attribute in the Gettext backend module currently being
+  compiled, so that `fill_from_compiled_beams/1` can find all backends
+  without recompiling.
+  """
+  @spec persist_backend_marker(backend :: module) :: :ok
+  def persist_backend_marker(backend) when is_atom(backend) do
+    if automatic_extraction?(backend) do
+      Module.register_attribute(backend, @persisted_backend_attribute, persist: true)
+      Module.put_attribute(backend, @persisted_backend_attribute, true)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Reads messages and backends persisted as module attributes from all the
+  BEAM files in `compile_path` and stores them in the extractor agent, as if
+  they had just been extracted during compilation.
+
+  Returns `{backends_found, messages_found}`.
+  """
+  @spec fill_from_compiled_beams(Path.t()) ::
+          {backends_found :: non_neg_integer, messages_found :: non_neg_integer}
+  def fill_from_compiled_beams(compile_path) do
+    compile_path
+    |> Path.join("*.beam")
+    |> Path.wildcard()
+    |> Enum.reduce({0, 0}, fn beam_path, {backends_acc, messages_acc} ->
+      {backends, messages} = fill_from_beam(beam_path)
+      {backends_acc + backends, messages_acc + messages}
+    end)
+  end
+
+  defp fill_from_beam(beam_path) do
+    case :beam_lib.chunks(String.to_charlist(beam_path), [:attributes]) do
+      {:ok, {module, [attributes: attributes]}} ->
+        backend? = attributes[@persisted_backend_attribute] == [true]
+
+        if backend? do
+          ExtractorAgent.add_backend(module)
+        end
+
+        entries = attributes[@persisted_messages_attribute] || []
+        messages = Enum.count(entries, &fill_message_from_entry/1)
+
+        {if(backend?, do: 1, else: 0), messages}
+
+      {:error, :beam_lib, _reason} ->
+        {0, 0}
+    end
+  end
+
+  # Entries are validated structurally so that a malformed attribute (for
+  # example, one written by an unrelated module that happens to use the same
+  # attribute name) is skipped instead of crashing the whole scan.
+  defp fill_message_from_entry(%{
+         backend: backend,
+         domain: domain,
+         msgctxt: msgctxt,
+         msgid: msgid,
+         msgid_plural: msgid_plural,
+         file: file,
+         line: line,
+         comments: comments
+       })
+       when is_atom(backend) and is_binary(msgid) and
+              (is_binary(msgid_plural) or is_nil(msgid_plural)) and
+              is_binary(file) and is_integer(line) and is_list(comments) do
+    id = if msgid_plural, do: {msgid, msgid_plural}, else: msgid
+    extract({file, line}, backend, domain, msgctxt, id, comments)
+    true
+  end
+
+  defp fill_message_from_entry(_malformed), do: false
 
   @doc """
   Returns a list of POT files based on the results of the extraction.

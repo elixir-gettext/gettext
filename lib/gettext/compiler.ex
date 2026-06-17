@@ -61,6 +61,8 @@ defmodule Gettext.Compiler do
         Gettext.ExtractorAgent.add_backend(__MODULE__)
       end
 
+      Gettext.Extractor.persist_backend_marker(__MODULE__)
+
       # These are the two functions we generate inside the backend.
 
       @impl Gettext.Backend
