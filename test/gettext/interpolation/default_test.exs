@@ -107,8 +107,12 @@ defmodule Gettext.Interpolation.DefaultTest do
         )
       end
 
+      # Building the empty bindings via `Map.drop/2` (rather than a `%{}`
+      # literal) keeps the compiler's type checker from inferring that
+      # `translate` only accepts maps with a `:count` key, which would flag
+      # this intentional missing-key case.
       assert_raise MatchError, fn ->
-        translate.(%{})
+        translate.(Map.drop(%{count: 7}, [:count]))
       end
 
       assert {:ok, "7 shoes"} = translate.(%{count: 7})

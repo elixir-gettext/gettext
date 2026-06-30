@@ -14,14 +14,15 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
 
   test "extracting and extracting with --merge", %{test: test, tmp_dir: tmp_dir} = context do
     create_test_mix_file(context)
+    mod = unique_module(test)
 
     write_file(context, "lib/my_app.ex", """
-    defmodule MyApp.Gettext do
+    defmodule #{mod}.Gettext do
       use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
-    defmodule MyApp do
-      use Gettext, backend: MyApp.Gettext
+    defmodule #{mod} do
+      use Gettext, backend: #{mod}.Gettext
       def foo(), do: gettext("hello")
     end
     """)
@@ -43,8 +44,8 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     # Test --merge too.
 
     write_file(context, "lib/other.ex", """
-    defmodule MyApp.Other do
-      use Gettext, backend: MyApp.Gettext
+    defmodule #{mod}.Other do
+      use Gettext, backend: #{mod}.Gettext
       def foo(), do: dgettext("my_domain", "other")
     end
     """)
@@ -70,21 +71,22 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
   test "--check-up-to-date should fail if no POT files have been created",
        %{test: test, tmp_dir: tmp_dir} = context do
     create_test_mix_file(context)
+    mod = unique_module(test)
 
     write_file(context, "lib/my_app.ex", """
-    defmodule MyApp.Gettext do
+    defmodule #{mod}.Gettext do
       use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
-    defmodule MyApp do
-      use Gettext, backend: MyApp.Gettext
+    defmodule #{mod} do
+      use Gettext, backend: #{mod}.Gettext
       def foo(), do: gettext("hello")
     end
     """)
 
     write_file(context, "lib/other.ex", """
-    defmodule MyApp.Other do
-      use Gettext, backend: MyApp.Gettext
+    defmodule #{mod}.Other do
+      use Gettext, backend: #{mod}.Gettext
       def foo(), do: dgettext("my_domain", "other")
     end
     """)
@@ -109,14 +111,15 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
   test "--check-up-to-date should pass if nothing changed",
        %{test: test, tmp_dir: tmp_dir} = context do
     create_test_mix_file(context, write_reference_comments: false)
+    mod = unique_module(test)
 
     write_file(context, "lib/my_app.ex", """
-    defmodule MyApp.Gettext do
+    defmodule #{mod}.Gettext do
       use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
-    defmodule MyApp do
-      use Gettext, backend: MyApp.Gettext
+    defmodule #{mod} do
+      use Gettext, backend: #{mod}.Gettext
       def foo(), do: gettext("hello")
     end
     """)
@@ -135,21 +138,22 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
   test "--check-up-to-date should fail if POT files are outdated",
        %{test: test, tmp_dir: tmp_dir} = context do
     create_test_mix_file(context)
+    mod = unique_module(test)
 
     write_file(context, "lib/my_app.ex", """
-    defmodule MyApp.Gettext do
+    defmodule #{mod}.Gettext do
       use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
-    defmodule MyApp do
-      use Gettext, backend: MyApp.Gettext
+    defmodule #{mod} do
+      use Gettext, backend: #{mod}.Gettext
       def foo(), do: gettext("hello")
     end
     """)
 
     write_file(context, "lib/other.ex", """
-    defmodule MyApp.Other do
-      use Gettext, backend: MyApp.Gettext
+    defmodule #{mod}.Other do
+      use Gettext, backend: #{mod}.Gettext
       def foo(), do: dgettext("my_domain", "other")
     end
     """)
@@ -159,12 +163,12 @@ defmodule Mix.Tasks.Gettext.ExtractTest do
     end)
 
     write_file(context, "lib/my_app.ex", """
-    defmodule MyApp.Gettext do
+    defmodule #{mod}.Gettext do
       use Gettext.Backend, otp_app: #{inspect(test)}
     end
 
-    defmodule MyApp do
-      use Gettext, backend: MyApp.Gettext
+    defmodule #{mod} do
+      use Gettext, backend: #{mod}.Gettext
       def foo(), do: gettext("hello world")
     end
     """)
