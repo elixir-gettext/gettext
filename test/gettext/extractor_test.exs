@@ -461,13 +461,16 @@ defmodule Gettext.ExtractorTest do
     end
     """
 
+    # No trailing newline in the expected string below: the logged message ends
+    # without one, so when color is enabled the reset code (\e[0m) sits between
+    # the message and Logger's newline. Anchoring on "\n" would fail in a TTY.
     assert capture_log(fn ->
              Code.compile_string(code, Path.join(File.cwd!(), "foo.ex"))
            end) =~
              """
              Plural message for 'one error' is not matching:
              Using 'multiple errors' instead of '%{count} errors'.
-             References: foo.ex:9, foo.ex:10
+             References: foo.ex:9, foo.ex:10\
              """
   after
     Extractor.disable()

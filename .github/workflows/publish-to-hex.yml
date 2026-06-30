@@ -21,8 +21,8 @@ jobs:
       - name: Install Erlang and Elixir
         uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
         with:
-          otp-version: "27.2"
-          elixir-version: "1.18"
+          otp-version: "29.0"
+          elixir-version: "1.20"
 
       - name: Fetch dependencies
         run: mix deps.get
