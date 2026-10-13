@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## v1.1.0
 
   * Parallelize per-locale merging in `mix gettext.merge`.
+  * Fix a bug where duplicate references for one message were recorded more than once.
+  * Drastically improve performance of extraction in cases with many translations (tens of thousands or more).
 
 ## v1.0.2
 
