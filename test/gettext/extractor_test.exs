@@ -171,6 +171,49 @@ defmodule Gettext.ExtractorTest do
                }
     end
 
+    test "an existing message merges with the first of several new messages sharing its key" do
+      old = %Messages{messages: [%Message.Singular{msgid: ["foo"], references: [{"old.ex", 1}]}]}
+
+      first = %Message.Singular{
+        msgid: ["foo"],
+        references: [{"first.ex", 1}],
+        extracted_comments: ["#. first"]
+      }
+
+      second = %Message.Singular{
+        msgid: ["foo"],
+        references: [{"second.ex", 2}],
+        extracted_comments: ["#. second"]
+      }
+
+      assert %Messages{messages: [merged]} =
+               Extractor.merge_template(old, %Messages{messages: [first, second]}, [])
+
+      assert merged.references == [{"first.ex", 1}]
+      assert merged.extracted_comments == ["#. first"]
+    end
+
+    test "new messages sharing a key that no existing message has are all kept, in order" do
+      first = %Message.Singular{
+        msgid: ["foo"],
+        references: [{"first.ex", 1}],
+        extracted_comments: ["#. first"]
+      }
+
+      second = %Message.Singular{
+        msgid: ["foo"],
+        references: [{"second.ex", 2}],
+        extracted_comments: ["#. second"]
+      }
+
+      assert Extractor.merge_template(
+               %Messages{messages: []},
+               %Messages{messages: [first, second]},
+               []
+             ) ==
+               %Messages{messages: [first, second]}
+    end
+
     test "headers are taken from the oldest PO file" do
       po1 = %Messages{
         headers: ["Last-Translator: Foo", "Content-Type: text/plain"],
