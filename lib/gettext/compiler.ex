@@ -505,6 +505,7 @@ defmodule Gettext.Compiler do
     plural_fun = :"#{locale}_#{domain}_lngettext"
 
     messages = Enum.filter(messages, &match?(%{obsolete: false}, &1))
+    {static_messages, messages} = split_static_messages(messages, interpolation_module)
 
     mapper =
       &compile_message(
@@ -527,13 +528,7 @@ defmodule Gettext.Compiler do
         unquote(messages)
 
         Kernel.unquote(kind)(unquote(singular_fun)(msgctxt, msgid, bindings)) do
-          unquote(env.module).handle_missing_translation(
-            unquote(locale),
-            unquote(domain),
-            msgctxt,
-            msgid,
-            bindings
-          )
+          unquote(static_lookup(static_messages, env.module, locale, domain))
         end
 
         Kernel.unquote(kind)(unquote(plural_fun)(msgctxt, msgid, msgid_plural, n, bindings)) do
@@ -550,6 +545,67 @@ defmodule Gettext.Compiler do
       end
 
     {locale, domain, singular_fun, plural_fun, quoted}
+  end
+
+  # Singular messages whose translation contains no "%{" cannot need
+  # interpolation, so they are kept in a literal map that the catch-all clause
+  # of the singular function looks up, instead of becoming one function clause
+  # each. The map holds the {:ok, msgstr} results themselves, so a hit returns
+  # a literal without allocating a result tuple. Only the default interpolation
+  # module is handled, since what counts as interpolation depends on the
+  # interpolation syntax. The partition only scans for "%{" and never parses
+  # interpolation keys: a translation containing "%{" (a binding, or a literal
+  # "%{}") is compiled into a clause as before, and empty translations stay out
+  # so that they still reach handle_missing_translation/5.
+  defp split_static_messages(messages, Gettext.Interpolation.Default) do
+    {static, remaining} =
+      Enum.reduce(messages, {%{}, []}, fn
+        %Message.Singular{} = message, {static, remaining} ->
+          msgstr = IO.iodata_to_binary(message.msgstr)
+
+          if msgstr != "" and not String.contains?(msgstr, "%{") do
+            {Map.put(static, static_key(message), {:ok, msgstr}), remaining}
+          else
+            {static, [message | remaining]}
+          end
+
+        %Message.Plural{} = message, {static, remaining} ->
+          {static, [message | remaining]}
+      end)
+
+    {static, Enum.reverse(remaining)}
+  end
+
+  defp split_static_messages(messages, _interpolation_module), do: {%{}, messages}
+
+  defp static_key(message) do
+    {message.msgctxt && IO.iodata_to_binary(message.msgctxt), IO.iodata_to_binary(message.msgid)}
+  end
+
+  defp static_lookup(static_messages, module, locale, domain) do
+    missing_translation =
+      quote do
+        unquote(module).handle_missing_translation(
+          unquote(locale),
+          unquote(domain),
+          msgctxt,
+          msgid,
+          bindings
+        )
+      end
+
+    if static_messages == %{} do
+      missing_translation
+    else
+      quote do
+        key = {msgctxt, msgid}
+
+        case unquote(Macro.escape(static_messages)) do
+          %{^key => translation} -> translation
+          %{} -> unquote(missing_translation)
+        end
+      end
+    end
   end
 
   defp nplurals(locale, messages_struct, plural_mod) do

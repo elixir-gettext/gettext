@@ -35,6 +35,9 @@ msgid_plural "%{count}" " friends"
 msgstr[0] "Un" " amico"
 msgstr[1] "%{count}" " amici"
 
+msgid "Literal braces"
+msgstr "Parentesi %{} letterali"
+
 msgid "Empty msgstr!"
 msgstr "" ""
 

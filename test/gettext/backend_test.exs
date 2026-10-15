@@ -122,6 +122,102 @@ defmodule Gettext.BackendTest do
     end
   end
 
+  describe "compiling catalogs of different shapes" do
+    @tag :tmp_dir
+    test "compiles without warnings and looks translations up by context", %{tmp_dir: tmp_dir} do
+      catalogs = [
+        static_only: ~S"""
+        msgid "Hello world"
+        msgstr "Ciao mondo"
+
+        msgctxt ""
+        msgid "Empty context"
+        msgstr "Contesto vuoto"
+
+        msgctxt "greeting"
+        msgid "Hello world"
+        msgstr "Ciao mondo (saluto)"
+
+        #~ msgid "Gone"
+        #~ msgstr "Andato"
+        """,
+        interpolated_only: ~S"""
+        msgid "Hello %{name}"
+        msgstr "Ciao %{name}"
+        """,
+        plural_only: ~S"""
+        msgid "One new email"
+        msgid_plural "%{count} new emails"
+        msgstr[0] "Una nuova email"
+        msgstr[1] "%{count} nuove email"
+        """
+      ]
+
+      backends =
+        for {shape, contents} <- catalogs, into: %{} do
+          priv = Path.join(tmp_dir, "#{shape}")
+          po_file = Path.join([priv, "it", "LC_MESSAGES", "default.po"])
+          File.mkdir_p!(Path.dirname(po_file))
+          File.write!(po_file, contents)
+
+          module =
+            Module.concat(__MODULE__, "Backend#{shape}#{System.unique_integer([:positive])}")
+
+          source = Path.join(tmp_dir, "#{shape}.ex")
+
+          File.write!(source, """
+          defmodule #{inspect(module)} do
+            use Gettext.Backend, otp_app: :test_application, priv: #{inspect(priv)}
+          end
+          """)
+
+          # Compiled through the parallel compiler like a Mix project is, so that
+          # warnings from the type checker are reported too.
+          assert {:ok, [^module], warnings} =
+                   Kernel.ParallelCompiler.compile([source], return_diagnostics: true)
+
+          assert warnings == %{compile_warnings: [], runtime_warnings: []},
+                 "compiling the #{shape} catalog warned: #{inspect(warnings)}"
+
+          {shape, module}
+        end
+
+      backend = backends.static_only
+      assert backend.lgettext("it", "default", nil, "Hello world", %{}) == {:ok, "Ciao mondo"}
+
+      # An empty context is not the same as no context, as with function clauses.
+      assert backend.lgettext("it", "default", "", "Empty context", %{}) ==
+               {:ok, "Contesto vuoto"}
+
+      assert backend.lgettext("it", "default", nil, "Empty context", %{}) ==
+               {:default, "Empty context"}
+
+      assert backend.lgettext("it", "default", "greeting", "Hello world", %{}) ==
+               {:ok, "Ciao mondo (saluto)"}
+
+      assert backend.lgettext("it", "default", "other", "Hello world", %{}) ==
+               {:default, "Hello world"}
+
+      assert backend.lgettext("it", "default", nil, "Gone", %{}) == {:default, "Gone"}
+
+      backend = backends.interpolated_only
+
+      assert backend.lgettext("it", "default", nil, "Hello %{name}", %{name: "Jane"}) ==
+               {:ok, "Ciao Jane"}
+
+      assert backend.lgettext("it", "default", nil, "Hello world", %{}) ==
+               {:default, "Hello world"}
+
+      backend = backends.plural_only
+
+      assert backend.lgettext("it", "default", nil, "One new email", %{}) ==
+               {:ok, "Una nuova email"}
+
+      assert backend.lgettext("it", "default", nil, "Hello world", %{}) ==
+               {:default, "Hello world"}
+    end
+  end
+
   describe "__gettext__/1 (generated)" do
     test "with :priv returns the directory where messages are stored" do
       assert Backend.__gettext__(:priv) == "test/fixtures/single_messages"
@@ -157,6 +253,24 @@ defmodule Gettext.BackendTest do
       # Unknown locale.
       assert Backend.lgettext("pt_BR", "nonexistent", nil, "Hello world", %{}) ==
                {:default, "Hello world"}
+    end
+
+    test "returns {:ok, translation} for translations with a context" do
+      assert Backend.lgettext("it", "default", "test", "Hello world", %{}) == {:ok, "Ciao mondo"}
+
+      assert Backend.lgettext("it", "default", "test", "Hello %{name}", %{name: "Jane"}) ==
+               {:ok, "Ciao Jane"}
+
+      assert Backend.lgettext("it", "default", "other", "Hello world", %{}) ==
+               {:default, "Hello world"}
+    end
+
+    test "returns translations with literal braces as they are" do
+      assert Backend.lgettext("it", "default", nil, "Literal braces", %{}) ==
+               {:ok, "Parentesi %{} letterali"}
+
+      assert Backend.lgettext("it", "default", nil, "Literal braces", %{name: "Jane"}) ==
+               {:ok, "Parentesi %{} letterali"}
     end
 
     test "returns {:default, msgid} if the msgstr is an empty string" do
