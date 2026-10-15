@@ -22,12 +22,28 @@ defmodule Gettext.Interpolation.Default do
   @doc false
   @spec to_interpolatable(String.t()) :: interpolatable()
   def to_interpolatable(string) when is_binary(string) do
-    start_pattern = :binary.compile_pattern("%{")
-    end_pattern = :binary.compile_pattern("}")
+    {start_pattern, end_pattern} = patterns()
 
     string
     |> to_interpolatable(_current = "", _acc = [], start_pattern, end_pattern)
     |> Enum.reverse()
+  end
+
+  # The patterns are constant, but a compiled pattern is a reference, so it
+  # cannot be a module attribute. Compiling them on every call costs more than
+  # the split itself for short strings, so they are compiled once per VM.
+  @patterns_key {__MODULE__, :patterns}
+
+  defp patterns do
+    case :persistent_term.get(@patterns_key, nil) do
+      nil ->
+        patterns = {:binary.compile_pattern("%{"), :binary.compile_pattern("}")}
+        :persistent_term.put(@patterns_key, patterns)
+        patterns
+
+      patterns ->
+        patterns
+    end
   end
 
   defp to_interpolatable(string, current, acc, start_pattern, end_pattern) do
