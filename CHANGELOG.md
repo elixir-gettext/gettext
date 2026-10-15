@@ -1,12 +1,14 @@
 # Changelog
 
+## Unreleased
+
+  * Add experimental `mix gettext.generate` task: messages are persisted as module attributes during normal compilation (for backends with `automatic_extraction: true` in the application environment, for example `config :gettext, MyApp.Gettext, automatic_extraction: true` in `config/dev.exs`) and read back from the compiled BEAM files, so extraction no longer needs to force-recompile the project.
+
 ## v1.1.0
 
   * Parallelize per-locale merging in `mix gettext.merge`.
   * Fix a bug where duplicate references for one message were recorded more than once.
   * Drastically improve performance of extraction in cases with many translations (tens of thousands or more).
-
-  * Add experimental `mix gettext.generate` task: messages are persisted as module attributes during normal compilation (for backends with `automatic_extraction: true` in the application environment, for example `config :gettext, MyApp.Gettext, automatic_extraction: true` in `config/dev.exs`) and read back from the compiled BEAM files, so extraction no longer needs to force-recompile the project.
 
 ## v1.0.2
 
