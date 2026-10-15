@@ -43,6 +43,14 @@ defmodule Mix.Tasks.Gettext.Generate do
   like `mix gettext.extract` does, so a backend can be shared between
   applications.
 
+  The generated POT files are the same as the ones `mix gettext.extract`
+  generates, with two differences. Messages are persisted in the module being
+  compiled, so calls to the Gettext macros outside of a module (at the top
+  level of a file) are not extracted. The extracted comments of a message that
+  appears in several modules with different comments are listed in the order
+  in which the modules are read back, which can differ from the order in which
+  they were compiled.
+
   This task accepts the same `--merge` and `--check-up-to-date` options as
   `mix gettext.extract`, and forwards any other options to
   `Mix.Tasks.Gettext.Merge`:
@@ -102,15 +110,34 @@ defmodule Mix.Tasks.Gettext.Generate do
   # be recompiled and we would read stale BEAM files, which is especially bad
   # for --check-up-to-date. Reenable the tasks so the compile always runs.
   defp compile do
-    for compiler <- Mix.Project.config()[:compilers] || Mix.compilers() do
-      Mix.Task.reenable("compile.#{compiler}")
-    end
+    reenable_compilers()
 
     for task <- ~w(compile.protocols compile.all compile) do
       Mix.Task.reenable(task)
     end
 
     Mix.Task.run("compile", [])
+  end
+
+  # Mix tracks whether a task ran per project, and each application of an
+  # umbrella may configure its own compilers, so reenable them from within
+  # each application.
+  defp reenable_compilers do
+    if Mix.Project.umbrella?() do
+      for {app, path} <- Mix.Project.apps_paths() do
+        in_app(app, path, &reenable_project_compilers/0)
+      end
+    else
+      reenable_project_compilers()
+    end
+
+    :ok
+  end
+
+  defp reenable_project_compilers do
+    for compiler <- Mix.Project.config()[:compilers] || Mix.compilers() do
+      Mix.Task.reenable("compile.#{compiler}")
+    end
   end
 
   defp fill_from_compiled_beams!(compile_paths) do

@@ -629,6 +629,106 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     refute File.exists?(Path.join(tmp_dir, "apps/app_two/priv/gettext"))
   end
 
+  test "reenables the compilers configured by the apps of an umbrella project",
+       %{test: test, tmp_dir: tmp_dir} = context do
+    Application.put_env(:gettext, AppOne.Gettext, automatic_extraction: true)
+    on_exit(fn -> Application.delete_env(:gettext, AppOne.Gettext) end)
+
+    # Mix caches the project of each app by app name, and the paths of the apps
+    # of an umbrella by root project module, across Mix.Project.in_project
+    # calls. The apps and the root project get names of their own: otherwise,
+    # when another umbrella test ran first, its app_two mix.exs (without the
+    # compiler below) would be reused and the compiler would never run.
+    suffix = :erlang.phash2(test)
+    app_one = :"app_one_#{suffix}"
+    app_two = :"app_two_#{suffix}"
+
+    write_file(context, "mix.exs", """
+    defmodule UmbrellaFixture#{suffix}.MixProject do
+      use Mix.Project
+
+      def project() do
+        [apps_path: "apps", version: "0.1.0"]
+      end
+    end
+    """)
+
+    write_file(context, "apps/#{app_one}/mix.exs", """
+    defmodule AppOne.MixProject do
+      use Mix.Project
+
+      def project() do
+        [app: #{inspect(app_one)}, version: "0.1.0"]
+      end
+
+      def application() do
+        [extra_applications: [:logger, :gettext]]
+      end
+    end
+    """)
+
+    write_file(context, "apps/#{app_one}/lib/app_one.ex", """
+    defmodule AppOne.Gettext do
+      use Gettext.Backend, otp_app: #{inspect(app_one)}
+    end
+
+    defmodule AppOne do
+      use Gettext, backend: AppOne.Gettext
+      def hello(), do: gettext("hello from app_one")
+    end
+    """)
+
+    # app_two configures a compiler of its own, which the umbrella root does
+    # not know about. It counts how many times it runs.
+    counter_key = {__MODULE__, test, :compiler_runs}
+
+    write_file(context, "apps/#{app_two}/mix.exs", """
+    defmodule Mix.Tasks.Compile.CountingFixture do
+      use Mix.Task.Compiler
+      @recursive true
+
+      def run(_args) do
+        key = #{inspect(counter_key)}
+        :persistent_term.put(key, :persistent_term.get(key, 0) + 1)
+        {:noop, []}
+      end
+    end
+
+    defmodule AppTwo.MixProject do
+      use Mix.Project
+
+      def project() do
+        [
+          app: #{inspect(app_two)},
+          version: "0.1.0",
+          compilers: [:counting_fixture] ++ Mix.compilers()
+        ]
+      end
+    end
+    """)
+
+    write_file(context, "apps/#{app_two}/lib/app_two.ex", """
+    defmodule AppTwo do
+      def hello(), do: :hello
+    end
+    """)
+
+    capture_io(fn ->
+      in_project(test, tmp_dir, fn _module ->
+        Mix.Task.rerun("gettext.generate", [])
+        assert :persistent_term.get(counter_key, 0) == 1
+
+        # The compile tasks already ran in this VM: the task must reenable
+        # app_two's compiler too, not only the ones configured at the root.
+        Mix.Task.rerun("gettext.generate", [])
+        assert :persistent_term.get(counter_key, 0) == 2
+      end)
+    end)
+
+    assert read_file(context, "apps/#{app_one}/priv/gettext/default.pot") =~
+             ~s(msgid "hello from app_one")
+  end
+
   defp write_fixture_with_changed_msgid(context) do
     source =
       @fixture_source
