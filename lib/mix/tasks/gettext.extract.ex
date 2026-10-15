@@ -55,6 +55,13 @@ defmodule Mix.Tasks.Gettext.Extract do
   mix gettext.extract --merge --no-fuzzy
   ```
 
+  ## Extraction Without Recompiling (Experimental)
+
+  This task always **force-recompiles** the whole project, because extraction
+  happens during the expansion of the Gettext macros. If you would rather
+  generate the POT files without a force-recompile, see `mix gettext.generate`,
+  which reads the messages back from the compiled BEAM files instead.
+
   """
 
   @switches [merge: :boolean, check_up_to_date: :boolean]
@@ -66,9 +73,16 @@ defmodule Mix.Tasks.Gettext.Extract do
     mix_config = Mix.Project.config()
     {opts, _} = OptionParser.parse!(args, switches: @switches)
     pot_files = extract(mix_config[:app], mix_config[:gettext] || [])
+    process(pot_files, opts, args)
+  end
 
+  # Shared by `mix gettext.extract` and `mix gettext.generate`:
+  # both compute `pot_files` (their only difference) and then write, check, or
+  # merge them in exactly the same way.
+  @doc false
+  def process(pot_files, opts, args, task \\ "gettext.extract") do
     if opts[:check_up_to_date] do
-      run_up_to_date_check(pot_files)
+      run_up_to_date_check(pot_files, task)
     else
       run_message_extraction(pot_files, opts, args)
     end
@@ -88,14 +102,14 @@ defmodule Mix.Tasks.Gettext.Extract do
     :ok
   end
 
-  defp run_up_to_date_check(pot_files) do
+  defp run_up_to_date_check(pot_files, task) do
     not_extracted_paths = for {path, {:changed, _contents}} <- pot_files, do: path
 
     if not_extracted_paths == [] do
       :ok
     else
       Mix.raise("""
-      mix gettext.extract failed due to --check-up-to-date.
+      mix #{task} failed due to --check-up-to-date.
       The following POT files were not extracted or are out of date:
 
       #{Enum.map_join(not_extracted_paths, "\n", &"  * #{&1 |> Path.relative_to_cwd()}")}

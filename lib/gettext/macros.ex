@@ -596,16 +596,7 @@ defmodule Gettext.Macros do
     msgid = expand_to_binary(msgid, "msgid", env)
     msgctxt = expand_to_binary(msgctxt, "msgctxt", env)
 
-    if Extractor.extracting?() do
-      Extractor.extract(
-        env,
-        backend,
-        domain,
-        msgctxt,
-        msgid,
-        get_and_flush_extracted_comments()
-      )
-    end
+    extract_message(env, backend, domain, msgctxt, msgid)
 
     msgid
   end
@@ -617,18 +608,20 @@ defmodule Gettext.Macros do
     msgctxt = expand_to_binary(msgctxt, "msgctxt", env)
     msgid_plural = expand_to_binary(msgid_plural, "msgid_plural", env)
 
-    if Extractor.extracting?() do
-      Extractor.extract(
-        env,
-        backend,
-        domain,
-        msgctxt,
-        {msgid, msgid_plural},
-        get_and_flush_extracted_comments()
-      )
-    end
+    extract_message(env, backend, domain, msgctxt, {msgid, msgid_plural})
 
     {msgid, msgid_plural}
+  end
+
+  defp extract_message(env, backend, domain, msgctxt, id) do
+    Extractor.extract_and_persist(
+      env,
+      backend,
+      domain,
+      msgctxt,
+      id,
+      &get_and_flush_extracted_comments/0
+    )
   end
 
   defp singular_extract_and_translate(env, backend, domain, msgctxt, msgid, bindings) do
