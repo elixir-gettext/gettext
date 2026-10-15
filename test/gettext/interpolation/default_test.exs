@@ -28,6 +28,12 @@ defmodule Gettext.Interpolation.DefaultTest do
   end
 
   test "to_interpolatable/1" do
+    # A literal "%{}" followed by a binding used to drop the text before the
+    # binding (the current segment was not flushed).
+    assert Interpolation.to_interpolatable("a %{} b %{c}") == ["a %{} b ", :c]
+    assert Interpolation.to_interpolatable("%{}%{a}") == ["%{}", :a]
+    assert Interpolation.runtime_interpolate("a %{} b %{c}", %{c: "X"}) == {:ok, "a %{} b X"}
+
     assert Interpolation.to_interpolatable("Hello %{name}") == ["Hello ", :name]
     assert Interpolation.to_interpolatable("%{solo}") == [:solo]
     assert Interpolation.to_interpolatable("%{foo}%{bar} %{baz}") == [:foo, :bar, " ", :baz]
