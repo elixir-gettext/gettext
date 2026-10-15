@@ -124,7 +124,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     # POT files written by the recompilation path unchanged.
     output =
       capture_io(fn ->
-        in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
+        in_project(test, tmp_dir, fn _module -> run_generate() end)
       end)
 
     refute output =~ "Extracted"
@@ -137,7 +137,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
 
     output =
       capture_io(fn ->
-        in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
+        in_project(test, tmp_dir, fn _module -> run_generate() end)
       end)
 
     assert output =~ "Extracted priv/gettext/default.pot"
@@ -184,7 +184,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     """)
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
+      in_project(test, tmp_dir, fn _module -> run_generate() end)
     end)
 
     pot = read_file(context, "priv/gettext/default.pot")
@@ -215,7 +215,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     """)
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
+      in_project(test, tmp_dir, fn _module -> run_generate() end)
     end)
 
     default_pot = read_file(context, "priv/gettext/default.pot")
@@ -248,7 +248,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     """)
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
+      in_project(test, tmp_dir, fn _module -> run_generate() end)
     end)
 
     pot = read_file(context, "priv/gettext/default.pot")
@@ -267,7 +267,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     write_file(context, "priv/gettext/it/LC_MESSAGES/default.po", "")
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run_from_attributes(["--merge"]) end)
+      in_project(test, tmp_dir, fn _module -> run_generate(["--merge"]) end)
     end)
 
     po = read_file(context, "priv/gettext/it/LC_MESSAGES/default.po")
@@ -291,7 +291,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     """)
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module -> run_from_attributes() end)
+      in_project(test, tmp_dir, fn _module -> run_generate() end)
     end)
 
     assert read_file(context, "priv/custom_gettext/default.pot") =~
@@ -307,11 +307,11 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
 
     capture_io(fn ->
       in_project(test, tmp_dir, fn _module ->
-        run_from_attributes()
+        run_generate()
       end)
 
       in_project(test, tmp_dir, fn _module ->
-        run_from_attributes(["--check-up-to-date"])
+        run_generate(["--check-up-to-date"])
       end)
     end)
 
@@ -325,10 +325,77 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     capture_io(fn ->
       assert_raise Mix.Error, expected_error, fn ->
         in_project(test, tmp_dir, fn _module ->
-          run_from_attributes(["--check-up-to-date"])
+          run_generate(["--check-up-to-date"])
         end)
       end
     end)
+  end
+
+  test "--check-up-to-date sees source changes when compile already ran in the same VM",
+       %{test: test, tmp_dir: tmp_dir} = context do
+    create_test_mix_file(context)
+    write_fixture(context)
+
+    capture_io(fn ->
+      in_project(test, tmp_dir, fn _module ->
+        run_generate()
+        assert read_file(context, "priv/gettext/default.pot") =~ ~s(msgid "hello")
+
+        # "compile" (and the compilers it runs) already ran above and Mix
+        # would skip them now. The task must reenable them, otherwise it reads
+        # the BEAM files compiled before this change and the check passes
+        # with outdated data.
+        write_fixture_with_changed_msgid(context)
+
+        assert_raise Mix.Error,
+                     ~r{failed due to --check-up-to-date.*priv/gettext/default\.pot}s,
+                     fn -> Mix.Tasks.Gettext.Generate.run(["--check-up-to-date"]) end
+      end)
+    end)
+  end
+
+  test "enabling automatic_extraction recompiles the modules compiled without it",
+       %{test: test, tmp_dir: tmp_dir} = context do
+    # Simulates adopting the task on an already compiled project: the toggle
+    # is a compile-time configuration of every module that uses Gettext macros
+    # (and of the backend), so flipping it in the config files recompiles them
+    # all. Otherwise the BEAM files compiled before the change would carry no
+    # messages and the task would silently drop them from the POT files.
+    create_test_mix_file(context)
+    write_fixture(context)
+    write_config(context, automatic_extraction: false)
+
+    capture_io(fn ->
+      assert_raise Mix.Error, ~r/found no persisted Gettext messages/, fn ->
+        in_project(test, tmp_dir, fn _module ->
+          Mix.Task.run("loadconfig")
+          run_generate()
+        end)
+      end
+    end)
+
+    assert Application.get_env(:gettext, MyApp.Gettext) == [automatic_extraction: false]
+
+    # Flip the toggle in the config file only; no source file changes. Mix
+    # detects the change through file mtimes with second granularity (the
+    # config files must be newer than at the previous compilation, and before
+    # Elixir 1.20 the .app file, which carries the compile-time values that
+    # "mix compile" validates, is only regenerated when they are newer than
+    # it), so make sure the rewrite lands in a later second than the compile.
+    wait_for_next_second()
+    write_config(context, automatic_extraction: true)
+
+    capture_io(fn ->
+      in_project(test, tmp_dir, fn _module ->
+        Mix.Task.run("loadconfig")
+        run_generate()
+      end)
+    end)
+
+    default_pot = read_file(context, "priv/gettext/default.pot")
+    assert default_pot =~ ~s(msgid "hello")
+    assert default_pot =~ ~s(msgid "one item")
+    assert read_file(context, "priv/gettext/my_domain.pot") =~ ~s(msgid "domain hello")
   end
 
   test "no attributes are persisted when automatic_extraction is disabled",
@@ -344,7 +411,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     capture_io(fn ->
       assert_raise Mix.Error, ~r/found no persisted Gettext messages/, fn ->
         in_project(test, tmp_dir, fn _module ->
-          run_from_attributes()
+          run_generate()
         end)
       end
     end)
@@ -437,18 +504,27 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     write_file(context, "lib/my_app.ex", source)
   end
 
+  defp write_config(context, automatic_extraction: enabled?) do
+    write_file(context, "config/config.exs", """
+    import Config
+    config :gettext, MyApp.Gettext, automatic_extraction: #{enabled?}
+    """)
+  end
+
+  defp wait_for_next_second do
+    second = System.os_time(:second)
+
+    Stream.repeatedly(fn -> Process.sleep(50) end)
+    |> Enum.find(fn _ -> System.os_time(:second) > second end)
+  end
+
   defp run(args) do
     Mix.Tasks.Gettext.Extract.run(args)
   end
 
-  defp run_from_attributes(args \\ []) do
-    # Reenable compile so each invocation picks up source changes, mirroring a
-    # fresh `mix` invocation (the task itself does a plain compile, not a
-    # force-recompile).
-    for task <- ~w(compile compile.all compile.elixir compile.app) do
-      Mix.Task.reenable(task)
-    end
-
+  # Deliberately a plain call: the task itself must make sure the compile runs
+  # even when "compile" already ran in this VM (see the "same VM" test above).
+  defp run_generate(args \\ []) do
     Mix.Tasks.Gettext.Generate.run(args)
   end
 end

@@ -123,13 +123,22 @@ defmodule Gettext.Extractor do
   """
   @spec persisting_to_attributes?(Macro.Env.t(), backend :: module) :: boolean
   def persisting_to_attributes?(%Macro.Env{module: nil}, _backend), do: false
-  def persisting_to_attributes?(%Macro.Env{}, backend), do: automatic_extraction?(backend)
+
+  def persisting_to_attributes?(%Macro.Env{} = env, backend),
+    do: automatic_extraction?(env, backend)
 
   # Tells whether the given backend has automatic extraction enabled in the
   # application environment (read from the :gettext app, not Mix).
-  defp automatic_extraction?(backend) when is_atom(backend) do
-    Application.get_env(:gettext, backend, [])
-    |> Keyword.get(:automatic_extraction, false) == true
+  #
+  # This is read as *compile-time* configuration of the module in `env`, so
+  # that Mix recompiles every module that expanded a Gettext macro (and the
+  # backend itself) whenever the toggle changes. Without that, enabling
+  # automatic extraction would only persist messages in the modules compiled
+  # *after* the change, and "mix gettext.generate" would read a mix of fresh
+  # and attribute-less BEAM files and silently drop the latter's messages
+  # from the POT files.
+  defp automatic_extraction?(%Macro.Env{} = env, backend) when is_atom(backend) do
+    Application.compile_env(env, :gettext, [backend, :automatic_extraction], false) == true
   end
 
   @doc """
@@ -176,12 +185,12 @@ defmodule Gettext.Extractor do
 
   @doc """
   Persists a marker attribute in the Gettext backend module currently being
-  compiled, so that `fill_from_compiled_beams/1` can find all backends
-  without recompiling.
+  compiled (`env.module`), so that `fill_from_compiled_beams/1` can find all
+  backends without recompiling.
   """
-  @spec persist_backend_marker(backend :: module) :: :ok
-  def persist_backend_marker(backend) when is_atom(backend) do
-    if automatic_extraction?(backend) do
+  @spec persist_backend_marker(Macro.Env.t()) :: :ok
+  def persist_backend_marker(%Macro.Env{module: backend} = env) when is_atom(backend) do
+    if automatic_extraction?(env, backend) do
       Module.register_attribute(backend, @persisted_backend_attribute, persist: true)
       Module.put_attribute(backend, @persisted_backend_attribute, true)
     end

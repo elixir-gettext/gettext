@@ -30,6 +30,12 @@ defmodule Mix.Tasks.Gettext.Generate do
   Since the attributes are only persisted when `automatic_extraction` is
   enabled (so not in `:prod`), release artifacts are unaffected.
 
+  `automatic_extraction` is read as compile-time configuration by every
+  module that uses Gettext macros (and by the backend), so toggling it
+  recompiles those modules on the next `mix compile`: BEAM files compiled
+  before enabling it never go unnoticed. If you had compiled the project with
+  a Gettext version that predates this task, run `mix compile --force` once.
+
   This task accepts the same `--merge` and `--check-up-to-date` options as
   `mix gettext.extract`, and forwards any other options to
   `Mix.Tasks.Gettext.Merge`:
@@ -54,10 +60,7 @@ defmodule Mix.Tasks.Gettext.Generate do
   end
 
   defp generate(app, gettext_config) do
-    # The messages are extracted and persisted by the normal compilation; here
-    # we just make sure that has happened. This is a no-op when the project is
-    # already compiled.
-    Mix.Task.run("compile", [])
+    compile()
 
     {backends, messages} =
       Gettext.Extractor.fill_from_compiled_beams(Mix.Project.compile_path())
@@ -81,5 +84,22 @@ defmodule Mix.Tasks.Gettext.Generate do
     end
 
     Gettext.Extractor.pot_files(app, gettext_config)
+  end
+
+  # The messages are extracted and persisted by the normal compilation; here we
+  # just make sure that has happened, with a plain (not forced) compile.
+  #
+  # "compile" and the compilers it runs are regular Mix tasks, so they are
+  # no-ops if they already ran in this VM (for example, through an alias such
+  # as `["compile", "gettext.generate"]`, or when the task is invoked twice).
+  # In that case, source files changed since that first compilation would not
+  # be recompiled and we would read stale BEAM files, which is especially bad
+  # for --check-up-to-date. Reenable the tasks so the compile always runs.
+  defp compile do
+    for task <- ~w(compile compile.all compile.elixir compile.app) do
+      Mix.Task.reenable(task)
+    end
+
+    Mix.Task.run("compile", [])
   end
 end
