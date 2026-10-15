@@ -80,9 +80,9 @@ defmodule Mix.Tasks.Gettext.Extract do
   # both compute `pot_files` (their only difference) and then write, check, or
   # merge them in exactly the same way.
   @doc false
-  def process(pot_files, opts, args) do
+  def process(pot_files, opts, args, task \\ "gettext.extract") do
     if opts[:check_up_to_date] do
-      run_up_to_date_check(pot_files)
+      run_up_to_date_check(pot_files, task)
     else
       run_message_extraction(pot_files, opts, args)
     end
@@ -102,14 +102,14 @@ defmodule Mix.Tasks.Gettext.Extract do
     :ok
   end
 
-  defp run_up_to_date_check(pot_files) do
+  defp run_up_to_date_check(pot_files, task) do
     not_extracted_paths = for {path, {:changed, _contents}} <- pot_files, do: path
 
     if not_extracted_paths == [] do
       :ok
     else
       Mix.raise("""
-      mix gettext.extract failed due to --check-up-to-date.
+      mix #{task} failed due to --check-up-to-date.
       The following POT files were not extracted or are out of date:
 
       #{Enum.map_join(not_extracted_paths, "\n", &"  * #{&1 |> Path.relative_to_cwd()}")}

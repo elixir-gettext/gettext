@@ -14,7 +14,12 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     MyApp.Labels,
     MyApp.Consumer,
     MyApp.Other,
-    MyApp.WithBackend
+    MyApp.WithBackend,
+    MyApp.Legacy,
+    AppOne.Gettext,
+    AppOne,
+    AppTwo.Gettext,
+    AppTwo
   ]
 
   setup_all do
@@ -26,13 +31,11 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
   end
 
   setup do
-    # Mix task invocation state and loaded fixture modules are global to the
-    # test VM; reset both so that each test compiles its own project and
-    # resolves backends against its own modules.
-    for task <- ~w(compile compile.all compile.elixir compile.app loadpaths) do
-      Mix.Task.reenable(task)
-    end
-
+    # Loaded fixture modules are global to the test VM; unload them so that
+    # each test resolves backends against its own modules. (Mix task
+    # invocation state needs no reset: the task reenables the compile tasks
+    # itself, which is what makes it work in the first place.)
+    #
     # Fully unload fixture modules: with lazy module loading (Elixir 1.19+),
     # a stale MyApp.Gettext loaded by a previous test would otherwise keep
     # answering __gettext__/1 with the previous test's configuration.
@@ -64,9 +67,9 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
       %{messages: %{}, backends: [], extracting?: false}
     end)
 
-    # The --from-attributes path only persists attributes for backends with
-    # automatic_extraction enabled in the application environment. Enable it
-    # for the fixture backend by default; the "disabled" test below clears it.
+    # Messages are only persisted for backends with automatic_extraction
+    # enabled in the application environment. Enable it for the fixture
+    # backend by default; the "disabled" test below clears it.
     Application.put_env(:gettext, MyApp.Gettext, automatic_extraction: true)
     on_exit(fn -> Application.delete_env(:gettext, MyApp.Gettext) end)
 
@@ -259,7 +262,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     assert pot =~ ~r{#: lib/other\.ex:\d+}
   end
 
-  test "--from-attributes combined with --merge updates PO files",
+  test "--merge updates PO files",
        %{test: test, tmp_dir: tmp_dir} = context do
     create_test_mix_file(context)
     write_fixture(context)
@@ -398,6 +401,71 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     assert read_file(context, "priv/gettext/my_domain.pot") =~ ~s(msgid "domain hello")
   end
 
+  test "messages removed from the source are removed from the POT files",
+       %{test: test, tmp_dir: tmp_dir} = context do
+    create_test_mix_file(context)
+    write_fixture(context)
+
+    write_file(context, "lib/other.ex", """
+    defmodule MyApp.Other do
+      use Gettext, backend: MyApp.Gettext
+      def hello(), do: gettext("hello from other")
+    end
+    """)
+
+    capture_io(fn ->
+      in_project(test, tmp_dir, fn _module -> run_generate() end)
+    end)
+
+    assert read_file(context, "priv/gettext/default.pot") =~ ~s(msgid "hello from other")
+
+    # The compiler prunes the BEAM file of a deleted source file, so its
+    # messages must disappear from the POT file on the next run.
+    File.rm!(Path.join(tmp_dir, "lib/other.ex"))
+
+    capture_io(fn ->
+      in_project(test, tmp_dir, fn _module -> run_generate() end)
+    end)
+
+    default_pot = read_file(context, "priv/gettext/default.pot")
+    refute default_pot =~ "hello from other"
+    assert default_pot =~ ~s(msgid "hello")
+  end
+
+  test "extracts messages from deprecated \"use Gettext, otp_app:\" backends",
+       %{test: test, tmp_dir: tmp_dir} = context do
+    create_test_mix_file(context)
+
+    write_file(context, "lib/my_app.ex", """
+    defmodule MyApp.Gettext do
+      use Gettext, otp_app: #{inspect(context.test)}
+    end
+
+    defmodule MyApp.Legacy do
+      import MyApp.Gettext
+
+      def singular(), do: gettext("legacy hello")
+      def with_domain(), do: dgettext("my_domain", "legacy domain hello")
+      def plural(n), do: ngettext("legacy one item", "legacy %{count} items", n)
+      def noop(), do: gettext_noop("legacy noop hello")
+    end
+    """)
+
+    # The deprecation warning for "use Gettext, otp_app:" is printed on stderr.
+    capture_io(:stderr, fn ->
+      capture_io(fn ->
+        in_project(test, tmp_dir, fn _module -> run_generate() end)
+      end)
+    end)
+
+    default_pot = read_file(context, "priv/gettext/default.pot")
+    assert default_pot =~ ~s(msgid "legacy hello")
+    assert default_pot =~ ~s(msgid "legacy one item")
+    assert default_pot =~ ~s(msgid_plural "legacy %{count} items")
+    assert default_pot =~ ~s(msgid "legacy noop hello")
+    assert read_file(context, "priv/gettext/my_domain.pot") =~ ~s(msgid "legacy domain hello")
+  end
+
   test "no attributes are persisted when automatic_extraction is disabled",
        %{test: test, tmp_dir: tmp_dir} = context do
     # With automatic_extraction off (the default), nothing must be persisted,
@@ -479,11 +547,7 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     end
 
     capture_io(fn ->
-      in_project(test, tmp_dir, fn _module ->
-        # Mix.Task.run (not a direct module call) so that @recursive true
-        # recurses into each umbrella app.
-        Mix.Task.run("gettext.generate", [])
-      end)
+      in_project(test, tmp_dir, fn _module -> run_generate() end)
     end)
 
     pot_one = read_file(context, "apps/app_one/priv/gettext/default.pot")
@@ -493,6 +557,76 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     refute pot_one =~ "app_two"
     assert pot_two =~ ~s(msgid "hello from app_two")
     refute pot_two =~ "app_one"
+  end
+
+  test "extracts messages from all the apps of an umbrella project sharing a backend",
+       %{test: test, tmp_dir: tmp_dir} = context do
+    Application.put_env(:gettext, AppOne.Gettext, automatic_extraction: true)
+    on_exit(fn -> Application.delete_env(:gettext, AppOne.Gettext) end)
+
+    write_file(context, "mix.exs", """
+    defmodule UmbrellaFixture.MixProject do
+      use Mix.Project
+
+      def project() do
+        [apps_path: "apps", version: "0.1.0"]
+      end
+    end
+    """)
+
+    for {app, deps} <- [{"app_one", []}, {"app_two", [app_one: [in_umbrella: true]]}] do
+      write_file(context, "apps/#{app}/mix.exs", """
+      defmodule #{Macro.camelize(app)}.MixProject do
+        use Mix.Project
+
+        def project() do
+          [
+            app: :#{app},
+            version: "0.1.0",
+            deps: #{inspect(deps)}
+          ]
+        end
+
+        def application() do
+          [extra_applications: [:logger, :gettext]]
+        end
+      end
+      """)
+    end
+
+    # The backend lives in app_one but app_two uses it too, as mix
+    # gettext.extract supports: both messages must end up in app_one's POT.
+    write_file(context, "apps/app_one/lib/app_one.ex", """
+    defmodule AppOne.Gettext do
+      use Gettext.Backend, otp_app: :app_one
+    end
+
+    defmodule AppOne do
+      use Gettext, backend: AppOne.Gettext
+      def hello(), do: gettext("hello from app_one")
+    end
+    """)
+
+    write_file(context, "apps/app_two/lib/app_two.ex", """
+    defmodule AppTwo do
+      use Gettext, backend: AppOne.Gettext
+      def hello(), do: gettext("hello from app_two")
+    end
+    """)
+
+    capture_io(fn ->
+      in_project(test, tmp_dir, fn _module ->
+        # Through Mix.Task (as from the command line) rather than a direct
+        # module call; rerun because the umbrella fixture of the previous test
+        # shares the project module names, for which the task already ran.
+        Mix.Task.rerun("gettext.generate", [])
+      end)
+    end)
+
+    pot_one = read_file(context, "apps/app_one/priv/gettext/default.pot")
+    assert pot_one =~ ~s(msgid "hello from app_one")
+    assert pot_one =~ ~s(msgid "hello from app_two")
+    refute File.exists?(Path.join(tmp_dir, "apps/app_two/priv/gettext"))
   end
 
   defp write_fixture_with_changed_msgid(context) do
@@ -511,11 +645,13 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     """)
   end
 
-  defp wait_for_next_second do
-    second = System.os_time(:second)
-
-    Stream.repeatedly(fn -> Process.sleep(50) end)
-    |> Enum.find(fn _ -> System.os_time(:second) > second end)
+  defp wait_for_next_second(second \\ System.os_time(:second)) do
+    if System.os_time(:second) > second do
+      :ok
+    else
+      Process.sleep(50)
+      wait_for_next_second(second)
+    end
   end
 
   defp run(args) do

@@ -109,16 +109,14 @@ defmodule Gettext.Compiler do
         msgid = Gettext.Compiler.expand_to_binary(msgid, "msgid", __MODULE__, __CALLER__)
         msgctxt = Gettext.Compiler.expand_to_binary(msgctxt, "msgctxt", __MODULE__, __CALLER__)
 
-        if Gettext.Extractor.extracting?() do
-          Gettext.Extractor.extract(
-            __CALLER__,
-            __MODULE__,
-            domain,
-            msgctxt,
-            msgid,
-            Gettext.Compiler.get_and_flush_extracted_comments()
-          )
-        end
+        Gettext.Extractor.extract_and_persist(
+          __CALLER__,
+          __MODULE__,
+          domain,
+          msgctxt,
+          msgid,
+          &Gettext.Compiler.get_and_flush_extracted_comments/0
+        )
 
         msgid
       end
@@ -153,16 +151,14 @@ defmodule Gettext.Compiler do
         msgid_plural =
           Gettext.Compiler.expand_to_binary(msgid_plural, "msgid_plural", __MODULE__, __CALLER__)
 
-        if Gettext.Extractor.extracting?() do
-          Gettext.Extractor.extract(
-            __CALLER__,
-            __MODULE__,
-            domain,
-            msgctxt,
-            {msgid, msgid_plural},
-            Gettext.Compiler.get_and_flush_extracted_comments()
-          )
-        end
+        Gettext.Extractor.extract_and_persist(
+          __CALLER__,
+          __MODULE__,
+          domain,
+          msgctxt,
+          {msgid, msgid_plural},
+          &Gettext.Compiler.get_and_flush_extracted_comments/0
+        )
 
         {msgid, msgid_plural}
       end

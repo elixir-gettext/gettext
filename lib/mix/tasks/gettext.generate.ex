@@ -1,6 +1,5 @@
 defmodule Mix.Tasks.Gettext.Generate do
   use Mix.Task
-  @recursive true
 
   @shortdoc "Generates POT files from messages persisted during compilation"
 
@@ -33,8 +32,16 @@ defmodule Mix.Tasks.Gettext.Generate do
   `automatic_extraction` is read as compile-time configuration by every
   module that uses Gettext macros (and by the backend), so toggling it
   recompiles those modules on the next `mix compile`: BEAM files compiled
-  before enabling it never go unnoticed. If you had compiled the project with
-  a Gettext version that predates this task, run `mix compile --force` once.
+  before enabling it never go unnoticed. For the same reason it must be set in
+  the compile-time configuration files (such as `config/config.exs` or
+  `config/dev.exs`), not in `config/runtime.exs`. If you had compiled the
+  project with a Gettext version that predates this task, run
+  `mix compile --force` once.
+
+  In an umbrella project, the task compiles all the applications and loads the
+  messages of all of them before generating the POT files of each application,
+  like `mix gettext.extract` does, so a backend can be shared between
+  applications.
 
   This task accepts the same `--merge` and `--check-up-to-date` options as
   `mix gettext.extract`, and forwards any other options to
@@ -53,22 +60,71 @@ defmodule Mix.Tasks.Gettext.Generate do
   def run(args) do
     Application.ensure_all_started(:gettext)
     _ = Mix.Project.get!()
-    mix_config = Mix.Project.config()
     {opts, _} = OptionParser.parse!(args, switches: @switches)
-    pot_files = generate(mix_config[:app], mix_config[:gettext] || [])
-    Mix.Tasks.Gettext.Extract.process(pot_files, opts, args)
-  end
 
-  defp generate(app, gettext_config) do
     compile()
 
+    if Mix.Project.umbrella?() do
+      apps_paths = Mix.Project.apps_paths()
+
+      # Applications may share a backend, so all the messages must be loaded
+      # before any application's POT files are generated.
+      apps_paths
+      |> Enum.map(fn {app, path} -> in_app(app, path, fn -> Mix.Project.compile_path() end) end)
+      |> fill_from_compiled_beams!()
+
+      for {app, path} <- apps_paths do
+        in_app(app, path, fn -> generate(app, opts, args) end)
+      end
+    else
+      fill_from_compiled_beams!([Mix.Project.compile_path()])
+      generate(Mix.Project.config()[:app], opts, args)
+    end
+
+    :ok
+  end
+
+  # Runs `fun` inside the given umbrella application, with the configuration
+  # the umbrella passes down to its applications (such as the shared build
+  # path), as Mix itself does when running recursive tasks.
+  defp in_app(app, path, fun) do
+    config = Keyword.delete(Mix.Project.deps_config(), :deps_path)
+    Mix.Project.in_project(app, path, config, fn _module -> fun.() end)
+  end
+
+  # The messages are extracted and persisted by the normal compilation; here we
+  # just make sure that has happened, with a plain (not forced) compile.
+  #
+  # "compile" and the compilers it runs are regular Mix tasks, so they are
+  # no-ops if they already ran in this VM (for example, through an alias such
+  # as `["compile", "gettext.generate"]`, or when the task is invoked twice).
+  # In that case, source files changed since that first compilation would not
+  # be recompiled and we would read stale BEAM files, which is especially bad
+  # for --check-up-to-date. Reenable the tasks so the compile always runs.
+  defp compile do
+    for compiler <- Mix.Project.config()[:compilers] || Mix.compilers() do
+      Mix.Task.reenable("compile.#{compiler}")
+    end
+
+    for task <- ~w(compile.protocols compile.all compile) do
+      Mix.Task.reenable(task)
+    end
+
+    Mix.Task.run("compile", [])
+  end
+
+  defp fill_from_compiled_beams!(compile_paths) do
     {backends, messages} =
-      Gettext.Extractor.fill_from_compiled_beams(Mix.Project.compile_path())
+      Enum.reduce(compile_paths, {0, 0}, fn compile_path, {backends_acc, messages_acc} ->
+        {backends, messages} = Gettext.Extractor.fill_from_compiled_beams(compile_path)
+        {backends_acc + backends, messages_acc + messages}
+      end)
 
     if backends == 0 and messages == 0 do
       Mix.raise("""
-      mix gettext.generate found no persisted Gettext messages \
-      or backends in #{Path.relative_to_cwd(Mix.Project.compile_path())}.
+      mix gettext.generate found no persisted Gettext messages or backends in:
+
+      #{Enum.map_join(compile_paths, "\n", &"  * #{Path.relative_to_cwd(&1)}")}
 
       Messages are persisted to module attributes during normal compilation only \
       when the backend has automatic extraction enabled in the application \
@@ -83,23 +139,12 @@ defmodule Mix.Tasks.Gettext.Generate do
       """)
     end
 
-    Gettext.Extractor.pot_files(app, gettext_config)
+    :ok
   end
 
-  # The messages are extracted and persisted by the normal compilation; here we
-  # just make sure that has happened, with a plain (not forced) compile.
-  #
-  # "compile" and the compilers it runs are regular Mix tasks, so they are
-  # no-ops if they already ran in this VM (for example, through an alias such
-  # as `["compile", "gettext.generate"]`, or when the task is invoked twice).
-  # In that case, source files changed since that first compilation would not
-  # be recompiled and we would read stale BEAM files, which is especially bad
-  # for --check-up-to-date. Reenable the tasks so the compile always runs.
-  defp compile do
-    for task <- ~w(compile compile.all compile.elixir compile.app) do
-      Mix.Task.reenable(task)
-    end
-
-    Mix.Task.run("compile", [])
+  defp generate(app, opts, args) do
+    gettext_config = Mix.Project.config()[:gettext] || []
+    pot_files = Gettext.Extractor.pot_files(app, gettext_config)
+    Mix.Tasks.Gettext.Extract.process(pot_files, opts, args, "gettext.generate")
   end
 end

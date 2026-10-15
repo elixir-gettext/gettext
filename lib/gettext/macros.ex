@@ -614,25 +614,14 @@ defmodule Gettext.Macros do
   end
 
   defp extract_message(env, backend, domain, msgctxt, id) do
-    # Extractor.extracting?() returns nil (not false) when the extractor
-    # agent is not running, such as when compiling a dependency that uses
-    # Gettext while the :gettext application is not started.
-    extracting? = Extractor.extracting?()
-    persisting? = Extractor.persisting_to_attributes?(env, backend)
-
-    if extracting? || persisting? do
-      comments = get_and_flush_extracted_comments()
-
-      if extracting? do
-        Extractor.extract(env, backend, domain, msgctxt, id, comments)
-      end
-
-      if persisting? do
-        Extractor.persist_message(env, backend, domain, msgctxt, id, comments)
-      end
-    end
-
-    :ok
+    Extractor.extract_and_persist(
+      env,
+      backend,
+      domain,
+      msgctxt,
+      id,
+      &get_and_flush_extracted_comments/0
+    )
   end
 
   defp singular_extract_and_translate(env, backend, domain, msgctxt, msgid, bindings) do
