@@ -627,6 +627,12 @@ defmodule Mix.Tasks.Gettext.GenerateTest do
     assert pot_one =~ ~s(msgid "hello from app_one")
     assert pot_one =~ ~s(msgid "hello from app_two")
     refute File.exists?(Path.join(tmp_dir, "apps/app_two/priv/gettext"))
+
+    # References are relative to each application, as mix gettext.extract
+    # writes them (it compiles each application from its own directory).
+    assert pot_one =~ ~r{^#: lib/app_one\.ex:\d+$}m
+    assert pot_one =~ ~r{^#: lib/app_two\.ex:\d+$}m
+    refute pot_one =~ "apps/"
   end
 
   test "reenables the compilers configured by the apps of an umbrella project",

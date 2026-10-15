@@ -76,16 +76,18 @@ defmodule Mix.Tasks.Gettext.Generate do
       apps_paths = Mix.Project.apps_paths()
 
       # Applications may share a backend, so all the messages must be loaded
-      # before any application's POT files are generated.
+      # before any application's POT files are generated. Each application is
+      # read from its own directory so that the references in the POT files
+      # are relative to it, as with mix gettext.extract.
       apps_paths
-      |> Enum.map(fn {app, path} -> in_app(app, path, fn -> Mix.Project.compile_path() end) end)
-      |> fill_from_compiled_beams!()
+      |> Enum.map(fn {app, path} -> in_app(app, path, &fill_from_compiled_beams/0) end)
+      |> check_found!()
 
       for {app, path} <- apps_paths do
         in_app(app, path, fn -> generate(app, opts, args) end)
       end
     else
-      fill_from_compiled_beams!([Mix.Project.compile_path()])
+      check_found!([fill_from_compiled_beams()])
       generate(Mix.Project.config()[:app], opts, args)
     end
 
@@ -140,10 +142,17 @@ defmodule Mix.Tasks.Gettext.Generate do
     end
   end
 
-  defp fill_from_compiled_beams!(compile_paths) do
+  defp fill_from_compiled_beams do
+    compile_path = Mix.Project.compile_path()
+    {backends, messages} = Gettext.Extractor.fill_from_compiled_beams(compile_path)
+    {compile_path, backends, messages}
+  end
+
+  defp check_found!(results) do
+    compile_paths = for {compile_path, _backends, _messages} <- results, do: compile_path
+
     {backends, messages} =
-      Enum.reduce(compile_paths, {0, 0}, fn compile_path, {backends_acc, messages_acc} ->
-        {backends, messages} = Gettext.Extractor.fill_from_compiled_beams(compile_path)
+      Enum.reduce(results, {0, 0}, fn {_path, backends, messages}, {backends_acc, messages_acc} ->
         {backends_acc + backends, messages_acc + messages}
       end)
 
