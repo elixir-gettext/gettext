@@ -276,6 +276,16 @@ defmodule GettextTest do
   test "uses custom interpolator" do
     assert Gettext.gettext(GettextTest.TranslatorWithDuckInterpolator, "foo") ==
              "quack foo %{} quack"
+
+    # Translations without interpolation go through the custom interpolator
+    # too, instead of the literal map used with the default interpolator.
+    assert GettextTest.TranslatorWithDuckInterpolator.lgettext(
+             "it",
+             "default",
+             nil,
+             "Hello world",
+             %{}
+           ) == {:ok, "quack Ciao mondo %{} quack"}
   end
 
   test "use Gettext for defining backends is deprecated" do
