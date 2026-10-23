@@ -436,6 +436,42 @@ defmodule Gettext do
       ngettext("One error", "%{count} errors", 3)
       #=> "3 errors"
 
+  ### Reporting missing messages
+
+  Missing messages are returned silently, which can make untranslated messages
+  hard to find. To get notified, override `c:Gettext.Backend.handle_missing_translation/5`
+  and `c:Gettext.Backend.handle_missing_plural_translation/7` in your backend and
+  call `super` to keep the behaviour described above. For example, to log a
+  warning:
+
+      defmodule MyApp.Gettext do
+        use Gettext.Backend, otp_app: :my_app
+
+        require Logger
+
+        def handle_missing_translation(locale, domain, msgctxt, msgid, bindings) do
+          Logger.warning("Missing #{locale} message in #{domain}: #{inspect(msgid)}")
+          super(locale, domain, msgctxt, msgid, bindings)
+        end
+
+        def handle_missing_plural_translation(
+              locale,
+              domain,
+              msgctxt,
+              msgid,
+              msgid_plural,
+              n,
+              bindings
+            ) do
+          Logger.warning("Missing #{locale} message in #{domain}: #{inspect(msgid)}")
+          super(locale, domain, msgctxt, msgid, msgid_plural, n, bindings)
+        end
+      end
+
+  The callbacks run for every locale that lacks the message, including the one
+  your messages are written in, so you may want to skip the warning for that
+  locale. To fail instead of warning, raise from the callbacks.
+
   ### Empty messages
 
   When a `msgstr` is empty (`""`), the message is considered missing and the
