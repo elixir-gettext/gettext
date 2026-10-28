@@ -444,6 +444,106 @@ defmodule Gettext.MergerTest do
       assert new_message.msgctxt == "context"
     end
 
+    test "fuzzy matching includes the threshold and counts repeated Unicode graphemes" do
+      # Four matching graphemes out of four and eight, with no transpositions:
+      # the Jaro similarity is (1 + 1/2 + 1) / 3 = 5/6.
+      cases =
+        for suffix <- ["WXYZ", String.duplicate("e\u0301", 4), String.duplicate("👩‍👩‍👧‍👦", 4)],
+            do: {"abcd", "abcd" <> suffix, 5 / 6}
+
+      # Three repeated matching graphemes: (3/4 + 3/6 + 1) / 3 = 3/4.
+      for {old, new, score} <- [{"aaab", "aaaccc", 0.75}, {"aaaaaa", "aaab", 0.75} | cases],
+          {threshold, expected} <- [{score, ["translation"]}, {score + 1.0e-15, [""]}] do
+        old_po = %Messages{messages: [%Message.Singular{msgid: [old], msgstr: ["translation"]}]}
+        new_pot = %Messages{messages: [%Message.Singular{msgid: [new]}]}
+
+        assert {%Messages{messages: [message]}, _stats} =
+                 Merger.merge(
+                   old_po,
+                   new_pot,
+                   "en",
+                   [fuzzy: true, fuzzy_threshold: threshold],
+                   []
+                 )
+
+        assert message.msgstr == expected
+      end
+    end
+
+    test "fuzzy matching chooses the best score and keeps the first match on ties" do
+      old_po = %Messages{
+        messages: [
+          %Message.Singular{msgctxt: ["c"], msgid: ["abcd"], msgstr: ["second best"]},
+          %Message.Singular{msgctxt: ["b"], msgid: ["abcd"], msgstr: ["first best"]},
+          %Message.Singular{msgctxt: ["a"], msgid: ["abce"], msgstr: ["worse"]}
+        ]
+      }
+
+      new_pot = %Messages{messages: [%Message.Singular{msgid: ["abcd!"]}]}
+
+      assert {%Messages{messages: [message]}, %{fuzzy_matches: 1}} =
+               Merger.merge(old_po, new_pot, "en", [fuzzy: true, fuzzy_threshold: 0.7], [])
+
+      assert message.msgstr == ["first best"]
+    end
+
+    test "a zero fuzzy threshold also matches empty and dissimilar messages" do
+      for {old, new} <- [{"", "abcd"}, {"abcd", ""}, {"abcd", "wxyz"}] do
+        old_po = %Messages{messages: [%Message.Singular{msgid: [old], msgstr: ["translation"]}]}
+        new_pot = %Messages{messages: [%Message.Singular{msgid: [new]}]}
+
+        assert {%Messages{messages: [message]}, %{fuzzy_matches: 1}} =
+                 Merger.merge(old_po, new_pot, "en", [fuzzy: true, fuzzy_threshold: 0.0], [])
+
+        assert message.msgstr == ["translation"]
+      end
+    end
+
+    test "fuzzy matching preserves the scorer's handling of malformed UTF-8" do
+      for {old, new, translation} <- [
+            {[<<255>>], "z", [""]},
+            {["z"], <<255>>, [""]},
+            {["abc", <<255>>], "abc", ["translation"]},
+            {[<<255>>], <<255>>, ["translation"]},
+            {[<<255>>], "", [""]},
+            {[""], <<255>>, [""]}
+          ],
+          prefix <- [[], ["a!"]] do
+        old_po = %Messages{
+          messages:
+            Enum.with_index(old, fn text, i ->
+              %Message.Singular{msgctxt: [to_string(i)], msgid: [text], msgstr: ["translation"]}
+            end)
+        }
+
+        new_pot = %Messages{
+          messages: Enum.map(prefix ++ [new], &%Message.Singular{msgctxt: ["new"], msgid: [&1]})
+        }
+
+        # Older scorers accept malformed bytes; newer ones may raise, except
+        # for their equality/empty fast paths. Preserve the platform's behavior.
+        expected =
+          try do
+            for text <- prefix ++ [new], previous <- old, do: String.jaro_distance(previous, text)
+
+            :ok
+          rescue
+            error -> {:error, error.__struct__}
+          end
+
+        merge = fn -> Merger.merge(old_po, new_pot, "en", @opts, @gettext_config) end
+
+        case expected do
+          :ok ->
+            {po, _stats} = merge.()
+            assert List.last(po.messages).msgstr == translation
+
+          {:error, exception} ->
+            assert_raise exception, merge
+        end
+      end
+    end
+
     test "if there's a Plural-Forms header, it's used to determine number of plural forms" do
       old_po = %Messages{
         headers: [~s(Plural-Forms: nplurals=3;plural=n>1;)],
