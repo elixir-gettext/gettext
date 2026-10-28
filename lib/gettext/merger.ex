@@ -78,8 +78,9 @@ defmodule Gettext.Merger do
 
     old = Map.new(old, &{Message.key(&1), &1})
 
-    {messages, {stats, unused}} =
-      Enum.map_reduce(new, {stats, _unused = old}, fn message, {stats_acc, unused} ->
+    {messages, {stats, unused, _candidates}} =
+      Enum.map_reduce(new, {stats, _unused = old, nil}, fn message,
+                                                           {stats_acc, unused, candidates} ->
         key = Message.key(message)
         message = adjust_number_of_plural_forms(message, plural_forms)
 
@@ -88,10 +89,12 @@ defmodule Gettext.Merger do
             stats = update_in(stats_acc.exact_matches, &(&1 + 1))
 
             {merge_two_messages(exact_match, message, custom_flags_to_keep),
-             {stats, Map.delete(unused, key)}}
+             {stats, Map.delete(unused, key), candidates}}
 
           :error when fuzzy? ->
-            case maybe_merge_fuzzy(message, old, key, fuzzy_threshold) do
+            candidates = candidates || prepare_fuzzy_candidates(old, key)
+
+            case maybe_merge_fuzzy(message, candidates || old, key, fuzzy_threshold) do
               {:matched, match, fuzzy_merged} ->
                 stats_acc = update_in(stats_acc.fuzzy_matches, &(&1 + 1))
                 unused = Map.delete(unused, Message.key(match))
@@ -105,16 +108,16 @@ defmodule Gettext.Merger do
                     fuzzy_merged
                   end
 
-                {fuzzy_merged, {stats_acc, unused}}
+                {fuzzy_merged, {stats_acc, unused, candidates}}
 
               :nomatch ->
                 stats_acc = update_in(stats_acc.new, &(&1 + 1))
-                {message, {stats_acc, unused}}
+                {message, {stats_acc, unused, candidates}}
             end
 
           :error ->
             stats_acc = update_in(stats_acc.new, &(&1 + 1))
-            {message, {stats_acc, unused}}
+            {message, {stats_acc, unused, candidates}}
         end
       end)
 
@@ -143,15 +146,48 @@ defmodule Gettext.Merger do
     message
   end
 
-  defp maybe_merge_fuzzy(message, old, key, fuzzy_threshold) do
-    if matched = find_fuzzy_match(old, key, fuzzy_threshold) do
+  defp maybe_merge_fuzzy(message, candidates, key, fuzzy_threshold) do
+    if matched = find_fuzzy_match(candidates, key, fuzzy_threshold) do
       {:matched, matched, Fuzzy.merge(message, matched)}
     else
       :nomatch
     end
   end
 
-  defp find_fuzzy_match(messages, key, threshold) do
+  defp prepare_fuzzy_candidates(messages, {_context, msgid}) do
+    cond do
+      # Jaro handles empty strings without traversing the other string. Avoid
+      # indexing for these lookups, and leave malformed bytes to the scorer.
+      msgid == "" or not String.valid?(msgid) ->
+        nil
+
+      Enum.all?(messages, fn {{_context, old_msgid}, _message} -> String.valid?(old_msgid) end) ->
+        Enum.map(messages, fn {{_context, msgid}, message} ->
+          graphemes = String.graphemes(msgid)
+          {message, msgid, length(graphemes), Enum.frequencies(graphemes)}
+        end)
+
+      true ->
+        # Pruning or stopping at a perfect match could hide a scorer exception
+        # from another candidate. Preserve the full scan for malformed input.
+        messages
+    end
+  end
+
+  defp find_fuzzy_match(messages, key, threshold) when is_map(messages) do
+    find_unpruned_match(messages, key, threshold)
+  end
+
+  defp find_fuzzy_match(candidates, {_context, msgid} = key, threshold) do
+    if msgid == "" or not String.valid?(msgid) do
+      messages = Enum.map(candidates, fn {message, msgid, _, _} -> {{nil, msgid}, message} end)
+      find_unpruned_match(messages, key, threshold)
+    else
+      find_best_candidate(candidates, msgid, threshold)
+    end
+  end
+
+  defp find_unpruned_match(messages, key, threshold) do
     matcher = Fuzzy.matcher(threshold)
 
     candidates =
@@ -166,6 +202,60 @@ defmodule Gettext.Merger do
       {message, _match} = Enum.max_by(candidates, fn {_t, {:match, distance}} -> distance end)
       message
     end
+  end
+
+  defp find_best_candidate(candidates, msgid, threshold) do
+    graphemes = String.graphemes(msgid)
+    size = length(graphemes)
+    counts = graphemes |> Enum.frequencies() |> Enum.sort_by(fn {_, count} -> -count end)
+
+    {message, _distance} =
+      Enum.reduce_while(candidates, {nil, threshold}, fn
+        {message, old_msgid, old_size, old_counts}, {best, best_distance} = acc ->
+          if jaro_upper_bound(min(size, old_size), size, old_size) >= best_distance and
+               enough_common_graphemes?(counts, old_counts, size, old_size, size, best_distance) do
+            distance = String.jaro_distance(old_msgid, msgid)
+
+            if distance >= best_distance and (is_nil(best) or distance > best_distance) do
+              if distance == 1.0,
+                do: {:halt, {message, distance}},
+                else: {:cont, {message, distance}}
+            else
+              {:cont, acc}
+            end
+          else
+            {:cont, acc}
+          end
+      end)
+
+    message
+  end
+
+  # Matching graphemes cannot outnumber either string or their shared grapheme
+  # counts. Assuming no transpositions gives an upper bound on Jaro similarity.
+  # Keep the scorer's arithmetic order so inclusive thresholds stay inclusive.
+  defp jaro_upper_bound(_matches, 0, 0), do: 1.0
+  defp jaro_upper_bound(_matches, 0, _size), do: 0.0
+  defp jaro_upper_bound(_matches, _size, 0), do: 0.0
+
+  defp jaro_upper_bound(matches, size, old_size),
+    do: (matches / size + matches / old_size + 1.0) / 3
+
+  defp enough_common_graphemes?([], _old, _size, _old_size, _remaining, _target), do: true
+
+  defp enough_common_graphemes?(
+         [{grapheme, count} | rest],
+         old,
+         size,
+         old_size,
+         remaining,
+         target
+       ) do
+    missing = max(count - Map.get(old, grapheme, 0), 0)
+    remaining = remaining - missing
+
+    (missing == 0 or jaro_upper_bound(min(remaining, old_size), size, old_size) >= target) and
+      enough_common_graphemes?(rest, old, size, old_size, remaining, target)
   end
 
   # msgid, msgid_plural: they're the same
