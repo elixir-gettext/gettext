@@ -275,6 +275,15 @@ defmodule Mix.Tasks.Gettext.MergeTest do
     write_file(Path.join(tmp_dir, "fr/LC_MESSAGES/foo.po"), "")
     write_file(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po"), "")
 
+    orphan_contents = """
+    # Keep this translation even without a template.
+    msgid "orphan"
+    msgstr "orphelin"
+    """
+
+    write_file(Path.join(tmp_dir, "fr/LC_MESSAGES/orphan.po"), orphan_contents)
+    File.mkdir_p!(Path.join(tmp_dir, "de"))
+
     contents = """
     msgid "foo"
     msgstr ""
@@ -282,13 +291,41 @@ defmodule Mix.Tasks.Gettext.MergeTest do
 
     write_file(Path.join(tmp_dir, "foo.pot"), contents)
 
+    write_file(Path.join(tmp_dir, "bar.pot"), """
+    msgid "another message"
+    msgstr ""
+    """)
+
     output = capture_io(fn -> run([tmp_dir]) end)
 
     assert output =~ ~r{Wrote .*/fr/LC_MESSAGES/foo.po}
     assert output =~ ~r{Wrote .*/it/LC_MESSAGES/foo.po}
+    assert output =~ ~r{Warning: PO file .*/fr/LC_MESSAGES/orphan.po has no matching POT file}
 
     assert File.read!(Path.join(tmp_dir, "fr/LC_MESSAGES/foo.po")) == contents
     assert File.read!(Path.join(tmp_dir, "it/LC_MESSAGES/foo.po")) == contents
+
+    for locale <- ["fr", "it", "de"] do
+      assert File.read!(Path.join(tmp_dir, "#{locale}/LC_MESSAGES/bar.po")) =~ """
+             msgid "another message"
+             msgstr ""
+             """
+    end
+
+    assert File.read!(Path.join(tmp_dir, "de/LC_MESSAGES/foo.po")) =~ contents
+    assert File.read!(Path.join(tmp_dir, "fr/LC_MESSAGES/orphan.po")) == orphan_contents
+  end
+
+  @tag :tmp_dir
+  test "warns about orphan PO files even when no POT files exist", %{tmp_dir: tmp_dir} do
+    write_file(Path.join(tmp_dir, "fr/LC_MESSAGES/orphan.po"), "")
+    write_file(Path.join(tmp_dir, "it/LC_MESSAGES/other.po"), "")
+
+    output = capture_io(fn -> run([tmp_dir]) end)
+
+    assert output =~ ~r{Warning: PO file .*/fr/LC_MESSAGES/orphan.po has no matching POT file}
+    assert output =~ ~r{Warning: PO file .*/it/LC_MESSAGES/other.po has no matching POT file}
+    refute output =~ "Wrote"
   end
 
   @tag :tmp_dir

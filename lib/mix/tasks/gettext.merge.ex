@@ -191,17 +191,20 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp merge_all_locale_dirs(pot_dir, opts, gettext_config) do
-    pot_dir
-    |> File.ls!()
-    |> Enum.filter(&File.dir?(Path.join(pot_dir, &1)))
+    locales = pot_dir |> File.ls!() |> Enum.filter(&File.dir?(Path.join(pot_dir, &1)))
+    pot_files = pot_dir |> Path.join("*.pot") |> Path.wildcard()
+
+    for(locale <- locales, pot_file <- pot_files, do: {locale, pot_file})
     |> Task.async_stream(
-      fn locale ->
-        merge_dirs(locale_dir(pot_dir, locale), pot_dir, locale, opts, gettext_config)
+      fn {locale, pot_file} ->
+        merge_file(pot_file, locale_dir(pot_dir, locale), locale, opts, gettext_config)
       end,
       ordered: false,
       timeout: :infinity
     )
     |> Stream.run()
+
+    Enum.each(locales, &warn_for_po_without_pot(locale_dir(pot_dir, &1), pot_dir))
   end
 
   def locale_dir(pot_dir, locale) do
@@ -209,11 +212,7 @@ defmodule Mix.Tasks.Gettext.Merge do
   end
 
   defp merge_dirs(po_dir, pot_dir, locale, opts, gettext_config) do
-    merger = fn pot_file ->
-      po_file = find_matching_po(pot_file, po_dir)
-      {contents, stats} = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
-      write_file(po_file, contents, stats)
-    end
+    merger = &merge_file(&1, po_dir, locale, opts, gettext_config)
 
     pot_dir
     |> Path.join("*.pot")
@@ -222,6 +221,12 @@ defmodule Mix.Tasks.Gettext.Merge do
     |> Stream.run()
 
     warn_for_po_without_pot(po_dir, pot_dir)
+  end
+
+  defp merge_file(pot_file, po_dir, locale, opts, gettext_config) do
+    po_file = find_matching_po(pot_file, po_dir)
+    {contents, stats} = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
+    write_file(po_file, contents, stats)
   end
 
   defp find_matching_po(pot_file, po_dir) do
