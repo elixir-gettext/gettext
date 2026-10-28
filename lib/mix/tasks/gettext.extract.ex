@@ -150,7 +150,7 @@ defmodule Mix.Tasks.Gettext.Extract do
     |> Enum.uniq()
     |> Task.async_stream(&Mix.Tasks.Gettext.Merge.run([&1 | argv]),
       ordered: false,
-      timeout: 120_000
+      timeout: :infinity
     )
     |> Stream.run()
   end
