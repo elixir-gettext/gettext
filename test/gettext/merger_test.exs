@@ -5,6 +5,7 @@ defmodule Gettext.MergerTest do
 
   alias Expo.Message
   alias Expo.Messages
+  alias Expo.PO
   alias Gettext.Merger
 
   @opts fuzzy: true, fuzzy_threshold: 0.8
@@ -612,7 +613,8 @@ defmodule Gettext.MergerTest do
     msgstr ""
     """)
 
-    {new_po, _stats} = Merger.new_po_file(new_po_path, pot_path, "it", [plural_forms: 1] ++ @opts)
+    {new_po, _stats} =
+      Merger.new_po_file(new_po_path, PO.parse_file!(pot_path), "it", [plural_forms: 1] ++ @opts)
 
     assert new_po.file == new_po_path
     assert new_po.headers == ["", "Language: it\n", "Plural-Forms: nplurals=1\n"]
