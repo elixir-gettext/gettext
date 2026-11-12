@@ -165,7 +165,7 @@ defmodule Mix.Tasks.Gettext.Merge do
       locale = locale_from_path(po_file)
 
       {contents, stats} =
-        merge_files(po_file, reference_file, locale, merging_opts, gettext_config)
+        merge_files(po_file, PO.parse_file!(reference_file), locale, merging_opts, gettext_config)
 
       write_file(po_file, contents, stats)
     else
@@ -178,50 +178,44 @@ defmodule Mix.Tasks.Gettext.Merge do
     merging_opts = validate_merging_opts!(opts, gettext_config)
 
     if locale = opts[:locale] do
-      merge_locale_dir(dir, locale, merging_opts, gettext_config)
+      create_missing_locale_dir(locale_dir(dir, locale))
+      merge_locale_dirs(dir, [locale], merging_opts, gettext_config)
     else
-      merge_all_locale_dirs(dir, merging_opts, gettext_config)
+      locales = dir |> File.ls!() |> Enum.filter(&File.dir?(Path.join(dir, &1)))
+      merge_locale_dirs(dir, locales, merging_opts, gettext_config)
     end
   end
 
-  defp merge_locale_dir(pot_dir, locale, opts, gettext_config) do
-    locale_dir = locale_dir(pot_dir, locale)
-    create_missing_locale_dir(locale_dir)
-    merge_dirs(locale_dir, pot_dir, locale, opts, gettext_config)
-  end
+  # Each POT file is parsed once and shared by all locales.
+  defp merge_locale_dirs(pot_dir, locales, opts, gettext_config) do
+    pots =
+      pot_dir
+      |> Path.join("*.pot")
+      |> Path.wildcard()
+      |> Task.async_stream(&{&1, PO.parse_file!(&1)}, timeout: :infinity)
+      |> Enum.map(fn {:ok, pot} -> pot end)
 
-  defp merge_all_locale_dirs(pot_dir, opts, gettext_config) do
-    pot_dir
-    |> File.ls!()
-    |> Enum.filter(&File.dir?(Path.join(pot_dir, &1)))
+    for(locale <- locales, {pot_file, pot} <- pots, do: {locale, pot_file, pot})
     |> Task.async_stream(
-      fn locale ->
-        merge_dirs(locale_dir(pot_dir, locale), pot_dir, locale, opts, gettext_config)
+      fn {locale, pot_file, pot} ->
+        merge_file(pot_file, pot, locale_dir(pot_dir, locale), locale, opts, gettext_config)
       end,
       ordered: false,
       timeout: :infinity
     )
     |> Stream.run()
+
+    Enum.each(locales, &warn_for_po_without_pot(locale_dir(pot_dir, &1), pot_dir))
   end
 
   def locale_dir(pot_dir, locale) do
     Path.join([pot_dir, locale, "LC_MESSAGES"])
   end
 
-  defp merge_dirs(po_dir, pot_dir, locale, opts, gettext_config) do
-    merger = fn pot_file ->
-      po_file = find_matching_po(pot_file, po_dir)
-      {contents, stats} = merge_or_create(pot_file, po_file, locale, opts, gettext_config)
-      write_file(po_file, contents, stats)
-    end
-
-    pot_dir
-    |> Path.join("*.pot")
-    |> Path.wildcard()
-    |> Task.async_stream(merger, ordered: false, timeout: :infinity)
-    |> Stream.run()
-
-    warn_for_po_without_pot(po_dir, pot_dir)
+  defp merge_file(pot_file, pot, po_dir, locale, opts, gettext_config) do
+    po_file = find_matching_po(pot_file, po_dir)
+    {contents, stats} = merge_or_create(pot, po_file, locale, opts, gettext_config)
+    write_file(po_file, contents, stats)
   end
 
   defp find_matching_po(pot_file, po_dir) do
@@ -229,11 +223,11 @@ defmodule Mix.Tasks.Gettext.Merge do
     Path.join(po_dir, "#{domain}.po")
   end
 
-  defp merge_or_create(pot_file, po_file, locale, opts, gettext_config) do
+  defp merge_or_create(pot, po_file, locale, opts, gettext_config) do
     if File.regular?(po_file) do
-      merge_files(po_file, pot_file, locale, opts, gettext_config)
+      merge_files(po_file, pot, locale, opts, gettext_config)
     else
-      {new_po, stats} = Merger.new_po_file(po_file, pot_file, locale, opts)
+      {new_po, stats} = Merger.new_po_file(po_file, pot, locale, opts)
 
       {new_po
        |> Merger.prune_references(gettext_config)
@@ -241,15 +235,9 @@ defmodule Mix.Tasks.Gettext.Merge do
     end
   end
 
-  defp merge_files(po_file, pot_file, locale, opts, gettext_config) do
+  defp merge_files(po_file, pot, locale, opts, gettext_config) do
     {merged, stats} =
-      Merger.merge(
-        PO.parse_file!(po_file),
-        PO.parse_file!(pot_file),
-        locale,
-        opts,
-        gettext_config
-      )
+      Merger.merge(PO.parse_file!(po_file), pot, locale, opts, gettext_config)
 
     {merged
      |> Merger.prune_references(gettext_config)
